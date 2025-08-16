@@ -1,0 +1,5 @@
+# Artifact Hub repository metadata file
+repositoryID: 618dca98-9d56-4e4b-b71a-7b10e289c266
+owners: # (optional, used to claim repository ownership)
+  - name: slydlake
+    email: slydlake@gmail.com
