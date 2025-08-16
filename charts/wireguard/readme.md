@@ -17,15 +17,15 @@ You have to set a namespace with privileged security:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name:  wireguard-test
+  name:  wireguard
   labels:
     pod-security.kubernetes.io/enforce: privileged
 ```
 Or you can create this with:
 ```bash
-kubectl create namespace wireguard-test && kubectl label namespace wireguard-test pod-security.kubernetes.io/enforce=privileged --overwrite
+kubectl create namespace wireguard && kubectl label namespace wireguard pod-security.kubernetes.io/enforce=privileged --overwrite
 ```
-You can set the wg0.conf as a secret. This will use instead the wireguard.server.config or wireguard.client.config settings.
+You can set your own wg0.conf file as a secret. If you do this, this will ignore the wireguard.server.config or wireguard.client.config in the default values.
 
 ```yaml
 #wireguard-test-secret.yaml
@@ -33,7 +33,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name:  wg-config
-  namespace: wireguard-test
+  namespace: wireguard
 type: opaque
 stringData:
   wg0.conf: |-
@@ -42,30 +42,42 @@ stringData:
 ```
 Apply it it the cluster:
 ```bash
-kubectl apply -f ./wireguard-test-secret.yaml
+kubectl apply -f ./wireguard-secret.yaml
 ```
 
 ## Server mode
 The server mode could be used with default values. You just have to enable it
 ```bash
-helm install client slydlake/wireguard -n wireguard --set wireguard.server.enabled=true
+helm install server slydlake/wireguard -n wireguard --set wireguard.server.enabled=true
 ```
 
 ## Client mode
-In the client mode, you have to set a few settings. The important one is to use the secret, to set the PrivateKey, PublicKey and PresharedKey. You get these information from the WireGuard server peer conf.
+In the client mode, you have to set a few settings. The important one is create a secret that incluces PrivateKey, PublicKey and PresharedKey as Key. You get these information from the WireGuard server peer conf.
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: client-secret
-  namespace: wireguard-test
+  namespace: wireguard
 type: Opaque
 stringData:
   PrivateKey: ...
   PublicKey: ...
   PresharedKey: ...
 ```
-After you set the secret to your cluster you can install it like this:
+After you apply the secret to your cluster you can install the client like this (replace the values with yours):
 ```bash
 helm install client slydlake/wireguard -n wireguard --set wireguard.client.enabled=true,wireguard.client.config.existingSecret=client-secret,wireguard.client.config.address="10.13.13.2/24",wireguard.client.config.endpoint="vpn.example.com:51820"
+```
+
+
+## Bonus
+Output the created peer configurations. Just replace the "namespace" and "releasename" with your values.
+```bash
+export namespace=wireguard
+export releasename=server
+
+export POD=$(kubectl -n $namespace get pods -l "app.kubernetes.io/name=wireguard,app.kubernetes.io/instance=$releasename" -o jsonpath='{.items[0].metadata.name}')
+
+kubectl -n $namespace exec "$POD" -- sh -c 'for peer in "$@"; do echo -e "\n\n--- Peer ${peer} ---"; cat "/config/peer_${peer}/peer_${peer}.conf"; done' sh $(kubectl -n $namespace get pod "$POD" -o jsonpath="{.spec.containers[0].env[?(@.name=='PEERS')].value}" | jq -r -R 'split(",")[]')
 ```
