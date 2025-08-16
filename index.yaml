@@ -1,0 +1,19 @@
+apiVersion: v1
+entries:
+  wireguard:
+  - apiVersion: v2
+    created: "2025-08-16T15:41:49.198842058Z"
+    description: Using the offical linuxserver/wireguard image with almost any environment
+      variables for K8S. Supporting server and client mode.
+    digest: 310f68379e5e5b100b4f252ab1652544c63d3dd3745bc0987343f1321a440402
+    maintainers:
+    - name: slydlake
+    name: wireguard
+    sources:
+    - https://github.com/linuxserver/docker-wireguard
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.0/wireguard-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-08-16T15:41:49.198847388Z"
