@@ -3,8 +3,21 @@ name: wireguard
 description: Using the offical linuxserver/wireguard image with almost any environment variables for K8S. Supporting server and client mode.
 type: application
 version: 0.1.1
+icon: https://
+home: https://github.com/slydlake/helm-charts
 maintainers:
   - name: slydlake
 sources:
   - https://github.com/linuxserver/docker-wireguard
   - https://github.com/slydlake/helm-charts
+annotations:
+  category: Database
+  images: |
+    - name: wireguard
+      image: docker.io/linuxserver/wireguard:latest
+keywords:
+  - wireguard
+  - vpn
+  - linuxserver
+  - client
+  - server
