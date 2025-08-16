@@ -65,7 +65,7 @@ wireguard:
   # server mode
   server:
     # This enables the WireGuard server mode, cannot be enabled at the same time as wireguard.client.enabled
-    enabled: true
+    enabled: false
 
     # persistent volume claim for wireguard configuration
     storage:
