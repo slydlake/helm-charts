@@ -2,7 +2,7 @@ apiVersion: v2
 name: wireguard
 description: Using the offical linuxserver/wireguard image with almost any environment variables for K8S. Supporting server and client mode.
 type: application
-version: 0.1.2
+version: 0.1.3
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
