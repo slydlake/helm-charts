@@ -13,7 +13,6 @@ spec:
       targetPort: wg-port
       protocol: UDP
       name: wg-port
-      port: {{ .Values.service.port }}
       {{- if .Values.service.nodePort }}
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
