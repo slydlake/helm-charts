@@ -1,0 +1,53 @@
+WireGuard has been installed.
+{{- if .Values.wireguard.server.enabled }}
+Note: WireGuard uses UDP.
+
+
+1) Determine external endpoint
+{{- if contains "LoadBalancer" .Values.service.type }}
+  Type: LoadBalancer
+  It may take a few minutes until the external IP/hostname is available.
+  Watch:
+    kubectl -n {{ .Release.Namespace }} get svc -w {{ include "wireguard.fullname" . }}
+
+  Read IP/hostname and print endpoint:
+    export EXTERNAL_IP=$(kubectl -n {{ .Release.Namespace }} get svc {{ include "wireguard.fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    export EXTERNAL_HOSTNAME=$(kubectl -n {{ .Release.Namespace }} get svc {{ include "wireguard.fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+    echo "WireGuard UDP Endpoint: ${EXTERNAL_IP:-$EXTERNAL_HOSTNAME}:{{ .Values.service.port }}"
+{{- else if contains "NodePort" .Values.service.type }}
+  Type: NodePort
+  Determine NodePort and node IP:
+    export NODE_PORT=$(kubectl -n {{ .Release.Namespace }} get svc {{ include "wireguard.fullname" . }} -o jsonpath='{.spec.ports[0].nodePort}')
+    export NODE_IP=$(kubectl -n {{ .Release.Namespace }} get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' | awk '{print $1}')
+    echo "WireGuard UDP Endpoint: ${NODE_IP}:$NODE_PORT"
+  Note: Ensure the selected nodes are externally reachable and the firewall allows UDP on the NodePort.
+{{- else }}
+  Type: ClusterIP
+  The service is only reachable inside the cluster. For external access, set service.type to NodePort or LoadBalancer.
+{{- end }}
+
+2) Check server status (wg0 interface)
+  Find the POD and check link status:
+    export POD=$(kubectl -n {{ .Release.Namespace }} get pods -l "app.kubernetes.io/name={{ include "wireguard.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath='{.items[0].metadata.name}')
+    kubectl -n {{ .Release.Namespace }} exec "$POD" -- sh -c "ip link show dev wg0 | grep -s up" && echo "wg0 up" || echo "wg0 down"
+
+3) Show peer configuration files (wg0)
+  Print all peer details:
+    export POD=$(kubectl -n {{ .Release.Namespace }} get pods -l "app.kubernetes.io/name={{ include "wireguard.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath='{.items[0].metadata.name}')
+    kubectl -n {{ .Release.Namespace }} exec "$POD" -- sh -c 'for peer in "$@"; do echo -e "\n\n--- Peer ${peer} ---"; cat "/config/peer_${peer}/peer_${peer}.conf"; done' sh $(kubectl -n {{ .Release.Namespace }} get pod "$POD" -o jsonpath="{.spec.containers[0].env[?(@.name=='PEERS')].value}" | jq -r -R 'split(",")[]')
+
+  Alternative show all conf as QR codes:
+    export POD=$(kubectl -n {{ .Release.Namespace }} get pods -l "app.kubernetes.io/name={{ include "wireguard.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath='{.items[0].metadata.name}')
+    kubectl -n {{ .Release.Namespace }} exec "$POD" -- sh -c 'for peer in "$@"; do /app/show-peer ${peer}; done' sh $(kubectl -n {{ .Release.Namespace }} get pod "$POD" -o jsonpath="{.spec.containers[0].env[?(@.name=='PEERS')].value}" | jq -r -R 'split(",")[]')
+
+4) Client note
+  In your WireGuard client, set the endpoint to the host:port printed above.
+  The port is {{ .Values.service.port }} (UDP). Make sure it is open in any firewalls.
+{{- else }}
+
+
+1) Check client status
+  Find the POD and check status:
+    export POD=$(kubectl -n {{ .Release.Namespace }} get pods -l "app.kubernetes.io/name={{ include "wireguard.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath='{.items[0].metadata.name}')
+    kubectl -n {{ .Release.Namespace }} exec "$POD" -- sh -c "wg show"
+{{- end }}

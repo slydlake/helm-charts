@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "wireguard.fullname" . }}-test-udp"
+  labels:
+    {{- include "wireguard.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: netcat
+      image: praqma/network-multitool
+      command: ["sh", "-c"]
+      args:
+        - >
+          HOST='{{ include "wireguard.fullname" . }}';
+          PORT='{{ .Values.service.port }}';
+          echo 'ping' | nc -u -w2 "$HOST" "$PORT";
+          rc=$?;
+          exit $rc
+  restartPolicy: Never

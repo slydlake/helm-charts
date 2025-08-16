@@ -1,0 +1,181 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wireguard.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wireguard.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "wireguard.selectorLabels" . | nindent 6 }}
+  {{- if .Values.updateStrategy }}
+  strategy: {{- toYaml .Values.updateStrategy | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }} 
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "wireguard.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "wireguard.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+          {{ if not (empty .Values.securityContext) }}
+            {{ toYaml .Values.securityContext | nindent 12 }}
+          {{ else if .Values.wireguard.server.enabled }}
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_MODULE
+            privileged: true
+            # readOnlyRootFilesystem: true
+          {{ else }}
+            privileged: true
+          {{ end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if (empty .Values.wireguard.existingSecret) }}
+          env:
+            - name: PEERDNS
+              value: {{ if .Values.wireguard.dns }}"{{ .Values.wireguard.dns }}"{{ else }}"auto"{{ end }}
+            - name: TZ
+              value: {{ if .Values.wireguard.timezone }}"{{ .Values.wireguard.timezone }}"{{ else }}"Etc/UTC"{{ end }}
+              {{- if .Values.wireguard.server.enabled }}
+            - name: ALLOWED_IPS
+              value: {{ if .Values.wireguard.allowedIPs }}"{{ .Values.wireguard.allowedIPs }}"{{ else }}"0.0.0.0/0"{{ end }}
+              {{- end }}
+            {{- if .Values.wireguard.server.enabled }}
+            - name: SERVERURL
+              value: {{ if .Values.wireguard.server.config.address }}"{{ .Values.wireguard.server.config.address }}"{{ else }}"auto"{{ end }}
+            - name: SERVERPORT
+              value: "{{ .Values.wireguard.listenPort }}"
+            - name: INTERNAL_SUBNET
+              value: {{ if .Values.wireguard.server.config.subnet }}"{{ .Values.wireguard.server.config.subnet }}"{{ else }}"10.13.13.0/24"{{ end }}
+            - name: PEER_DNS
+              value: {{ if .Values.wireguard.dns }}"{{ .Values.wireguard.dns }}"{{ else }}"auto"{{ end }}
+            - name: PEERS
+              value: {{ if .Values.wireguard.server.config.peers }}"{{ .Values.wireguard.server.config.peers }}"{{ else }}"1"{{ end }}
+            - name: KEEPALIVE_PEERS
+              value: {{ if .Values.wireguard.keepalivePeers }}"{{ .Values.wireguard.keepalivePeers }}"{{ else }}"all"{{ end }}
+            - name: LOG_CONFS
+              value:  {{ if .Values.wireguard.server.config.peerQR }}"{{ .Values.wireguard.server.config.peerQR }}"{{ else }}"false"{{ end }}
+            {{- end }}
+            {{- if .Values.wireguard.extraEnvVars }}
+            {{- toYaml .Values.wireguard.extraEnvVars | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          envFrom:
+            {{- if .Values.wireguard.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ .Values.wireguard.extraEnvVarsCM }}
+            {{- end }}
+            {{- if .Values.wireguard.extraEnvVarsSecret }}
+            - secretRef:
+                name: {{ .Values.wireguard.extraEnvVarsSecret }}
+            {{- end }}
+          {{- if .Values.wireguard.server.enabled }}
+          ports:
+            - name: wg-port
+              containerPort: {{ .Values.service.port }}
+              protocol: UDP
+          {{- end }}
+          {{- if .Values.customLivenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.customLivenessProbe | nindent 12 }}
+          {{- else if .Values.livenessProbe.enabled }}
+          livenessProbe: 
+            {{- toYaml (omit .Values.livenessProbe "enabled") | nindent 12 }}
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - 'ip link show dev wg0 | grep -s up'
+          {{- end }}
+          {{- if .Values.customReadinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.customReadinessProbe | nindent 12 }}
+          {{- else if .Values.readinessProbe.enabled }}
+          readinessProbe: 
+            {{- toYaml (omit .Values.readinessProbe "enabled") | nindent 12 }}
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'ip link show dev wg0 | grep -s up'
+          {{- end }}
+          {{- if .Values.customStartupProbe }}
+          startupProbe:
+            {{- toYaml .Values.customStartupProbe | nindent 12 }}
+          {{- else if .Values.startupProbe.enabled }}
+          startupProbe:
+            {{- toYaml (omit .Values.startupProbe "enabled") | nindent 12 }}
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'ip link show dev wg0 | grep -s up'
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: {{ include "wireguard.fullname" . }}
+              mountPath: {{ if .Values.wireguard.server.enabled }} "/config" {{ else }} "/config/wg_confs" {{ end }}
+            {{- if .Values.extraVolumeMounts }}
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+      volumes:
+      - name: {{ include "wireguard.fullname" . }}
+      {{- if .Values.wireguard.existingSecret }}
+        secret:
+          secretName: {{ .Values.wireguard.existingSecret }}
+      {{- else }}
+        {{- if .Values.wireguard.server.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ if .Values.wireguard.server.storage.existingClaim }}{{ .Values.wireguard.server.storage.existingClaim }}{{ else }}{{ include "wireguard.fullname" . }}{{ end }}
+        {{- else if .Values.wireguard.client.enabled }}
+        secret:
+          secretName: {{ include "wireguard.fullname" . }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.extraVolumes }}
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

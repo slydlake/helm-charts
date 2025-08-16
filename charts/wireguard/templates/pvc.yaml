@@ -1,0 +1,37 @@
+{{- if and .Values.wireguard.server.enabled (empty .Values.wireguard.server.storage.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "wireguard.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.wireguard.server.storage.labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- $ann := .Values.wireguard.server.storage.annotations }}
+  {{- $rp := .Values.wireguard.server.storage.resourcePolicy }}
+  {{- if or $ann $rp }}
+  annotations:
+    {{- if $ann }}
+    {{- toYaml $ann | nindent 4 }}
+    {{- end }}
+    {{- if $rp }}
+    helm.sh/resource-policy: {{ $rp | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  accessModes:
+  {{- range .Values.wireguard.server.storage.accessModes }}
+    - {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.wireguard.server.storage.size | quote }}
+  {{- if .Values.wireguard.server.storage.storageClass }}
+  storageClassName: {{ .Values.wireguard.server.storage.storageClass | quote }}
+  {{- end }}
+  {{- if .Values.wireguard.server.storage.selector }}
+  selector:
+    {{- toYaml .Values.wireguard.server.storage.selector | nindent 4 }}
+  {{- end }}
+{{- end }}

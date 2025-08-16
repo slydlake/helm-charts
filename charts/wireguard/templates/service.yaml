@@ -1,0 +1,22 @@
+{{- if (.Values.wireguard.server.enabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wireguard.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wireguard.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: wg-port
+      protocol: UDP
+      name: wg-port
+      port: {{ .Values.service.port }}
+      {{- if .Values.service.nodePort }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "wireguard.selectorLabels" . | nindent 4 }}
+{{- end }}
