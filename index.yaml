@@ -2,6 +2,34 @@ apiVersion: v1
 entries:
   wireguard:
   - annotations:
+      category: Security
+      images: |
+        - name: wireguard
+          image: docker.io/linuxserver/wireguard:latest
+    apiVersion: v2
+    created: "2025-08-16T18:02:23.882331661Z"
+    description: Using the offical linuxserver/wireguard image with almost any environment
+      variables for K8S. Supporting server and client mode.
+    digest: a95904419ace9724753077242974565bc0cff4d0bdb307d9f0678c3b06a7ae55
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - linuxserver
+    - client
+    - server
+    maintainers:
+    - name: slydlake
+    name: wireguard
+    sources:
+    - https://github.com/linuxserver/docker-wireguard
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.5/wireguard-0.1.5.tgz
+    version: 0.1.5
+  - annotations:
       category: Database
       images: |
         - name: wireguard
@@ -115,4 +143,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.0/wireguard-0.1.0.tgz
     version: 0.1.0
-generated: "2025-08-16T17:43:45.538385934Z"
+generated: "2025-08-16T18:02:23.882365464Z"
