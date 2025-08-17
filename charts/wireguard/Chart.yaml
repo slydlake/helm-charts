@@ -21,7 +21,7 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-    description: updated sample yaml files (values.client.test.yaml, values.server.test.yaml)
+    description: updated sample yaml files values.client.test.yaml and values.server.test.yaml
     - kind: changed
     description: updated readme
     - kind: added
