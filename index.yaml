@@ -1,5 +1,45 @@
 apiVersion: v1
 entries:
+  wg-easy:
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: added
+          description: Initial release of wg-easy chart.
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wireguard
+          image: ghcr.io/wg-easy/wg-easy:latest
+      artifacthub.io/license: GPL-3.0
+      artifacthub.io/links: |
+        - name: GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wg-easy
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+      category: Security
+    apiVersion: v2
+    appVersion: 15.1.0
+    created: "2025-08-17T19:53:12.199253206Z"
+    description: Using the offical wg-easy/wg-easy image with almost any environment
+      variables for K8s. Supporting Init Mode.
+    digest: 4f0b31fc448923fb4362ec07c803517d1ff3d939eb993e36695bbbbcc4553a53
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - wg-easy
+    maintainers:
+    - name: slydlake
+    name: wg-easy
+    sources:
+    - https://wg-easy.github.io/wg-easy/latest/
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wg-easy-0.1.0/wg-easy-0.1.0.tgz
+    version: 0.1.0
   wireguard:
   - annotations:
       artifacthub.io/category: security
@@ -249,4 +289,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.0/wireguard-0.1.0.tgz
     version: 0.1.0
-generated: "2025-08-17T19:51:46.050268586Z"
+generated: "2025-08-17T19:53:12.199276249Z"
