@@ -60,7 +60,7 @@ wireguard:
   # Use existing secret for the wireguard configuration. The secret has to contain the stringData wg0.conf
   # This must contain the FULL wireguard configuration file (in client or server mode)
   # NOTE: When it's set the wireguard.server.config or wireguard.client.config are ignored
-  existingSecret: ""
+  #existingSecret: "client-secret-full"
 
   # server mode
   server:
@@ -99,7 +99,7 @@ wireguard:
       # PGID: 1000
 
       # Number of peers to create confs for. Required for server mode. Can also be a list of names: myPC,myPhone,myTablet (alphanumeric only). Default is 1
-      peers: "test"
+      # peers: "test"
 
       # Internal subnet for the wireguard and server and peers (only change if it clashes). default 10.13.13.0/24
       # subnet: "10.13.13.0/24"
@@ -128,7 +128,7 @@ wireguard:
       # mtu: 1420
 
       # Persistent keepalive in seconds, 0 to disable, default is 25
-      # persistentKeepalive: 25
+      persistentKeepalive: 25
 
       # Endpoint ip or hostname with port of the WireGuard server
       endpoint: "server.wireguard.svc.cluster.local:51820"

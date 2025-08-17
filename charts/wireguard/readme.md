@@ -53,7 +53,9 @@ helm install server slydlake/wireguard -n wireguard --set wireguard.server.enabl
 
 ## Client mode
 In the client mode, you have to set a few settings. The important one is create a secret that incluces privatekey, publickey and presharedkey as Key. You get these information from the WireGuard server peer conf.
+You can find a sample of the secret file (in both variants) in the repo.
 ```yaml
+# secret.client.test.yaml
 apiVersion: v1
 kind: Secret
 metadata:
