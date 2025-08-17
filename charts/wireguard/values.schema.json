@@ -119,7 +119,7 @@
               "title": "Wireguard Client Config",
               "description": "Configuration for the Wireguard client.",
               "properties": {
-                "existingSecret": { "type": "string", "title": "Existing Client Secret", "description": "Secret name for the peer configuration (Keys: interfacePrivateKey, peerPublicKey, peerPresharedKey)." },
+                "existingSecret": { "type": "string", "title": "Existing Client Secret", "description": "Secret name for the peer configuration (Keys: privatekey, publickey, presharedkey)." },
                 "address": { "type": "string", "title": "Client Address", "description": "Address for the Wireguard peer (e.g. 10.13.13.2/24)." },
                 "mtu": { "type": "integer", "title": "MTU", "description": "MTU value (Default 1420)." },
                 "persistentKeepalive": { "type": "integer", "title": "Persistent Keepalive", "description": "Keepalive in seconds (0 to disable, Default 25)." },

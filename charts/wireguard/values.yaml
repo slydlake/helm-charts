@@ -89,7 +89,8 @@ wireguard:
 
     # Use this to set values of the wireguard configuration instead of existingSecret
     config:
-      # External IP or domain name. If set to auto, the container will try to determine and set the external IP automatically
+      # External IP or domain name. If set to auto, the container will try to determine and set the external IP automatically (for a static IP address)
+      # This address will be used by the WireGuard clients to connect to the server
       address: vpn.example.com
 
       # see for more information https://github.com/linuxserver/docker-wireguard?tab=readme-ov-file#user--group-identifiers
@@ -118,7 +119,7 @@ wireguard:
 
     config:
       # This secret must used for the complete client configuation. Use this information from your peer configuration of the wireguard server
-      # The secret has to contain the keys "interfacePrivateKey", "peerPublicKey", "peerPresharedKey"
+      # The secret has to contain the keys "privatekey", "publickey", "presharedkey"
       existingSecret: ""
 
       # Address to assign to the WireGuard peer

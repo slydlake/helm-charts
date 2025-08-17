@@ -91,7 +91,7 @@ wireguard:
     config:
       # External IP or domain name. If set to auto, the container will try to determine and set the external IP automatically (for a static IP address)
       # This address will be used by the WireGuard clients to connect to the server
-      address: testvpn.example.com
+      address: vpn.example.com
 
       # see for more information https://github.com/linuxserver/docker-wireguard?tab=readme-ov-file#user--group-identifiers
       # UserID, default 1000
@@ -119,7 +119,7 @@ wireguard:
 
     config:
       # This secret must used for the complete client configuation. Use this information from your peer configuration of the wireguard server
-      # The secret has to contain the keys "interfacePrivateKey", "peerPublicKey", "peerPresharedKey"
+      # The secret has to contain the keys "privatekey", "publickey", "presharedkey"
       existingSecret: "client-secret"
 
       # Address to assign to the WireGuard peer
@@ -132,7 +132,7 @@ wireguard:
       # persistentKeepalive: 25
 
       # Endpoint ip or hostname with port of the WireGuard server
-      endpoint: "server.wireguard-test.svc.cluster.local:51820"
+      endpoint: "server.wireguard.svc.cluster.local:51820"
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:

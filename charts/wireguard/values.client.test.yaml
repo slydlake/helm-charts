@@ -118,7 +118,7 @@ wireguard:
 
     config:
       # This secret must used for the complete client configuation. Use this information from your peer configuration of the wireguard server
-      # The secret has to contain the keys "interfacePrivateKey", "peerPublicKey", "peerPresharedKey"
+      # The secret has to contain the keys "privatekey", "publickey", "presharedkey"
       existingSecret: "client-secret"
 
       # Address to assign to the WireGuard peer
@@ -131,7 +131,7 @@ wireguard:
       # persistentKeepalive: 25
 
       # Endpoint ip or hostname with port of the WireGuard server
-      endpoint: "server.wireguard-test.svc.cluster.local:51820"
+      endpoint: "server.wireguard.svc.cluster.local:51820"
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:

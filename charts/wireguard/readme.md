@@ -7,7 +7,7 @@
 
 Add Repo
 ```bash
-helm repo add slydlake https://slydlake.github.io/helm-charts
+helm repo add slycharts https://slydlake.github.io/helm-charts
 ```
 
 ## Prerequistes
@@ -28,7 +28,7 @@ kubectl create namespace wireguard && kubectl label namespace wireguard pod-secu
 You can set your own wg0.conf file as a secret. If you do this, this will ignore the wireguard.server.config or wireguard.client.config in the default values.
 
 ```yaml
-#wireguard-test-secret.yaml
+#wireguard-secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -52,7 +52,7 @@ helm install server slydlake/wireguard -n wireguard --set wireguard.server.enabl
 ```
 
 ## Client mode
-In the client mode, you have to set a few settings. The important one is create a secret that incluces PrivateKey, PublicKey and PresharedKey as Key. You get these information from the WireGuard server peer conf.
+In the client mode, you have to set a few settings. The important one is create a secret that incluces privatekey, publickey and presharedkey as Key. You get these information from the WireGuard server peer conf.
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -61,9 +61,9 @@ metadata:
   namespace: wireguard
 type: Opaque
 stringData:
-  PrivateKey: ...
-  PublicKey: ...
-  PresharedKey: ...
+  privatekey: ...
+  publickey: ...
+  presharedkey: ...
 ```
 After you apply the secret to your cluster you can install the client like this (replace the values with yours):
 ```bash
