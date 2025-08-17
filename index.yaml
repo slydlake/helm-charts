@@ -5,6 +5,47 @@ entries:
       artifacthub.io/category: security
       artifacthub.io/changes: |
         - kind: changed
+        description: updated sample yaml files (values.client.test.yaml, values.server.test.yaml)
+        - kind: changed
+        description: updated readme
+        - kind: added
+        description: sample secret file into repo
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wireguard
+          image: docker.io/linuxserver/wireguard:latest
+      artifacthub.io/license: GPL-3.0
+      artifacthub.io/links: |
+        - name: GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wireguard
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    created: "2025-08-17T19:51:46.05022801Z"
+    description: Using the offical linuxserver/wireguard image with almost any environment
+      variables for K8S. Supporting server and client mode.
+    digest: 43a04fa2fb7ddaf211ebca87701d31ea215ccb9270cd537872373d826e100dd2
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - linuxserver
+    maintainers:
+    - name: slydlake
+    name: wireguard
+    sources:
+    - https://github.com/linuxserver/docker-wireguard
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.8/wireguard-0.1.8.tgz
+    version: 0.1.8
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: changed
         description: readme updated
         - kind: fixed
         description: secret names simplified
@@ -208,4 +249,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.0/wireguard-0.1.0.tgz
     version: 0.1.0
-generated: "2025-08-17T19:16:32.098285908Z"
+generated: "2025-08-17T19:51:46.050268586Z"
