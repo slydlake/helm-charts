@@ -1,0 +1,258 @@
+# Default values for wg-easy.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 1
+
+# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+image:
+  repository: ghcr.io/wg-easy/wg-easy
+  # This sets the pull policy for images.
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  # recommended to use higher then 15 because of new environment variables and database change
+  tag: 15.1.0
+
+
+# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: "server"
+
+# persistent volume claim for wireguard configuration
+storage:
+  # Name of an existing PVC to use
+  existingClaim: ""
+  # storageClass is required when using a new PVC
+  storageClass: "proxmox-lvm"
+  # size is required when using a new PVC
+  size: 100Mi
+  # accessModes is required when using a new PVC
+  accessModes:
+  - ReadWriteOnce
+  # annotations to add to the PVC
+  annotations: {}
+  # labels to add to the PVC
+  labels: {}
+  # selector to add to the PVC
+  selector: {}
+  # resource policy of the PVC
+  resourcePolicy: remove
+
+config:
+  # Optional configuration, 
+  # For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/config/optional-config/
+
+  # IP address web UI binds to. E.g. 0.0.0.0 or localhost
+  host: 0.0.0.0
+  # If access over http is allowed
+  # Use this if you don't have a valid https certificate
+  insecure: true
+  # If IPv6 support should be disabled
+  disable_ipv6: true
+  
+  # for unattended setup
+  # For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/config/unattended-setup/
+  init:
+    # Enables the below env vars
+    enabled: true
+    # Must contain the keys "username" and "password"
+    existingSecret: "wg-secret"
+
+    # Hardly recommended to use a secret instead of username and password
+    # Sets admin username
+    # username: "admin"
+    # Sets admin password
+    # password: "Se!ureP%ssw"
+    # Host clients will connect to
+    host: "server.wg-easy.svc.cluster.local"
+    # Sets global dns setting
+    dns: "1.1.1.1"
+    
+    # Sets IPv4 cidr
+    ipv4_cidr: "10.13.13.0/24"
+    # Sets IPv6 cidr
+    ipv6_cidr: "2001:0DB8::/32"
+
+# extra environment variables to set in the wireguard container
+# E.g.
+## extraEnvVars:
+# - name: MY_ENV_VAR
+#   value: my-value
+extraEnvVars: []
+
+# Name of the existing Secret containing extra env vars for wireguard container
+extraEnvVarsSecret: ""
+
+# Name of the existing ConfigMap containing extra env vars for wireguard container
+extraEnvVarsCM: ""
+
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# ServiceMonitor configuration for prometheus
+# For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/metrics/prometheus/
+serviceMonitor:
+  # Specifies whether a ServiceMonitor should be created
+  # Additionally you have to enable it in the WebUI: Go to Admin Panel > General and enable Prometheus 
+  create: true
+  # Annotations to add to the ServiceMonitor
+  annotations: {}
+  # Labels to add to the ServiceMonitor
+  labels: {}
+  # Selector to use for the ServiceMonitor
+  selector: {}
+  # Interval at which to scrape metrics
+  interval: 30s
+  # Path to scrape metrics from
+  metricsPath: /metrics/prometheus
+  # Name of the existing secret to use for the ServiceMonitor, if used in the WebUI
+  existingSecret: "wg-metrics"
+  # Key within the existing secret to use for the ServiceMonitor
+  existingSecretKey: "token"
+
+# This is for setting Kubernetes Annotations to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+podAnnotations: {}
+# This is for setting Kubernetes Labels to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  privileged: true
+  allowPrivilegeEscalation: true
+  capabilities:
+    add:
+      - NET_ADMIN
+      - SYS_MODULE
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  ui:
+    # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+    type: NodePort
+    # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+    port: 51831
+    # This sets the nodeport
+    nodePort: 30201
+    # Annotations to add to the service account
+    annotations: {}
+  wireguard:
+    # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+    type: NodePort
+    # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+    port: 51830
+    # This sets the nodeport 
+    nodePort: 30200
+    # Annotations to add to the service account
+    annotations: {}
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: wg-easy.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: wg-easy-tls
+  #    hosts:
+  #      - wg-easy.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# This is to setup the startup, liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+  successThreshold: 1
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+  successThreshold: 1
+
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 10
+  successThreshold: 1
+
+# override default livness probe for wireguard
+customLivenessProbe: {}
+
+# override default readiness probe for wireguard
+customReadinessProbe: {}
+
+# override default startup probe for wireguard
+customStartupProbe: {}
+
+# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Additional volumes on the output Deployment definition.
+extraVolumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+extraVolumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

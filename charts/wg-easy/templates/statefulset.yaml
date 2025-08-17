@@ -1,0 +1,186 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "wg-easy.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wg-easy.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "wg-easy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "wg-easy.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "wg-easy.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+          {{- if .Values.securityContext }}
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- else }}
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_MODULE
+            privileged: true
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: HOST
+              value: {{ .Values.config.host | quote }}
+            - name: PORT
+              value: {{ .Values.service.ui.port | quote }}
+            - name: INSECURE
+              value: {{ .Values.config.insecure | quote }}
+            - name: DISABLE_IPV6
+              value: {{ .Values.config.disable_ipv6 | quote }}
+            {{- if .Values.config.init.enabled }}
+            - name: INIT_ENABLED
+              value: "true"
+            {{- if (empty .Values.config.init.existingSecret) }}
+            - name: INIT_USERNAME
+              value: {{ .Values.config.init.username | quote }}
+            - name: INIT_PASSWORD
+              value: {{ .Values.config.init.password | quote }}
+            {{- else  }}
+            - name: INIT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.init.existingSecret }}
+                  key: username
+            - name: INIT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.init.existingSecret }}
+                  key: password
+            {{- end }}
+            - name: INIT_PORT
+              value: {{ .Values.service.wireguard.port | quote }}
+            - name: INIT_HOST
+              value: {{ .Values.config.init.host | quote }}
+            - name: INIT_DNS
+              value: {{ .Values.config.init.dns | quote }}
+            - name: INIT_IPV4_CIDR
+              value: {{ .Values.config.init.ipv4_cidr | quote }}
+            - name: INIT_IPV6_CIDR
+              value: {{ .Values.config.init.ipv6_cidr | quote }}
+            {{- end }}
+            {{- if .Values.extraEnvVars }}
+            {{- toYaml .Values.extraEnvVars | nindent 12 }}
+            {{- end }}
+          envFrom:
+            {{- if .Values.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ .Values.extraEnvVarsCM }}
+            {{- end }}
+            {{- if .Values.extraEnvVarsSecret }}
+            - secretRef:
+                name: {{ .Values.extraEnvVarsSecret }}
+            {{- end }}
+          ports:
+            - name: udp-wireguard
+              containerPort: {{ .Values.service.wireguard.port }}
+              protocol: UDP
+            - name: http-ui
+              containerPort: {{ .Values.service.ui.port }}
+              protocol: TCP
+            {{- if .Values.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ .Values.extraEnvVarsCM }}
+            {{- end }}
+            {{- if .Values.extraEnvVarsSecret }}
+            - secretRef:
+                name: {{ .Values.extraEnvVarsSecret }}
+            {{- end }}
+          {{- if .Values.customLivenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.customLivenessProbe | nindent 12 }}
+          {{- else if .Values.livenessProbe.enabled }}
+          livenessProbe: 
+            {{- toYaml (omit .Values.livenessProbe "enabled") | nindent 12 }}
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - 'ip link show dev wg0 | grep -s up'
+          {{- end }}
+          {{- if .Values.customReadinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.customReadinessProbe | nindent 12 }}
+          {{- else if .Values.readinessProbe.enabled }}
+          readinessProbe: 
+            {{- toYaml (omit .Values.readinessProbe "enabled") | nindent 12 }}
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'ip link show dev wg0 | grep -s up'
+          {{- end }}
+          {{- if .Values.customStartupProbe }}
+          startupProbe:
+            {{- toYaml .Values.customStartupProbe | nindent 12 }}
+          {{- else if .Values.startupProbe.enabled }}
+          startupProbe:
+            {{- toYaml (omit .Values.startupProbe "enabled") | nindent 12 }}
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'ip link show dev wg0 | grep -s up'
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: {{ include "wg-easy.fullname" . }}
+              mountPath: /etc/wireguard
+            {{- if .Values.extraVolumeMounts }}
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+      volumes:
+      {{- if .Values.config.init.existingSecret }}
+      - name: {{ .Values.config.init.existingSecret }}
+        secret:
+          secretName: {{ .Values.config.init.existingSecret }}
+      {{- end }}
+      - name: {{ include "wg-easy.fullname" . }}
+        persistentVolumeClaim:
+          claimName: {{ if .Values.storage.existingClaim }}{{ .Values.storage.existingClaim }}{{ else }}{{ include "wg-easy.fullname" . }}{{ end }}
+      {{- if .Values.extraVolumes }}
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

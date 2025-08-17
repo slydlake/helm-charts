@@ -1,0 +1,37 @@
+{{- if (empty .Values.storage.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "wg-easy.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.storage.labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- $ann := .Values.storage.annotations }}
+  {{- $rp := .Values.storage.resourcePolicy }}
+  {{- if or $ann $rp }}
+  annotations:
+    {{- if $ann }}
+    {{- toYaml $ann | nindent 4 }}
+    {{- end }}
+    {{- if $rp }}
+    helm.sh/resource-policy: {{ $rp | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  accessModes:
+  {{- range .Values.storage.accessModes }}
+    - {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.size | quote }}
+  {{- if .Values.storage.storageClass }}
+  storageClassName: {{ .Values.storage.storageClass | quote }}
+  {{- end }}
+  {{- if .Values.storage.selector }}
+  selector:
+    {{- toYaml .Values.storage.selector | nindent 4 }}
+  {{- end }}
+{{- end }}

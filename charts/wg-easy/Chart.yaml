@@ -1,0 +1,34 @@
+apiVersion: v2
+name: wg-easy
+description: Using the offical wg-easy/wg-easy image with almost any environment variables for K8s. Supporting Init Mode.
+type: application
+version: 0.1.0
+icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
+appVersion: "15.1.0"
+home: https://github.com/slydlake/helm-charts
+maintainers:
+  - name: slydlake
+sources:
+  - https://wg-easy.github.io/wg-easy/latest/
+  - https://github.com/slydlake/helm-charts
+annotations:
+  artifacthub.io/category: security
+  artifacthub.io/license: GPL-3.0
+  artifacthub.io/links: |
+    - name: GitHub Repository
+      url: https://github.com/slydlake/helm-charts/tree/main/charts/wg-easy
+  artifacthub.io/maintainers: |
+    - name: slydlake
+      email: sly.dlake@gmail.com
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release of wg-easy chart.
+  artifacthub.io/containsSecurityUpdates: false
+  artifacthub.io/images: |
+    - name: wireguard
+      image: ghcr.io/wg-easy/wg-easy:latest
+  category: Security
+keywords:
+  - wireguard
+  - vpn
+  - wg-easy

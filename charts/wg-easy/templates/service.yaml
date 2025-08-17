@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wg-easy.fullname" . }}-ui
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wg-easy.labels" . | nindent 4 }}
+  {{- with .Values.service.ui.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.ui.type }}
+  ports:
+    - port: {{ if (empty .Values.service.ui.port ) }} 51821 {{ else }} {{ .Values.service.ui.port }} {{ end }}
+      targetPort: http-ui
+      protocol: TCP
+      name: http-ui
+      {{- if eq .Values.service.ui.type "NodePort" }}
+      nodePort: {{ .Values.service.ui.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "wg-easy.selectorLabels" . | nindent 4 }}
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wg-easy.fullname" . }}-wireguard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wg-easy.labels" . | nindent 4 }}
+  {{- with .Values.service.wireguard.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.wireguard.type }}
+  ports:
+    - port: {{ if (empty .Values.service.wireguard.port ) }} 51820 {{ else }} {{ .Values.service.wireguard.port }} {{ end }}
+      targetPort: udp-wireguard
+      protocol: UDP
+      name: udp-wireguard
+      {{- if eq .Values.service.wireguard.type "NodePort" }}
+      nodePort: {{ .Values.service.wireguard.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "wg-easy.selectorLabels" . | nindent 4 }}

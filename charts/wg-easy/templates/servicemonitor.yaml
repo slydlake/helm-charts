@@ -1,0 +1,36 @@
+{{- if .Values.serviceMonitor.create -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "wg-easy.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+{{ if .Values.serviceMonitor.labels }}
+  labels:
+{{ toYaml .Values.serviceMonitor.labels | nindent 4 }}
+{{ end }}
+{{ if .Values.serviceMonitor.annotations }}
+  annotations:
+{{ toYaml .Values.serviceMonitor.annotations | nindent 4 }}
+{{ end }}
+spec:
+  {{ if .Values.serviceMonitor.selector }}
+  selector:
+    {{- toYaml .Values.serviceMonitor.selector | nindent 6 }}
+  {{ else }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ include "wg-easy.fullname" . }}
+      app.kubernetes.io/name: {{ .Chart.Name }}
+  {{- end }}
+  endpoints:
+  - port: http-ui
+    {{ if .Values.serviceMonitor.interval }}
+    interval: {{ .Values.serviceMonitor.interval }}
+    {{ end }}
+    path: {{ coalesce .Values.serviceMonitor.metricsPath .Values.serviceMonitor.path "/metrics/prometheus" | quote }}
+    {{ if .Values.serviceMonitor.existingSecret }}
+    bearerTokenSecret:
+      name: {{ .Values.serviceMonitor.existingSecret }}
+      key: {{ .Values.serviceMonitor.existingSecretKey }}
+    {{ end }}
+{{- end }}

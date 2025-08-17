@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "wg-easy.fullname" . }}-test-ui"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wg-easy.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "wg-easy.fullname" . }}:{{ .Values.service.ui.port }}']
+  restartPolicy: Never
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "wg-easy.fullname" . }}-test-wireguard"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wg-easy.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: netcat
+      image: praqma/network-multitool
+      command: ["sh", "-c"]
+      args:
+        - >
+          HOST='{{ include "wg-easy.fullname" . }}';
+          PORT='{{ .Values.service.wireguard.port }}';
+          echo 'ping' | nc -u -w2 "$HOST" "$PORT";
+          rc=$?;
+          exit $rc
+  restartPolicy: Never
