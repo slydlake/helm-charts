@@ -42,6 +42,48 @@ entries:
     version: 0.1.0
   wireguard:
   - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: changed
+          description: "updated sample yaml files values.client.test.yaml and values.server.test.yaml"
+        - kind: changed
+          description: "updated readme"
+        - kind: added
+          description: "sample secret file into repo"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wireguard
+          image: docker.io/linuxserver/wireguard:latest
+      artifacthub.io/license: GPL-3.0
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wireguard
+        - name: Offical WireGuard Repository
+          url: https://github.com/linuxserver/docker-wireguard
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    created: "2025-08-18T22:24:07.859622719Z"
+    description: Using the offical linuxserver/wireguard image with almost any environment
+      variables for K8S. Supporting server and client mode.
+    digest: 7a60845565edcffbd9702deafb26813b8d67f7f037f9ae210cf8f518b143262e
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - linuxserver
+    maintainers:
+    - name: slydlake
+    name: wireguard
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.7/wireguard-0.1.7.tgz
+    version: 0.1.7
+  - annotations:
       category: Security
       images: |
         - name: wireguard
@@ -209,4 +251,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.0/wireguard-0.1.0.tgz
     version: 0.1.0
-generated: "2025-08-17T19:53:12.199276249Z"
+generated: "2025-08-18T22:24:07.859657474Z"
