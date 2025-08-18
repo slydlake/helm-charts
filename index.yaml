@@ -45,11 +45,11 @@ entries:
       artifacthub.io/category: security
       artifacthub.io/changes: |
         - kind: changed
-        description: updated sample yaml files values.client.test.yaml and values.server.test.yaml
+        description: "updated sample yaml files values.client.test.yaml and values.server.test.yaml"
         - kind: changed
-        description: updated readme
+        description: "updated readme
         - kind: added
-        description: sample secret file into repo
+        description: "sample secret file into repo"
       artifacthub.io/containsSecurityUpdates: "false"
       artifacthub.io/images: |
         - name: wireguard
