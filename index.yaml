@@ -5,7 +5,7 @@ entries:
       artifacthub.io/category: security
       artifacthub.io/changes: |
         - kind: added
-          description: Initial release of wg-easy chart.
+          description: "Initial release of wg-easy chart."
       artifacthub.io/containsSecurityUpdates: "false"
       artifacthub.io/images: |
         - name: wireguard
