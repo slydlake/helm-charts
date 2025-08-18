@@ -1,6 +1,6 @@
 apiVersion: v2
 name: wireguard
-description: Using the offical linuxserver/wireguard image with almost any environment variables for K8S. Supporting server and client mode.
+description: "Using the offical linuxserver/wireguard image with almost any environment variables for K8S. Supporting server and client mode."
 type: application
 version: 0.1.7
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
@@ -8,24 +8,25 @@ home: https://github.com/slydlake/helm-charts
 maintainers:
   - name: slydlake
 sources:
-  - https://github.com/linuxserver/docker-wireguard
   - https://github.com/slydlake/helm-charts
 annotations:
   artifacthub.io/category: security
   artifacthub.io/license: GPL-3.0
   artifacthub.io/links: |
-    - name: GitHub Repository
+    - name: SlyCharts GitHub Repository
       url: https://github.com/slydlake/helm-charts/tree/main/charts/wireguard
+    - name: Offical WireGuard Repository
+      url: https://github.com/linuxserver/docker-wireguard
   artifacthub.io/maintainers: |
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-    description: updated sample yaml files values.client.test.yaml and values.server.test.yaml
+      description: "updated sample yaml files values.client.test.yaml and values.server.test.yaml"
     - kind: changed
-    description: updated readme
+      description: "updated readme"
     - kind: added
-    description: sample secret file into repo
+      description: "sample secret file into repo"
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wireguard
