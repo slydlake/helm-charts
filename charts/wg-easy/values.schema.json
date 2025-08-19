@@ -22,7 +22,7 @@
         "pullPolicy": { "title": "Image pull policy", "type": "string", "enum": ["IfNotPresent", "Always", "Never"], "description": "Kubernetes image pull policy." },
         "tag": { "title": "Image tag", "type": "string", "description": "Image tag to deploy. Defaults to the chart appVersion when unset." }
       },
-  "required": ["repository", "pullPolicy", "tag"]
+  "required": ["repository", "tag"]
     },
     "imagePullSecrets": {
       "title": "Image pull secrets",
@@ -85,10 +85,10 @@
             "ipv4_cidr": { "title": "IPv4 CIDR", "type": "string", "description": "WireGuard IPv4 network in CIDR notation." },
             "ipv6_cidr": { "title": "IPv6 CIDR", "type": "string", "description": "WireGuard IPv6 network in CIDR notation." }
           },
-          "required": ["enabled"]
+          "required": []
         }
       },
-      "required": ["host", "insecure", "disable_ipv6"]
+      "required": []
     },
 
     "extraEnvVars": {
@@ -119,7 +119,7 @@
         "annotations": { "title": "ServiceAccount annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
         "name": { "title": "ServiceAccount name", "type": "string", "description": "Name of an existing ServiceAccount to use." }
       },
-      "required": ["create", "automount"]
+      "required": []
     },
 
     "serviceMonitor": {
@@ -177,7 +177,7 @@
             "nodePort": { "title": "UI NodePort", "type": "integer", "minimum": 30000, "maximum": 32767, "description": "NodePort to expose the UI when type is NodePort." },
             "annotations": { "title": "UI Service annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } }
           },
-          "required": ["type", "port"]
+          "required": []
         },
         "wireguard": {
           "title": "WireGuard Service",
@@ -189,10 +189,10 @@
             "nodePort": { "title": "WireGuard NodePort", "type": "integer", "minimum": 30000, "maximum": 32767, "description": "NodePort to expose WireGuard when type is NodePort." },
             "annotations": { "title": "WireGuard Service annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } }
           },
-          "required": ["type", "port"]
+          "required": []
         }
       },
-      "required": ["ui", "wireguard"]
+      "required": []
     },
 
     "ingress": {
@@ -221,16 +221,16 @@
                     "path": { "title": "Path", "type": "string" },
                     "pathType": { "title": "Path type", "type": "string" }
                   },
-                  "required": ["path", "pathType"]
+                  "required": []
                 }
               }
             },
-            "required": ["host", "paths"]
+            "required": []
           }
         },
         "tls": { "title": "TLS entries", "type": "array", "items": { "type": "object" }, "description": "TLS configuration for the Ingress (secret names and hosts)." }
       },
-      "required": ["enabled", "hosts", "tls"]
+      "required": []
     },
 
   "resources": { "title": "Resource requests/limits", "type": "object", "description": "Kubernetes CPU/memory resource requests and limits for the container." },
@@ -274,7 +274,7 @@
         "maxReplicas": { "title": "Maximum replicas", "type": "integer", "minimum": 1, "description": "Upper bound for autoscaled replicas." },
         "targetCPUUtilizationPercentage": { "title": "Target CPU utilization (%)", "type": "integer", "minimum": 1, "description": "Average CPU utilization percentage target for the HPA." }
       },
-      "required": ["enabled", "minReplicas", "maxReplicas"]
+      "required": []
     },
 
   "extraVolumes": { "title": "Extra volumes", "type": "array", "items": { "type": "object" }, "description": "Additional volumes to mount into the pod." },
@@ -374,8 +374,5 @@
         }
       }
     }
-  ],
-  "required": [
-    "image"
   ]
 }
