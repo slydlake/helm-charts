@@ -34,7 +34,7 @@
         "properties": {
           "name": { "title": "Secret name", "type": "string", "description": "Name of the image pull secret." }
         },
-        "required": ["name"]
+        "required": []
       },
       "default": []
     },
@@ -102,7 +102,7 @@
           "name": { "title": "Variable name", "type": "string" },
           "value": { "title": "Variable value", "type": "string" }
         },
-        "required": ["name", "value"]
+        "required": []
       },
       "default": []
     },
@@ -136,7 +136,7 @@
         "existingSecret": { "title": "Bearer token secret", "type": "string", "description": "Name of an existing secret to use for bearer token auth." },
         "existingSecretKey": { "title": "Bearer token key", "type": "string", "description": "Key within the secret that contains the token." }
       },
-      "required": ["create"]
+      "required": []
     },
 
   "podAnnotations": { "title": "Pod annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
