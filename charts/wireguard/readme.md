@@ -1,4 +1,4 @@
-# WireGuard - Server and Client K8s
+# WireGuard - Server and Client for K8s
 
 ## Introduction
 [WireGuard®](https://github.com/linuxserver/docker-wireguard) is an extremely simple yet fast and modern VPN that utilizes state-of-the-art cryptography.
@@ -10,7 +10,7 @@ Add Repo
 helm repo add slycharts https://slydlake.github.io/helm-charts
 ```
 
-## Prerequistes
+## Prerequisites
 You have to set a namespace with privileged security:
 ```yaml
 #namespace.yaml
@@ -46,13 +46,13 @@ kubectl apply -f ./wireguard-secret.yaml
 ```
 
 ## Server mode
-The server mode could be used with default values. You just have to enable it
+The server mode could be used with default values. You just have to enable it.
 ```bash
 helm install server slydlake/wireguard -n wireguard --set wireguard.server.enabled=true
 ```
 
 ## Client mode
-In the client mode, you have to set a few settings. The important one is create a secret that incluces privatekey, publickey and presharedkey as Key. You get these information from the WireGuard server peer conf.
+In the client mode, you have to set a few settings. The important one is to create a secret that includes privatekey, publickey and presharedkey as a key. You get this information from the WireGuard server peer conf.
 You can find a sample of the secret file (in both variants) in the repo.
 ```yaml
 # secret.client.test.yaml
@@ -67,7 +67,7 @@ stringData:
   publickey: ...
   presharedkey: ...
 ```
-After you apply the secret to your cluster you can install the client like this (replace the values with yours):
+After you apply the secret to your cluster, you can install the client like this (replace the values with yours):
 ```bash
 helm install client slydlake/wireguard -n wireguard --set wireguard.client.enabled=true,wireguard.client.config.existingSecret=client-secret,wireguard.client.config.address="10.13.13.2/24",wireguard.client.config.endpoint="vpn.example.com:51820"
 ```

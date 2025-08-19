@@ -1,4 +1,4 @@
-# WireGuard - Server and Client K8s
+# wg-easy - A WireGuard server with a Web-UI for K8s
 
 ## Introduction
 [wg-easy](https://github.com/wg-easy/wg-easy) is the easiest way to run WireGuard VPN + Web-based Admin UI.
@@ -10,7 +10,7 @@ Add Repo
 helm repo add slycharts https://slydlake.github.io/helm-charts
 ```
 
-## Prerequistes
+## Prerequisites
 You have to set a namespace with privileged security:
 ```yaml
 #namespace.yaml
@@ -25,9 +25,9 @@ Or you can create this with:
 ```bash
 kubectl create namespace wg-easy && kubectl label namespace wg-easy pod-security.kubernetes.io/enforce=privileged --overwrite
 ```
-I recommend to use the Init mode to set everything once. 
-Also it's recommended to use a secret for the username and password.
-You can find a sample of the secret file (for username/password and the prometheus matrics) in the repo.
+I recommend using the Init mode to set everything once. 
+Also, it's recommended to use a secret for the username and password.
+You can find a sample of the secret file (for username/password and the prometheus metrics) in the repo.
 
 ```yaml
 #secret.test.yaml
@@ -41,7 +41,7 @@ data:
   username: <username in Base64>
 type: Opaque
 ```
-Apply it it the cluster:
+Apply it to the cluster:
 ```bash
 kubectl apply -f ./wg-easy-secret.yaml
 ```

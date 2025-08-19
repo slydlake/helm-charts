@@ -18,7 +18,8 @@
         "pullPolicy": {
           "type": "string",
           "title": "Image Pull Policy",
-          "description": "Pull policy for the container image. See https://kubernetes.io/docs/concepts/containers/images/"
+          "description": "Pull policy for the container image. See https://kubernetes.io/docs/concepts/containers/images/",
+          "enum": ["IfNotPresent", "Always", "Never"]
         },
         "tag": {
           "type": "string",
@@ -42,7 +43,7 @@
       "title": "Update Strategy",
       "description": "Strategy for deployment updates.",
       "properties": {
-        "type": { "type": "string", "title": "Update Strategy Type", "description": "Type of update strategy (e.g. RollingUpdate or Recreate). Note: Use Recreate for PVCs that cannot be mounted by multiple pods." }
+  "type": { "type": "string", "title": "Update Strategy Type", "description": "Type of update strategy (e.g. RollingUpdate or Recreate). Note: Use Recreate for PVCs that cannot be mounted by multiple pods.", "enum": ["RollingUpdate", "Recreate"] }
       }
     },
     "wireguard": {
@@ -84,7 +85,7 @@
                 "size": { "type": "string", "title": "Storage Size", "description": "Size of the persistent volume (e.g. 250Mi)." },
                 "accessModes": {
                   "type": "array",
-                  "items": { "type": "string" },
+                  "items": { "type": "string", "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"] },
                   "title": "Access Modes",
                   "description": "Access modes for the persistent volume (e.g. ReadWriteOnce)."
                 },
@@ -150,7 +151,7 @@
       "title": "Service",
       "description": "Service configuration for server mode.",
       "properties": {
-        "type": { "type": "string", "title": "Service Type", "description": "Service type (e.g. ClusterIP, NodePort, LoadBalancer)." },
+  "type": { "type": "string", "title": "Service Type", "description": "Service type (e.g. ClusterIP, NodePort, LoadBalancer).", "enum": ["ClusterIP", "NodePort", "LoadBalancer"] },
         "port": { "type": "integer", "title": "Service Port", "description": "Service port." },
         "nodePort": { "type": "integer", "title": "NodePort", "description": "Fixed NodePort (only for service type NodePort)." }
       }

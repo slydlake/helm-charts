@@ -155,7 +155,7 @@ service:
     port: 51821
     # This sets the nodeport
     nodePort: 30201
-    # Annotations to add to the service account
+    # Annotations to add to the service
     annotations: {}
   wireguard:
     # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
@@ -164,7 +164,7 @@ service:
     port: 51820
     # This sets the nodeport 
     nodePort: 30200
-    # Annotations to add to the service account
+    # Annotations to add to the service
     annotations: {}
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
