@@ -161,6 +161,44 @@ entries:
   - annotations:
       artifacthub.io/category: security
       artifacthub.io/changes: |
+        - kind: added
+          description: "New values: dnsPolicy, dnsConfig, initContainers support, sidecar support"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wireguard
+          image: docker.io/linuxserver/wireguard:latest
+      artifacthub.io/license: GPL-3.0
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wireguard
+        - name: Offical WireGuard Repository
+          url: https://github.com/linuxserver/docker-wireguard
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    created: "2025-08-23T09:26:56.261316412Z"
+    description: Using the offical linuxserver/wireguard image with almost any environment
+      variables for K8S. Supporting server and client mode.
+    digest: 2bc5e71a4aea93c75dca3a3c92e4bf753b1fbe42a2354b9f888c3f05a82574c9
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - linuxserver
+    maintainers:
+    - name: slydlake
+    name: wireguard
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.9/wireguard-0.1.9.tgz
+    version: 0.1.9
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
         - kind: changed
           description: "values schema, added enum types"
       artifacthub.io/containsSecurityUpdates: "false"
@@ -406,4 +444,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.0/wireguard-0.1.0.tgz
     version: 0.1.0
-generated: "2025-08-19T14:38:50.967102294Z"
+generated: "2025-08-23T09:26:56.261361697Z"
