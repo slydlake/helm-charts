@@ -16,6 +16,22 @@ fullnameOverride: "server"
 # This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
 replicaCount: 1
 
+# DNS policy and configuration of the pod
+# E.g.
+# dnsPolicy: None
+# dnsConfig:
+#   searchers:
+#     - svc.cluster.local
+#     - cluster.local
+#   nameservers:
+#     - 1.1.1.1
+#     - 8.8.8.8
+
+# dnsPolicy: ClusterFirst
+# dnsConfig: {}
+
+
+
 # deployment strategy type
 # NOTE: Set it to `Recreate` if you use a PersistentVolume that cannot be mounted on multiple pods
 # E.g.
@@ -26,6 +42,21 @@ replicaCount: 1
 #   type: RollingUpdate
 updateStrategy:
   type: RollingUpdate
+
+# Init containers
+# initContainers:
+#   - name: do-something
+#     image: busybox
+#     command: ['do', 'something']
+initContainers: []
+
+# Sidecar containers
+# E.g.
+#  sidecars:
+#   - name: container-name
+#     image: image-name
+#     imagePullPolicy: Always
+sidecars: []
 
 # Wireguard specific configuration
 # wireguard client and server will always use the wg0 interface
@@ -46,7 +77,7 @@ wireguard:
 
   # extra environment variables to set in the wireguard container
   # E.g.
-  ## extraEnvVars:
+  # extraEnvVars:
   # - name: MY_ENV_VAR
   #   value: my-value
   extraEnvVars: []
@@ -103,7 +134,7 @@ wireguard:
       peers: "test"
 
       # Internal subnet for the wireguard and server and peers (only change if it clashes). default 10.13.13.0/24
-      # subnet: "10.13.13.0/24"
+      subnet: "10.8.0.0/24"
 
       # set to all or a list of comma separated peers (ie. 1,4,laptop) for the wireguard server to send keepalive packets to listed peers every 25 seconds.
       # Useful if server is accessed via domain name and has dynamic IP. Default = "all"
@@ -123,7 +154,7 @@ wireguard:
       existingSecret: "client-secret"
 
       # Address to assign to the WireGuard peer
-      address: "10.13.13.2/24"
+      address: "10.8.0.2/24"
 
       # MTU. Default is 1420
       # mtu: 1420
@@ -132,7 +163,7 @@ wireguard:
       persistentKeepalive: 25
 
       # Endpoint ip or hostname with port of the WireGuard server
-      endpoint: "server.wireguard.svc.cluster.local:51820"
+      endpoint: "server-wireguard.wireguard.svc.cluster.local:51820"
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
