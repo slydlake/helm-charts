@@ -162,6 +162,45 @@ entries:
       artifacthub.io/category: security
       artifacthub.io/changes: |
         - kind: added
+          description: "New values for client: preUp, postUp, preDown, postDown"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wireguard
+          image: docker.io/linuxserver/wireguard:latest
+      artifacthub.io/license: GPL-3.0
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wireguard
+        - name: Offical WireGuard Repository
+          url: https://github.com/linuxserver/docker-wireguard
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+      category: Security
+    apiVersion: v2
+    created: "2025-08-24T20:52:34.644925719Z"
+    description: Using the offical linuxserver/wireguard image with almost any environment
+      variables for K8S. Supporting server and client mode.
+    digest: 8105a6bfae31c22638e6a6e22f5d2e169d3dcc230b2ab0d98e985b4e30075424
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - linuxserver
+    maintainers:
+    - name: slydlake
+    name: wireguard
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.10/wireguard-0.1.10.tgz
+    version: 0.1.10
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: added
           description: "New values: dnsPolicy, dnsConfig, initContainers support, sidecar support"
       artifacthub.io/containsSecurityUpdates: "false"
       artifacthub.io/images: |
@@ -444,4 +483,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.0/wireguard-0.1.0.tgz
     version: 0.1.0
-generated: "2025-08-23T09:26:56.261361697Z"
+generated: "2025-08-24T20:52:34.645007062Z"
