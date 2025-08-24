@@ -179,7 +179,11 @@
               "description": "Configuration for the Wireguard client.",
               "properties": {
                 "existingSecret": { "type": "string", "title": "Existing Client Secret", "description": "Secret name for the peer configuration (Keys: privatekey, publickey, presharedkey)." },
-                "address": { "type": "string", "title": "Client Address", "description": "Address for the Wireguard peer (e.g. 10.13.13.2/24)." },
+                "address": { "type": "string", "title": "Client Address", "description": "Address for the Wireguard peer (e.g. 10.13.13.2/24)." }, 
+                "preUp": { "type": "string", "title": "Hook preUp", "description": "Command executed before interface is brought up (client preUp)." },
+                "postUp": { "type": "string", "title": "Hook postUp", "description": "Command executed after interface is brought up (client postUp)." },
+                "preDown": { "type": "string", "title": "Hook preDown", "description": "Command executed before interface is brought down (client preDown)." },
+                "postDown": { "type": "string", "title": "Hook postDown", "description": "Command executed after interface is brought down (client postDown)." },
                 "mtu": { "type": "integer", "title": "MTU", "description": "MTU value (Default 1420)." },
                 "persistentKeepalive": { "type": "integer", "title": "Persistent Keepalive", "description": "Keepalive in seconds (0 to disable, Default 25)." },
                 "endpoint": { "type": "string", "title": "Server Endpoint", "description": "Endpoint IP/hostname with port of the Wireguard server (e.g. vpn.example.com:51820)." }

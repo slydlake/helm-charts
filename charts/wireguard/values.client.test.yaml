@@ -153,8 +153,14 @@ wireguard:
       # The secret has to contain the keys "privatekey", "publickey", "presharedkey"
       existingSecret: ""
 
-      # Address to assign to the WireGuard peer
+      # IP Address to assign to the WireGuard peer
       address: "10.8.0.2/24"
+
+      # Defines hooks for the WireGuard client, default is empty
+      # preUp = ""
+      # postUp = ""
+      # preDown = ""
+      # postDown = ""
 
       # MTU. Default is 1420
       # mtu: 1420

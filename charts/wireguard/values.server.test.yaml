@@ -71,7 +71,7 @@ wireguard:
   # for client default is "1.1.1.1, 2606:4700:4700::1111"
   # dns: "1.1.1.1"
 
-  # The IPs/Ranges that the peers will be able to reach using the VPN connection. 
+  # The IPs/Ranges for Client/Server. Defines what IPs/Ranges will be able to reach using the VPN connection.
   # If not specified the default value is: '0.0.0.0/0, ::0/0' This will cause ALL traffic to route through the VPN, if you want split tunneling, set this to only the IPs you would like to use the tunnel AND the ip of the server's WG ip, such as 10.13.13.1.
   # allowedIPs: "0.0.0.0/0, ::0/0"
 
@@ -153,8 +153,14 @@ wireguard:
       # The secret has to contain the keys "privatekey", "publickey", "presharedkey"
       existingSecret: "client-secret"
 
-      # Address to assign to the WireGuard peer
+      # IP Address to assign to the WireGuard peer
       address: "10.8.0.2/24"
+
+      # Defines hooks for the WireGuard client, default is empty
+      # preUp = ""
+      # postUp = ""
+      # preDown = ""
+      # postDown = ""
 
       # MTU. Default is 1420
       # mtu: 1420
