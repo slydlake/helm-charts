@@ -38,9 +38,68 @@
       },
       "default": []
     },
+    "updateStrategy": {
+      "type": "object",
+      "title": "Update Strategy",
+      "description": "Strategy for deployment updates.",
+      "properties": {
+  "type": { "type": "string", "title": "Update Strategy Type", "description": "Type of update strategy (e.g. RollingUpdate or Recreate). Note: Use Recreate for PVCs that cannot be mounted by multiple pods.", "enum": ["RollingUpdate", "Recreate"] }
+      }
+    },
     "nameOverride": { "title": "Name override", "type": "string", "description": "Override the chart name used in names of Kubernetes resources." },
     "fullnameOverride": { "title": "Full name override", "type": "string", "description": "Override the full resource name used for Kubernetes objects." },
-
+    "initContainers": {
+      "type": "array",
+      "title": "Init Containers",
+      "description": "Kubernetes initContainers list. Each item is a standard container spec.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "dnsConfig": {
+      "type": "object",
+      "title": "DNS Config",
+      "description": "Pod dnsConfig. Note: custom nameservers generally require dnsPolicy: None. See https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/",
+      "properties": {
+        "nameservers": {
+          "type": "array",
+          "title": "Nameservers",
+          "description": "List of DNS server IPs (max 3).",
+          "items": { "type": "string" }
+        },
+        "searches": {
+          "type": "array",
+          "title": "Search Domains",
+          "description": "List of search domains.",
+          "items": { "type": "string" }
+        },
+        "options": {
+          "type": "array",
+          "title": "Resolver Options",
+          "description": "Resolver options as name/value pairs.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "title": "Option Name" },
+              "value": { "type": "string", "title": "Option Value" }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "sidecars": {
+      "type": "array",
+      "title": "Sidecar Containers",
+      "description": "Additional containers to run alongside the main container.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
     "storage": {
       "title": "Persistent storage",
       "type": "object",

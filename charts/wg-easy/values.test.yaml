@@ -21,6 +21,36 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: "server"
 
+# DNS policy and configuration of the pod
+# E.g.
+# dnsPolicy: None
+# dnsConfig:
+#   searchers:
+#     - svc.cluster.local
+#     - cluster.local
+#   nameservers:
+#     - 1.1.1.1
+#     - 8.8.8.8
+
+# dnsPolicy: ClusterFirst
+# dnsConfig: {}
+
+# Init containers
+# initContainers:
+#   - name: do-something
+#     image: busybox
+#     command: ['do', 'something']
+initContainers: []
+
+# Sidecar containers
+# E.g.
+#  sidecars:
+#   - name: container-name
+#     image: image-name
+#     imagePullPolicy: Always
+sidecars: []
+
+
 # persistent volume claim for wireguard configuration
 storage:
   # Name of an existing PVC to use
@@ -72,7 +102,7 @@ config:
     dns: "1.1.1.1"
     
     # Sets IPv4 cidr
-    ipv4_cidr: "10.13.13.0/24"
+    ipv4_cidr: "10.8.0.0/24"
     # Sets IPv6 cidr
     ipv6_cidr: "2001:0DB8::/32"
 
@@ -155,7 +185,7 @@ service:
     port: 51831
     # This sets the nodeport
     nodePort: 30201
-    # Annotations to add to the service account
+    # Annotations to add to the service
     annotations: {}
   wireguard:
     # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
@@ -164,7 +194,7 @@ service:
     port: 51830
     # This sets the nodeport 
     nodePort: 30200
-    # Annotations to add to the service account
+    # Annotations to add to the service
     annotations: {}
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/

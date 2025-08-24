@@ -21,6 +21,50 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+
+# DNS policy and configuration of the pod
+# E.g.
+# dnsPolicy: None
+# dnsConfig:
+#   searchers:
+#     - svc.cluster.local
+#     - cluster.local
+#   nameservers:
+#     - 1.1.1.1
+#     - 8.8.8.8
+
+# dnsPolicy: ClusterFirst
+# dnsConfig: {}
+
+
+
+# deployment strategy type
+# NOTE: Set it to `Recreate` if you use a PersistentVolume that cannot be mounted on multiple pods
+# E.g.
+# updateStrategy:
+#   rollingUpdate:
+#     maxSurge: 25%
+#     maxUnavailable: 25%
+#   type: RollingUpdate
+updateStrategy:
+  type: RollingUpdate
+
+# Init containers
+# initContainers:
+#   - name: do-something
+#     image: busybox
+#     command: ['do', 'something']
+initContainers: []
+
+# Sidecar containers
+# E.g.
+#  sidecars:
+#   - name: container-name
+#     image: image-name
+#     imagePullPolicy: Always
+sidecars: []
+
+
 # persistent volume claim for wireguard configuration
 storage:
   # Name of an existing PVC to use

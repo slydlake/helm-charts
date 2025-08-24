@@ -49,5 +49,5 @@ kubectl apply -f ./wg-easy-secret.yaml
 ## Install with helm
 The server mode could be used with default values and some custom settings.
 ```bash
-helm install server slydlake/wireguard -n  wg-easy --set wg-easy.init.existingSecret="wg-secret",wg-easy.init.host="vpn.example.com",storage.storageClass="..."
+helm install server slycharts/wireguard -n  wg-easy --set wg-easy.init.existingSecret="wg-secret",wg-easy.init.host="vpn.example.com",storage.storageClass="..."
 ```
