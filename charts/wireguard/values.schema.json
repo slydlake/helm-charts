@@ -71,7 +71,7 @@
               "name": { "type": "string", "title": "Option Name" },
               "value": { "type": "string", "title": "Option Value" }
             },
-            "required": ["name"],
+            "required": [],
             "additionalProperties": false
           }
         }
