@@ -246,6 +246,7 @@
             "type": { "title": "Service type", "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"], "description": "Kubernetes Service type for the WireGuard UDP port." },
             "port": { "title": "WireGuard port", "type": "integer", "minimum": 1, "maximum": 65535, "description": "Service port that targets the WireGuard UDP container port." },
             "nodePort": { "title": "WireGuard NodePort", "type": "integer", "minimum": 30000, "maximum": 32767, "description": "NodePort to expose WireGuard when type is NodePort." },
+            "externalIPs": { "title": "External IPs", "type": "array",  "description": "External IPs (LoadBalancer only)", "items": {"type": "string"} },
             "annotations": { "title": "WireGuard Service annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } }
           },
           "required": []

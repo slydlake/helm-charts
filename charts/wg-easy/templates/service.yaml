@@ -44,5 +44,11 @@ spec:
       {{- if eq .Values.service.wireguard.type "NodePort" }}
       nodePort: {{ .Values.service.wireguard.nodePort }}
       {{- end }}
+      {{- if eq .Values.service.wireguard.type "LoadBalancer" }}
+      {{- if .Values.service.wireguard.externalIPs }}
+      externalIPs:
+        {{- toYaml .Values.service.wireguard.externalIPs | nindent 8}}
+      {{- end }}
+      {{- end }}
   selector:
     {{- include "wg-easy.selectorLabels" . | nindent 4 }}
