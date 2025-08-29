@@ -36,7 +36,7 @@ spec:
             {{- end }}
             backend:
               service:
-                name: {{ include "wg-easy.fullname" $ }}
+                name: {{ include "wg-easy.fullname" $ }}-ui
                 port:
                   number: {{ $.Values.service.ui.port }}
           {{- end }}
