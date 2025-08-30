@@ -91,6 +91,11 @@
       },
       "additionalProperties": false
     },
+    "hostNetwork": {
+      "title": "Host Network",
+      "type": "boolean",
+      "description": "If true, the pod will use the host's network namespace (hostNetwork: true)."
+    },
     "sidecars": {
       "type": "array",
       "title": "Sidecar Containers",
@@ -345,32 +350,6 @@
   "affinity": { "title": "Affinity", "type": "object", "description": "Affinity and anti-affinity rules for pod scheduling." }
   },
   "allOf": [
-    {
-      "anyOf": [
-        {
-          "properties": {
-            "storage": {
-              "properties": {
-                "existingClaim": { "minLength": 1 }
-              },
-              "required": ["existingClaim"]
-            }
-          },
-          "required": ["storage"]
-        },
-        {
-          "properties": {
-            "storage": {
-              "properties": {
-                "storageClass": { "minLength": 1 }
-              },
-              "required": ["storageClass"]
-            }
-          },
-          "required": ["storage"]
-        }
-      ]
-    },
     {
       "if": {
         "properties": {

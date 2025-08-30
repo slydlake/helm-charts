@@ -21,6 +21,7 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: "server"
 
+
 # DNS policy and configuration of the pod
 # E.g.
 # dnsPolicy: None
@@ -34,6 +35,9 @@ fullnameOverride: "server"
 
 # dnsPolicy: ClusterFirst
 # dnsConfig: {}
+
+# Expose the service on the host network
+# hostNetwork: true
 
 # Init containers
 # initContainers:
@@ -69,7 +73,7 @@ storage:
   # selector to add to the PVC
   selector: {}
   # resource policy of the PVC
-  resourcePolicy: remove
+  resourcePolicy: delete
 
 config:
   # Optional configuration, 
@@ -95,7 +99,7 @@ config:
     # Sets admin username
     # username: "admin"
     # Sets admin password
-    # password: "Se!ureP%ssw"
+    # password: "Sup3rSe!ureP%ssw"
     # Host clients will connect to
     host: "server.wg-easy.svc.cluster.local"
     # Sets global dns setting

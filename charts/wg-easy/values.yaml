@@ -36,7 +36,8 @@ fullnameOverride: ""
 # dnsPolicy: ClusterFirst
 # dnsConfig: {}
 
-
+# Expose the service on the host network
+# hostNetwork: true
 
 # deployment strategy type
 # NOTE: Set it to `Recreate` if you use a PersistentVolume that cannot be mounted on multiple pods
@@ -109,7 +110,7 @@ config:
     # Sets admin username
     # username: "admin"
     # Sets admin password
-    # password: "Se!ureP%ssw"
+    # password: "Sup3rSe!ureP%ssw"
     # Host clients will connect to
     host: "vpn.example.com"
     # Sets global dns setting
