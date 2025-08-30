@@ -21,12 +21,12 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
+    - kind: changed
+      description: "No force of storageClass or existingClaim (by using default class)"
+      url: https://github.com/slydlake/helm-charts/issues/2
     - kind: added
-      description: "externalIPs in service type LoadBalancer. Thanks to b4u-mw"
-      url: https://github.com/slydlake/helm-charts/issues/4
-    - kind: fixed
-      description: "service name in ingress. Thanks to b4u-mw"
-      url: https://github.com/slydlake/helm-charts/issues/3
+      description: "hostNetwork"
+      url: https://github.com/slydlake/helm-charts/issues/1
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wireguard

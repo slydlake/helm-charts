@@ -36,7 +36,8 @@ fullnameOverride: ""
 # dnsPolicy: ClusterFirst
 # dnsConfig: {}
 
-
+# Expose the service on the host network
+# hostNetwork: true
 
 # deployment strategy type
 # NOTE: Set it to `Recreate` if you use a PersistentVolume that cannot be mounted on multiple pods

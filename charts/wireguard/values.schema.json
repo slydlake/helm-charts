@@ -78,6 +78,11 @@
       },
       "additionalProperties": false
     },
+    "hostNetwork": {
+      "title": "Host Network",
+      "type": "boolean",
+      "description": "If true, the pod will use the host's network namespace (hostNetwork: true)."
+    },
     "updateStrategy": {
       "type": "object",
       "title": "Update Strategy",
@@ -373,41 +378,6 @@
         }
           }
         ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "wireguard": {
-            "properties": {
-              "server": { "properties": { "enabled": { "const": true } } }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "wireguard": {
-            "properties": {
-              "server": {
-                "properties": {
-                  "storage": {
-                    "anyOf": [
-                      {
-                        "properties": { "existingClaim": { "type": "string", "minLength": 1 } },
-                        "required": ["existingClaim"]
-                      },
-                      {
-                        "properties": { "storageClass": { "type": "string", "minLength": 1 } },
-                        "required": ["storageClass", "size", "accessModes"]
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
       }
     }
   ]
