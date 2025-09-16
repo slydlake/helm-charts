@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart also provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.1.1
+version: 0.1.2
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
@@ -21,12 +21,12 @@ annotations:
       url: https://github.com/slydlake/slymetrics
     - name: Apache Metrics container
       url: https://github.com/Lusitaniae/apache_exporter
-    artifacthub.io/maintainers: |
+  artifacthub.io/maintainers: |
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: changed
-      description: "container image tags to 'latest'"
+    - kind: fixed
+      description: "fixed chart links"
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
