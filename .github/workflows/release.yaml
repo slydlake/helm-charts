@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'charts/**'
 
 jobs:
   release:
@@ -26,7 +28,12 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
 
+      - name: Install chart-releaser
+        run: |
+          wget https://github.com/helm/chart-releaser/releases/download/v1.7.0/chart-releaser_1.7.0_linux_amd64.tar.gz
+          tar -xzf chart-releaser_1.7.0_linux_amd64.tar.gz
+          sudo mv cr /usr/local/bin/
+
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.7.0
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          cr upload --skip-existing --token ${{ secrets.GITHUB_TOKEN }} --owner ${{ github.repository_owner }} --repo ${{ github.event.repository.name }}
