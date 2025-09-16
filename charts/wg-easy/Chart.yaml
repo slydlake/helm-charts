@@ -2,7 +2,7 @@ apiVersion: v2
 name: wg-easy
 description: Using the offical wg-easy/wg-easy image with almost any environment variables for K8s. Supporting Init Mode.
 type: application
-version: 0.1.6
+version: 0.1.7
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
@@ -11,7 +11,7 @@ sources:
   - https://github.com/slydlake/helm-charts
 annotations:
   artifacthub.io/category: security
-  artifacthub.io/license: GPL-3.0
+  artifacthub.io/license: MIT
   artifacthub.io/links: |
     - name: SlyCharts GitHub Repository
       url: https://github.com/slydlake/helm-charts/tree/main/charts/wg-easy
@@ -21,25 +21,12 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: added
-      description: "externalIPs in service type LoadBalancer. Thanks to b4u-mw"
-      url: https://github.com/slydlake/helm-charts/issues/4
-    - kind: fixed
-      description: "service name in ingress. Thanks to b4u-mw"
-      url: https://github.com/slydlake/helm-charts/issues/3
     - kind: changed
-      description: "No force of storageClass or existingClaim (by using default class)"
-      url: https://github.com/slydlake/helm-charts/issues/2
-    - kind: added
-      description: "hostNetwork"
-      url: https://github.com/slydlake/helm-charts/issues/1
-    - kind: fixed
-      description: "updateStrategy naming in template"
+      description: "changed to MIT license"
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wireguard
       image: ghcr.io/wg-easy/wg-easy:latest
-  category: Security
 appVersion: "15"
 keywords:
   - wireguard
