@@ -1,9 +1,9 @@
 dependencies:
 - name: memcached
   repository: oci://registry-1.docker.io/cloudpirates
-  version: 0.1.1
+  version: 0.1.2
 - name: mariadb
   repository: oci://registry-1.docker.io/cloudpirates
-  version: 0.2.2
-digest: sha256:51a6c722284ed8dec0e3d3add59cf7cc5121a534dd6b11cd50e8484f1dec05a3
-generated: "2025-09-09T22:37:25.15536+02:00"
+  version: 0.2.7
+digest: sha256:53cd9cacfc4449e12ab4b73475b829d7297dd0830e84b3426940da5d60c65e5e
+generated: "2025-09-16T14:52:28.571997+02:00"
