@@ -792,7 +792,7 @@ mariadb:
     ## @param mariadb.image.repository string MariaDB image repository
     repository: mariadb
     ## @param mariadb.image.tag string MariaDB image tag
-    tag: "latest"
+    tag: "0.2.7"
     ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
     imagePullPolicy: Always
 
