@@ -798,7 +798,7 @@ entries:
           url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
         - name: Official WordPress Repository
           url: https://github.com/docker-library/
-        - name: WordPress Prometheus Metrics plugin (SlyMetrics)
+        - name: "WordPress Prometheus Metrics plugin - SlyMetrics"
           url: https://github.com/slydlake/slymetrics
         - name: Apache Metrics container
           url: https://github.com/Lusitaniae/apache_exporter
@@ -854,7 +854,7 @@ entries:
           url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
         - name: Official WordPress Repository
           url: https://github.com/docker-library/
-        - name: WordPress Prometheus Metrics plugin (SlyMetrics)
+        - name: "WordPress Prometheus Metrics plugin - SlyMetrics"
           url: https://github.com/slydlake/slymetrics
         - name: Apache Metrics container
           url: https://github.com/Lusitaniae/apache_exporter
