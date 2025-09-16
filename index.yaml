@@ -802,7 +802,7 @@ entries:
           url: https://github.com/slydlake/slymetrics
         - name: Apache Metrics container
           url: https://github.com/Lusitaniae/apache_exporter
-        artifacthub.io/maintainers: |
+      artifacthub.io/maintainers: |
         - name: slydlake
           email: sly.dlake@gmail.com
     apiVersion: v2
