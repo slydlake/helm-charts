@@ -26,7 +26,7 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "Container tags to 'latest' for all images by default."
+      description: "Container tags to 'latest'"
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
