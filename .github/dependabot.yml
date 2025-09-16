@@ -5,7 +5,15 @@
 
 version: 2
 updates:
-  - package-ecosystem: "helm" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "helm"
+    directory: "/charts/wordpress"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+  - package-ecosystem: "helm"
+    directory: "/charts/wg-easy"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "helm"
+    directory: "/charts/wireguard"
+    schedule:
+      interval: "weekly"
