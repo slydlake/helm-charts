@@ -34,6 +34,10 @@ jobs:
           tar -xzf chart-releaser_1.7.0_linux_amd64.tar.gz
           sudo mv cr /usr/local/bin/
 
+      - name: Package charts
+        run: |
+          cr package charts/
+
       - name: Run chart-releaser
         run: |
           cr upload --skip-existing --token ${{ secrets.GITHUB_TOKEN }} --owner ${{ github.repository_owner }} --git-repo ${{ github.event.repository.name }}
