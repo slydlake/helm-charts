@@ -36,4 +36,4 @@ jobs:
 
       - name: Run chart-releaser
         run: |
-          cr upload --skip-existing --token ${{ secrets.GITHUB_TOKEN }} --owner ${{ github.repository_owner }} --repo ${{ github.event.repository.name }}
+          cr upload --skip-existing --token ${{ secrets.GITHUB_TOKEN }} --owner ${{ github.repository_owner }} --git-repo ${{ github.event.repository.name }}
