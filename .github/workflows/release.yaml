@@ -36,7 +36,11 @@ jobs:
 
       - name: Package charts
         run: |
-          cr package charts/
+          for chart in charts/*/; do
+            if [ -f "${chart}Chart.yaml" ]; then
+              cr package "${chart%/}"
+            fi
+          done
 
       - name: Run chart-releaser
         run: |
