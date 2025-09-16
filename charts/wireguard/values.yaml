@@ -13,14 +13,11 @@ image:
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
 
-
-
 # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
 # This is to override the chart name.
 nameOverride: ""
 fullnameOverride: ""
-
 
 # DNS policy and configuration of the pod
 # E.g.
@@ -115,7 +112,7 @@ wireguard:
       size: 250Mi
       # accessModes is required when using a new PVC
       accessModes:
-      - ReadWriteOnce
+        - ReadWriteOnce
       # annotations to add to the PVC
       annotations: {}
       # labels to add to the PVC
@@ -197,22 +194,23 @@ podAnnotations: {}
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 podLabels: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  {}
   # fsGroup: 2000
 
 # Container Security Context
 securityContext: {}
 # when used as server
-  # allowPrivilegeEscalation: true
-  # capabilities:
-  #   add:
-  #   - NET_ADMIN
-  #   - SYS_MODULE
-  # readOnlyRootFilesystem: false
-  # runAsNonRoot: true
-  # runAsUser: 1000
+# allowPrivilegeEscalation: true
+# capabilities:
+#   add:
+#   - NET_ADMIN
+#   - SYS_MODULE
+# readOnlyRootFilesystem: false
+# runAsNonRoot: true
+# runAsUser: 1000
 # when used as client
-  # privileged: true
+# privileged: true
 
 # used for server mode
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
@@ -224,7 +222,8 @@ service:
   # This sets the NodePort
   nodePort: 31822
 
-resources: {}
+resources:
+  {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
