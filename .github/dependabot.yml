@@ -9,11 +9,20 @@ updates:
     directory: "/charts/wordpress"
     schedule:
       interval: "weekly"
+    ignore:
+      # Ignore ALL container image updates in values.yaml files
+      - dependency-name: "*"
   - package-ecosystem: "helm"
     directory: "/charts/wg-easy"
     schedule:
       interval: "weekly"
+    ignore:
+      # Ignore ALL container image updates in values.yaml files
+      - dependency-name: "*"
   - package-ecosystem: "helm"
     directory: "/charts/wireguard"
     schedule:
       interval: "weekly"
+    ignore:
+      # Ignore ALL container image updates in values.yaml files
+      - dependency-name: "*"
