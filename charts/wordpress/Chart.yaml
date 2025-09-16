@@ -1,6 +1,6 @@
 apiVersion: v2
 name: wordpress
-description: "Using the official WordPress image. This chart also provides automation for installation, user management, plugin installation, and metrics."
+description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
 version: 0.1.2
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
