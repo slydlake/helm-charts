@@ -1,0 +1,956 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "replicaCount": {
+            "type": "integer",
+            "description": "Number of replicas for the deployment",
+            "default": 1
+        },
+        "image": {
+            "type": "object",
+            "properties": {
+                "repository": {
+                    "type": "string",
+                    "description": "WordPress container image repository",
+                    "default": "docker.io/wordpress"
+                },
+                "pullPolicy": {
+                    "type": "string",
+                    "enum": [
+                        "IfNotPresent",
+                        "Always",
+                        "Never"
+                    ],
+                    "description": "Image pull policy",
+                    "default": "IfNotPresent"
+                },
+                "tag": {
+                    "type": "string",
+                    "description": "Overrides the image tag whose default is the chart appVersion",
+                    "default": "latest"
+                }
+            },
+            "required": [
+                "repository",
+                "pullPolicy",
+                "tag"
+            ]
+        },
+        "imagePullSecrets": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Secrets for pulling images from private repository",
+            "default": []
+        },
+        "nameOverride": {
+            "type": "string",
+            "description": "String to partially override the chart name",
+            "default": ""
+        },
+        "fullnameOverride": {
+            "type": "string",
+            "description": "String to fully override the chart name",
+            "default": ""
+        },
+        "clusterDomain": {
+            "type": "string",
+            "description": "Kubernetes Cluster Domain",
+            "default": "cluster.local"
+        },
+        "dnsPolicy": {
+            "type": "string",
+            "description": "DNS policy for the pod"
+        },
+        "dnsConfig": {
+            "type": "object",
+            "description": "DNS configuration for the pod"
+        },
+        "hostNetwork": {
+            "type": "boolean",
+            "description": "Expose the service on the host network"
+        },
+        "customLabels": {
+            "type": "object",
+            "description": "Additional labels for deployment",
+            "default": {}
+        },
+        "customAnnotations": {
+            "type": "object",
+            "description": "Additional annotations for deployment",
+            "default": {}
+        },
+        "updateStrategy": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "RollingUpdate",
+                        "Recreate"
+                    ],
+                    "description": "Deployment strategy type",
+                    "default": "Recreate"
+                },
+                "rollingUpdate": {
+                    "type": "object",
+                    "properties": {
+                        "maxSurge": {
+                            "oneOf": [
+                                {
+                                    "type": "integer"
+                                },
+                                {
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "maxUnavailable": {
+                            "oneOf": [
+                                {
+                                    "type": "integer"
+                                },
+                                {
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "initContainers": {
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
+            "description": "Init containers to run before the main container",
+            "default": []
+        },
+        "sidecars": {
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
+            "description": "Sidecar containers to run alongside the main container",
+            "default": []
+        },
+        "command": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Override default container command",
+            "default": []
+        },
+        "args": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "Override default container args",
+            "default": []
+        },
+        "extraEnvVars": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "name"
+                ]
+            },
+            "description": "Extra environment variables to set in the container",
+            "default": []
+        },
+        "extraEnvVarsSecret": {
+            "type": "string",
+            "description": "Name of existing Secret containing extra env vars",
+            "default": ""
+        },
+        "extraEnvVarsCM": {
+            "type": "string",
+            "description": "Name of existing ConfigMap containing extra env vars",
+            "default": ""
+        },
+        "wordpress": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "init": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable init container for first installation",
+                            "default": false
+                        },
+                        "existingSecret": {
+                            "type": "string",
+                            "description": "Existing secret for WordPress credentials",
+                            "default": ""
+                        },
+                        "username": {
+                            "type": "string",
+                            "description": "WordPress admin username"
+                        },
+                        "password": {
+                            "type": "string",
+                            "description": "WordPress admin password"
+                        },
+                        "email": {
+                            "type": "string",
+                            "description": "WordPress admin email"
+                        },
+                        "firstname": {
+                            "type": "string",
+                            "description": "WordPress admin first name"
+                        },
+                        "lastname": {
+                            "type": "string",
+                            "description": "WordPress admin last name"
+                        },
+                        "title": {
+                            "type": "string",
+                            "description": "WordPress blog title"
+                        },
+                        "debug": {
+                            "type": "boolean",
+                            "description": "Enable debug mode in Job setter",
+                            "default": false
+                        }
+                    }
+                },
+                "permalinks": {
+                    "type": "object",
+                    "properties": {
+                        "structure": {
+                            "type": "string",
+                            "enum": [
+                                "plain",
+                                "dayAndName",
+                                "monthAndName",
+                                "numeric",
+                                "postName"
+                            ],
+                            "description": "Permalink structure",
+                            "default": "postName"
+                        },
+                        "customStructure": {
+                            "type": "string",
+                            "description": "Custom permalink structure"
+                        }
+                    }
+                },
+                "plugins": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Name|zip|URL: Name of the plugin"
+                            },
+                            "version": {
+                                "type": "string",
+                                "description": "Version of the plugin"
+                            },
+                            "activate": {
+                                "type": "boolean",
+                                "description": "Activate the plugin after install"
+                            },
+                            "autoupdate": {
+                                "type": "boolean",
+                                "description": "Enable auto-updates for the plugin"
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ]
+                    },
+                    "description": "WordPress plugins to install",
+                    "default": []
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "username": {
+                                "type": "string",
+                                "description": "Name of the user"
+                            },
+                            "email": {
+                                "type": "string",
+                                "description": "Email of the user"
+                            },
+                            "displayname": {
+                                "type": "string",
+                                "description": "Display name of the user"
+                            },
+                            "firstname": {
+                                "type": "string",
+                                "description": "First name of the user"
+                            },
+                            "lastname": {
+                                "type": "string",
+                                "description": "Last name of the user"
+                            },
+                            "role": {
+                                "type": "string",
+                                "enum": [
+                                    "administrator",
+                                    "editor",
+                                    "author",
+                                    "contributor",
+                                    "subscriber"
+                                ],
+                                "description": "Role of the user"
+                            },
+                            "sendEmail": {
+                                "type": "boolean",
+                                "description": "Send email to user"
+                            }
+                        },
+                        "required": [
+                            "username",
+                            "email"
+                        ]
+                    },
+                    "description": "WordPress users to create",
+                    "default": []
+                },
+                "tablePrefix": {
+                    "type": "string",
+                    "description": "Prefix for WordPress database tables",
+                    "default": "wp_"
+                },
+                "language": {
+                    "type": "string",
+                    "description": "WordPress language (e.g. de_DE)"
+                },
+                "url": {
+                    "type": "string",
+                    "description": "WordPress URL"
+                },
+                "configExtra": {
+                    "type": "string",
+                    "description": "Custom values for wp-config.php"
+                },
+                "htaccess": {
+                    "type": "string",
+                    "description": "Custom .htaccess content"
+                },
+                "debug": {
+                    "type": "boolean",
+                    "description": "Enable WordPress debug mode",
+                    "default": false
+                }
+            }
+        },
+        "apache": {
+            "type": "object",
+            "properties": {
+                "customDefaultSiteConfig": {
+                    "type": "string",
+                    "description": "Custom Apache default site config"
+                },
+                "customPortsConfig": {
+                    "type": "string",
+                    "description": "Custom Apache ports config"
+                },
+                "customPhpConfig": {
+                    "type": "string",
+                    "description": "Custom PHP configuration"
+                }
+            }
+        },
+        "storage": {
+            "type": "object",
+            "properties": {
+                "existingClaim": {
+                    "type": "string",
+                    "description": "Name of an existing PVC to use"
+                },
+                "storageClass": {
+                    "type": "string",
+                    "description": "Storage class for the PVC",
+                    "default": "longhorn"
+                },
+                "size": {
+                    "type": "string",
+                    "description": "Size of the PVC",
+                    "default": "250Mi"
+                },
+                "accessModes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "ReadWriteOnce",
+                            "ReadOnlyMany",
+                            "ReadWriteMany"
+                        ]
+                    },
+                    "description": "Access modes for the PVC",
+                    "default": [
+                        "ReadWriteOnce"
+                    ]
+                },
+                "annotations": {
+                    "type": "object",
+                    "description": "Annotations to add to PVC"
+                },
+                "labels": {
+                    "type": "object",
+                    "description": "Labels to add to PVC"
+                },
+                "selector": {
+                    "type": "object",
+                    "description": "Selector to add to PVC"
+                },
+                "resourcePolicy": {
+                    "type": "string",
+                    "enum": [
+                        "keep",
+                        "delete"
+                    ],
+                    "description": "Resource policy for the PVC",
+                    "default": "keep"
+                }
+            }
+        },
+        "serviceAccount": {
+            "type": "object",
+            "properties": {
+                "create": {
+                    "type": "boolean",
+                    "description": "Specifies whether a service account should be created",
+                    "default": true
+                },
+                "automount": {
+                    "type": "boolean",
+                    "description": "Automatically mount a ServiceAccount's API credentials",
+                    "default": true
+                },
+                "annotations": {
+                    "type": "object",
+                    "description": "Annotations to add to the service account"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "The name of the service account to use",
+                    "default": ""
+                }
+            }
+        },
+        "podAnnotations": {
+            "type": "object",
+            "description": "Annotations to add to pods",
+            "default": {}
+        },
+        "podLabels": {
+            "type": "object",
+            "description": "Labels to add to pods",
+            "default": {}
+        },
+        "podSecurityContext": {
+            "type": "object",
+            "properties": {
+                "fsGroup": {
+                    "type": "integer",
+                    "description": "File system group ID",
+                    "default": 33
+                },
+                "runAsUser": {
+                    "type": "integer",
+                    "description": "User ID to run containers",
+                    "default": 33
+                },
+                "runAsNonRoot": {
+                    "type": "boolean",
+                    "description": "Run containers as non-root user",
+                    "default": true
+                }
+            }
+        },
+        "containerSecurityContext": {
+            "type": "object",
+            "properties": {
+                "readOnlyRootFilesystem": {
+                    "type": "boolean",
+                    "description": "Mount root filesystem as read-only",
+                    "default": true
+                },
+                "allowPrivilegeEscalation": {
+                    "type": "boolean",
+                    "description": "Allow privilege escalation",
+                    "default": false
+                },
+                "privileged": {
+                    "type": "boolean",
+                    "description": "Run container in privileged mode",
+                    "default": false
+                },
+                "capabilities": {
+                    "type": "object",
+                    "properties": {
+                        "drop": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "default": [
+                                "ALL"
+                            ]
+                        },
+                        "add": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "seccompProfile": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "RuntimeDefault",
+                                "Localhost",
+                                "Unconfined"
+                            ]
+                        }
+                    }
+                },
+                "runAsNonRoot": {
+                    "type": "boolean",
+                    "description": "Run container as non-root user",
+                    "default": true
+                }
+            }
+        },
+        "service": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "ClusterIP",
+                        "NodePort",
+                        "LoadBalancer",
+                        "ExternalName"
+                    ],
+                    "description": "Service type",
+                    "default": "NodePort"
+                },
+                "ports": {
+                    "type": "object",
+                    "properties": {
+                        "http": {
+                            "type": "integer",
+                            "default": 80
+                        },
+                        "https": {
+                            "type": "integer",
+                            "default": 443
+                        }
+                    }
+                },
+                "nodePorts": {
+                    "type": "object",
+                    "properties": {
+                        "http": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "clusterIP": {
+                    "type": "string",
+                    "description": "Static cluster IP"
+                },
+                "annotations": {
+                    "type": "object",
+                    "description": "Additional annotations for service"
+                },
+                "labels": {
+                    "type": "object",
+                    "description": "Additional labels for service",
+                    "default": {}
+                }
+            }
+        },
+        "ingress": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable ingress",
+                    "default": false
+                },
+                "className": {
+                    "type": "string",
+                    "description": "Ingress class name"
+                },
+                "maxBodySize": {
+                    "type": "string",
+                    "description": "Maximum body size for uploads",
+                    "default": "64m"
+                },
+                "annotations": {
+                    "type": "object",
+                    "description": "Ingress annotations"
+                },
+                "hosts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "host": {
+                                "type": "string"
+                            },
+                            "paths": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "path": {
+                                            "type": "string"
+                                        },
+                                        "pathType": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Exact",
+                                                "Prefix",
+                                                "ImplementationSpecific"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tls": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "secretName": {
+                                "type": "string"
+                            },
+                            "hosts": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "resources": {
+            "type": "object",
+            "description": "Resource limits and requests",
+            "default": {}
+        },
+        "livenessProbe": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable liveness probe",
+                    "default": true
+                },
+                "initialDelaySeconds": {
+                    "type": "integer",
+                    "description": "Initial delay for liveness probe",
+                    "default": 5
+                },
+                "periodSeconds": {
+                    "type": "integer",
+                    "description": "Period for liveness probe",
+                    "default": 10
+                },
+                "timeoutSeconds": {
+                    "type": "integer",
+                    "description": "Timeout for liveness probe",
+                    "default": 1
+                },
+                "failureThreshold": {
+                    "type": "integer",
+                    "description": "Failure threshold for liveness probe",
+                    "default": 3
+                },
+                "successThreshold": {
+                    "type": "integer",
+                    "description": "Success threshold for liveness probe",
+                    "default": 1
+                }
+            }
+        },
+        "readinessProbe": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable readiness probe",
+                    "default": true
+                },
+                "initialDelaySeconds": {
+                    "type": "integer",
+                    "description": "Initial delay for readiness probe",
+                    "default": 5
+                },
+                "periodSeconds": {
+                    "type": "integer",
+                    "description": "Period for readiness probe",
+                    "default": 10
+                },
+                "timeoutSeconds": {
+                    "type": "integer",
+                    "description": "Timeout for readiness probe",
+                    "default": 1
+                },
+                "failureThreshold": {
+                    "type": "integer",
+                    "description": "Failure threshold for readiness probe",
+                    "default": 3
+                },
+                "successThreshold": {
+                    "type": "integer",
+                    "description": "Success threshold for readiness probe",
+                    "default": 1
+                }
+            }
+        },
+        "startupProbe": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable startup probe",
+                    "default": true
+                },
+                "initialDelaySeconds": {
+                    "type": "integer",
+                    "description": "Initial delay for startup probe",
+                    "default": 5
+                },
+                "periodSeconds": {
+                    "type": "integer",
+                    "description": "Period for startup probe",
+                    "default": 10
+                },
+                "timeoutSeconds": {
+                    "type": "integer",
+                    "description": "Timeout for startup probe",
+                    "default": 1
+                },
+                "failureThreshold": {
+                    "type": "integer",
+                    "description": "Failure threshold for startup probe",
+                    "default": 3
+                },
+                "successThreshold": {
+                    "type": "integer",
+                    "description": "Success threshold for startup probe",
+                    "default": 1
+                }
+            }
+        },
+        "customLivenessProbe": {
+            "type": "object",
+            "description": "Override default liveness probe",
+            "default": {}
+        },
+        "customReadinessProbe": {
+            "type": "object",
+            "description": "Override default readiness probe",
+            "default": {}
+        },
+        "customStartupProbe": {
+            "type": "object",
+            "description": "Override default startup probe",
+            "default": {}
+        },
+        "autoscaling": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable autoscaling",
+                    "default": false
+                },
+                "minReplicas": {
+                    "type": "integer",
+                    "description": "Minimum number of replicas",
+                    "default": 1
+                },
+                "maxReplicas": {
+                    "type": "integer",
+                    "description": "Maximum number of replicas",
+                    "default": 100
+                },
+                "targetCPUUtilizationPercentage": {
+                    "type": "integer",
+                    "description": "Target CPU utilization percentage",
+                    "default": 80
+                },
+                "targetMemoryUtilizationPercentage": {
+                    "type": "integer",
+                    "description": "Target memory utilization percentage"
+                }
+            }
+        },
+        "extraVolumes": {
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
+            "description": "Additional volumes for the deployment",
+            "default": []
+        },
+        "extraVolumeMounts": {
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
+            "description": "Additional volume mounts for the deployment",
+            "default": []
+        },
+        "nodeSelector": {
+            "type": "object",
+            "description": "Node labels for pod assignment",
+            "default": {}
+        },
+        "tolerations": {
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
+            "description": "Tolerations for pod assignment",
+            "default": []
+        },
+        "affinity": {
+            "type": "object",
+            "description": "Affinity for pod assignment",
+            "default": {}
+        },
+        "topologySpreadConstraints": {
+            "type": "object",
+            "description": "Topology spread constraints for pods",
+            "default": {}
+        },
+        "revisionHistoryLimit": {
+            "type": "integer",
+            "description": "Maximum number of revisions maintained in revision history"
+        },
+        "podDisruptionBudget": {
+            "type": "object",
+            "description": "Pod disruption budget configuration",
+            "default": {}
+        },
+        "metrics": {
+            "type": "object",
+            "properties": {
+                "wordpress": {
+                    "type": "object",
+                    "description": "WordPress metrics configuration"
+                }
+            }
+        },
+        "externalDatabase": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "type": "string",
+                    "description": "External database host"
+                },
+                "port": {
+                    "type": "integer",
+                    "description": "External database port",
+                    "default": 3306
+                },
+                "database": {
+                    "type": "string",
+                    "description": "External database name"
+                },
+                "username": {
+                    "type": "string",
+                    "description": "External database username"
+                },
+                "password": {
+                    "type": "string",
+                    "description": "External database password"
+                },
+                "existingSecret": {
+                    "type": "string",
+                    "description": "Name of existing secret for database credentials",
+                    "default": ""
+                }
+            }
+        },
+        "mariadb": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable MariaDB chart installation",
+                    "default": true
+                }
+            },
+            "description": "MariaDB chart configuration"
+        },
+        "memcached": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable Memcached chart installation",
+                    "default": false
+                }
+            },
+            "description": "Memcached chart configuration"
+        }
+    },
+    "if": {
+        "properties": {
+            "mariadb": {
+                "properties": {
+                    "enabled": {
+                        "const": false
+                    }
+                }
+            }
+        }
+    },
+    "then": {
+        "required": [
+            "externalDatabase"
+        ],
+        "properties": {
+            "externalDatabase": {
+                "required": [
+                    "host",
+                    "database",
+                    "username"
+                ]
+            }
+        }
+    }
+}

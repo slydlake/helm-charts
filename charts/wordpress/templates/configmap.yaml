@@ -1,0 +1,305 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wordpress.fullname" . }}-configfiles
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+data:
+  000-default.conf: |
+    {{- if .Values.apache.customDefaultSiteConfig }}
+    {{ .Values.apache.customDefaultSiteConfig | nindent 4 }}
+    {{- else if .Values.metrics.apache.enabled }}
+    <VirtualHost *:{{ .Values.service.ports.http }}>
+            ServerAdmin webmaster@localhost
+            <Location "/server-status">
+                    SetHandler server-status
+                    Require local
+            </Location>
+            DocumentRoot /var/www/html
+            ErrorLog ${APACHE_LOG_DIR}/error.log
+            CustomLog ${APACHE_LOG_DIR}/access.log combined
+    </VirtualHost>
+    {{- else }}
+    <VirtualHost *:{{ .Values.service.ports.http }}>
+            ServerAdmin webmaster@localhost
+            DocumentRoot /var/www/html
+
+            ErrorLog ${APACHE_LOG_DIR}/error.log
+            CustomLog ${APACHE_LOG_DIR}/access.log combined
+    </VirtualHost>
+    {{- end }}
+  ports.conf: |
+    {{- if .Values.apache.customPortsConfig }}
+    {{ .Values.apache.customPortsConfig | nindent 4 }}
+    {{- else }}
+    Listen {{ .Values.service.ports.http }}
+    {{- end }}
+  custom.ini: |
+    {{- if .Values.apache.customPhpConfig }}
+    {{ .Values.apache.customPhpConfig | nindent 4 }}
+    {{- end }}
+  htaccess: |
+    {{- if .Values.wordpress.htaccess }}
+    {{ .Values.wordpress.htaccess | nindent 4 }}
+    {{ else if .Values.metrics.apache.enabled }}
+    # Server-status exception
+    <IfModule mod_rewrite.c>
+    RewriteRule ^server-status - [L]
+    </IfModule>
+
+    # BEGIN WordPress
+    # Die Anweisungen (Zeilen) zwischen „BEGIN WordPress“ und „END WordPress“ sind
+    # dynamisch generiert und sollten nur über WordPress-Filter geändert werden.
+    # Alle Änderungen an den Anweisungen zwischen diesen Markierungen werden überschrieben.
+    <IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteBase /
+    RewriteRule ^index\.php$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.php [L]
+    </IfModule>
+
+    # END WordPress
+    {{ else }}
+    # BEGIN WordPress
+    # Die Anweisungen (Zeilen) zwischen „BEGIN WordPress“ und „END WordPress“ sind
+    # dynamisch generiert und sollten nur über WordPress-Filter geändert werden.
+    # Alle Änderungen an den Anweisungen zwischen diesen Markierungen werden überschrieben.
+    <IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteBase /
+    RewriteRule ^index\.php$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.php [L]
+    </IfModule>
+    # END WordPress
+    {{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wordpress.fullname" . }}-init
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+data:
+  base.sh: |
+    #!/bin/bash
+    # Check if WordPress files exist; if not copy them but exclude wp-content.
+    if [ ! -e /tmp/wordpress/index.php ] && [ ! -e /tmp/wordpress/wp-includes/version.php ]; then
+        echo "WordPress not found in /tmp/wordpress - copying now..."
+        # Use a for loop to copy everything except wp-content
+        mkdir -p /tmp/wordpress
+        cd /usr/src/wordpress || exit 0
+        for item in *; do
+          if [ "$item" != "wp-content" ]; then
+            cp -r "$item" /tmp/wordpress/ || exit 1
+          fi
+          # Handle wp-config-docker.php
+          if [ "$item" = "wp-config-docker.php" ] && [ ! -s /tmp/wordpress/wp-config.php ]; then
+            awk '
+              /put your unique phrase here/ {
+                cmd = "head -c1m /dev/urandom | sha1sum | cut -d\\  -f1"
+                cmd | getline str
+                close(cmd)
+                gsub("put your unique phrase here", str)
+              }
+              { print }
+            ' "$item" > /tmp/wordpress/wp-config.php
+          fi
+        done
+        
+        # Also try to copy any existing wp-content from /var/www/html if present
+        if [ ! -d /tmp/wordpress/wp-content ]; then
+            cp -r /var/www/html/wp-content /tmp/wordpress/wp-content 2>/dev/null || true
+        fi
+        echo "Complete! WordPress has been successfully copied to /tmp/wordpress"
+    else
+        echo "WordPress already present in /tmp/wordpress - skipping copy"
+    fi
+  init.sh: |
+    #!/bin/bash
+    echo "Starting init script..."
+              
+    # WP-CLI wrapper: always set path, and append --debug when DEBUG=true
+    wp() {
+      if [ "${DEBUG}" = "true" ]; then
+        command wp --path="${WORDPRESS_PATH}" --debug "$@"
+      else
+        command wp --path="${WORDPRESS_PATH}" "$@"
+      fi
+    }
+
+    # Helper to run commands with optional output suppression.
+    # If DEBUG is true, run the command verbosely; otherwise suppress stdout+stderr.
+    run() {
+      if [ "${DEBUG}" = "true" ]; then
+        "$@"
+      else
+        "$@" >/dev/null 2>&1
+      fi
+    }
+
+    # Wait for database to be ready
+    echo "Waiting for database..."
+    until run wp db check; do
+      echo "Database not ready yet, waiting 15 seconds..."
+      sleep 15
+    done
+    
+    # wait to get ready
+    # sleep 20
+    # Activate maintenance mode during setup
+    if ! run wp maintenance-mode is-active --url="${WP_URL}"; then
+      run wp maintenance-mode activate --force --url="${WP_URL}"
+    else
+      run wp maintenance-mode status --url="${WP_URL}"
+    fi
+
+    # set up WordPress
+    if [ "${WP_INIT}" = "true" ]; then
+      # Check if WordPress database is already installed
+      if ! run wp core is-installed --url="${WP_URL}"; then
+        echo "Setting up WordPress..."
+        run wp core install \
+          --url="${WP_URL}" \
+          --title="${WP_TITLE}" \
+          --admin_user="${WP_ADMIN_USER}" \
+          --admin_password="${WP_ADMIN_PASSWORD}" \
+          --admin_email="${WP_ADMIN_EMAIL}" \
+          --skip-email \
+          --locale="${WP_LOCALE}"
+      fi
+
+      # set up localization
+      if [ -n "${WP_LOCALE}" ]; then
+        # Set language if WordPress is already installed
+        LANG_STATUS=$(wp language core list --language=${WP_LOCALE} --field=status)
+        case $LANG_STATUS in
+          "uninstalled")
+            wp language core install ${WP_LOCALE} --activate
+            ;;
+          "installed")
+            wp site switch-language ${WP_LOCALE}
+            ;;
+        esac
+      fi
+
+      # Set Wordpress permalinks
+      echo "Setting WordPress permalinks..."
+      if [ ! -z "${WP_PERMALINK_STRUCTURE}" ]; then
+        wp rewrite structure "${WP_PERMALINK_STRUCTURE}"
+        wp rewrite flush
+      fi
+
+      # Set user metadata
+      echo "Setting user metadata..."
+      if [ ! -z "${WP_ADMIN_FIRSTNAME}" ]; then
+        wp user meta update "$WP_ADMIN_USER" first_name "$WP_ADMIN_FIRSTNAME"
+      fi
+      if [ ! -z "${WP_ADMIN_LASTNAME}" ]; then
+        wp user meta update "$WP_ADMIN_USER" last_name "$WP_ADMIN_LASTNAME"
+      fi
+    fi
+
+    # Handle WordPress users if specified
+    {{- if .Values.wordpress.users }}
+    echo "Creating custom users..."
+    {{- range .Values.wordpress.users }}
+    USER_USERNAME="{{ .username }}"
+    USER_EMAIL="{{ .email }}"
+    USER_DISPLAYNAME="{{ .displayname }}"
+    USER_FIRSTNAME="{{ .firstname }}"
+    USER_LASTNAME="{{ .lastname }}"
+    USER_ROLE="{{ .role }}"
+    USER_SENDEMAIL="{{ .sendEmail }}"
+
+    # Check if user already exists
+    if ! run wp user get "${USER_USERNAME}"; then
+      echo "Creating user ${USER_USERNAME}..."
+      run wp user create "${USER_USERNAME}" "${USER_EMAIL}" \
+        --role="${USER_ROLE}" \
+        --display_name="${USER_DISPLAYNAME}" \
+        --first_name="${USER_FIRSTNAME}" \
+        --last_name="${USER_LASTNAME}" \
+        --send-email="${USER_SENDEMAIL}"
+    else
+      echo "User ${USER_USERNAME} already exists, skipping."
+    fi
+    {{- end }}
+    {{- else }}
+    echo "No custom users specified."
+    {{- end }}
+
+
+
+
+    # Handle WordPress metrics plugin if specified
+    if [ ! -z "${WORDPRESS_METRICS}" ]; then
+      # Check if plugin is installed
+      if run wp plugin is-installed ${WORDPRESS_METRICS}; then
+        if ! run wp plugin is-active ${WORDPRESS_METRICS}; then
+          run wp plugin activate ${WORDPRESS_METRICS}
+        fi
+      else
+        echo "Installing WordPress metrics plugin..."
+        wp plugin install ${WORDPRESS_METRICS} --activate --force
+      fi
+
+      # Enable auto-updates if disabled
+      AUTO_UPDATE_STATUS=$(run wp plugin auto-updates status ${WORDPRESS_METRICS} --field=status)
+      if [ "$AUTO_UPDATE_STATUS" = "disabled" ]; then
+        run wp plugin auto-updates enable ${WORDPRESS_METRICS}
+      fi
+    else
+      # Remove plugin if WORDPRESS_METRICS is empty
+      if run wp plugin is-installed ${WORDPRESS_METRICS}; then
+        wp plugin delete ${WORDPRESS_METRICS}
+      fi
+    fi
+
+    # Handle WordPress plugins if specified
+    {{- if .Values.wordpress.plugins }}
+    echo "Installing custom plugins..."
+    {{- range .Values.wordpress.plugins }}
+    PLUGIN_NAME="{{ .name }}"
+    PLUGIN_VERSION="{{ .version }}"
+    PLUGIN_ACTIVATE="{{ .activate }}"
+    PLUGIN_AUTOUPDATE="{{ .autoupdate }}"
+
+    # Check if plugin is installed
+    if ! run wp plugin is-installed "${PLUGIN_NAME}"; then
+      # Install the plugin
+      if [ -n "${PLUGIN_VERSION}" ]; then
+        wp plugin install "${PLUGIN_NAME}" --version="${PLUGIN_VERSION}" --force
+      else
+        wp plugin install "${PLUGIN_NAME}" --force
+      fi
+    fi
+
+    # Activate if requested and not active
+    if [ "${PLUGIN_ACTIVATE}" = "true" ] && ! run wp plugin is-active "${PLUGIN_NAME}"; then
+      run wp plugin activate "${PLUGIN_NAME}"
+    fi
+
+    # Enable auto-updates if requested and not enabled
+    AUTO_UPDATE_STATUS=$(run wp plugin auto-updates status "${PLUGIN_NAME}" --field=status)
+    if [ "${PLUGIN_AUTOUPDATE}" = "true" ] && [ "$AUTO_UPDATE_STATUS" = "disabled" ]; then
+      run wp plugin auto-updates enable "${PLUGIN_NAME}"
+    fi
+    {{- end }}
+    {{- else }}
+    echo "No custom plugins specified."
+    {{- end }}
+
+    # Deactivate maintenance mode
+    if run wp maintenance-mode is-active; then
+      wp maintenance-mode deactivate
+    fi
+
+    echo "Init script completed!"

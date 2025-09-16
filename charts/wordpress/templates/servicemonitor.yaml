@@ -1,0 +1,71 @@
+{{- if .Values.metrics.wordpress.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "metrics.wordpress.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+{{ with .Values.metrics.wordpress.serviceMonitor.labels }}
+  labels:
+  {{ toYaml | nindent 4 }}
+{{ end }}
+{{ if .Values.metrics.wordpress.serviceMonitor.annotations }}
+  annotations:
+{{ toYaml .Values.metrics.wordpress.serviceMonitor.annotations | nindent 4 }}
+{{ end }}
+spec:
+  {{ if .Values.metrics.wordpress.serviceMonitor.selector }}
+  selector:
+    {{- toYaml .Values.metrics.wordpress.serviceMonitor.selector | nindent 6 }}
+  {{ else }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ include "wordpress.name" . }}
+  {{- end }}
+  endpoints:
+  - port: http
+    {{ if .Values.metrics.wordpress.serviceMonitor.interval }}
+    interval: {{ .Values.metrics.wordpress.serviceMonitor.interval }}
+    {{ end }}
+    path: {{ coalesce .Values.metrics.wordpress.serviceMonitor.metricsPath .Values.metrics.wordpress.serviceMonitor.path "/slymetrics/metrics" | quote }}
+    bearerTokenSecret:
+      name: {{ if .Values.metrics.wordpress.serviceMonitor.existingSecret }}{{ .Values.metrics.wordpress.serviceMonitor.existingSecret }}{{ else }}{{ include "metrics.wordpress.fullname" . }}{{ end }}
+      key: wordpress.metrics.token
+{{- end }}
+
+{{- if and .Values.metrics.apache.enabled .Values.metrics.apache.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "metrics.apache.fullname" . }}
+  namespace: {{ if .Values.metrics.apache.serviceMonitor.namespace }}{{ .Values.metrics.apache.serviceMonitor.namespace }}{{ else }}{{ .Release.Namespace }}{{ end }}
+{{ with .Values.metrics.apache.serviceMonitor.labels }}
+  labels:
+  {{ toYaml | nindent 4 }}
+{{ end }}
+{{ if .Values.metrics.apache.serviceMonitor.annotations }}
+  annotations:
+{{ toYaml .Values.metrics.apache.serviceMonitor.annotations | nindent 4 }}
+{{ end }}
+spec:
+  {{ if .Values.metrics.apache.serviceMonitor.selector }}
+  selector:
+    {{- toYaml .Values.metrics.apache.serviceMonitor.selector | nindent 6 }}
+  {{ else }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/name: {{ include "wordpress.name" . }}
+  {{- end }}
+  endpoints:
+  - port: metrics
+    {{ if .Values.metrics.apache.serviceMonitor.interval }}
+    interval: {{ .Values.metrics.apache.serviceMonitor.interval }}
+    {{ end }}
+    path: {{ coalesce .Values.metrics.apache.serviceMonitor.metricsPath .Values.metrics.apache.serviceMonitor.path "/metrics" | quote }}
+{{- end }}
+
+
+

@@ -1,0 +1,927 @@
+# Default values for wordpress.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+## @section Global parameters
+
+## @param replicaCount integer Number of replicas for the deployment
+# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 1
+
+## @section Image parameters
+
+## @param image object Container image configuration
+# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+image:
+  ## @param image.repository string WordPress container image repository
+  repository: docker.io/wordpress
+  ## @param image.pullPolicy string Image pull policy
+  # This sets the pull policy for images.
+  pullPolicy: IfNotPresent
+  ## @param image.tag string Overrides the image tag whose default is the chart appVersion
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+## @param imagePullSecrets array Secrets for pulling images from private repository
+# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+
+## @param nameOverride string String to partially override the chart name
+# This is to override the chart name.
+nameOverride: ""
+
+## @param fullnameOverride string String to fully override the chart name
+fullnameOverride: ""
+
+## @param clusterDomain Kubernetes Cluster Domain
+clusterDomain: cluster.local
+
+## @section DNS and Network parameters
+
+## @param dnsPolicy string DNS policy for the pod
+# DNS policy and configuration of the pod
+# E.g.
+# dnsPolicy: None
+# dnsConfig:
+#   searchers:
+#     - svc.cluster.local
+#     - cluster.local
+#   nameservers:
+#     - 1.1.1.1
+#     - 8.8.8.8
+
+# dnsPolicy: ClusterFirst
+
+## @param dnsConfig object DNS configuration for the pod
+# dnsConfig: {}
+
+## @param hostNetwork boolean Expose the service on the host network
+# Expose the service on the host network
+# hostNetwork: true
+
+## @section Deployment parameters
+
+## @param customLabels object Additional labels for deployment
+# Additional labels for deployment
+customLabels: {}
+
+## @param customAnnotations object Additional annotations for deployment
+# Additional annotations for deployment
+customAnnotations: {}
+
+## @param updateStrategy object Deployment strategy type
+# deployment strategy type
+# NOTE: Set it to `Recreate` if you use a PersistentVolume that cannot be mounted on multiple pods
+# E.g.
+# updateStrategy:
+#   rollingUpdate:
+#     maxSurge: 25%
+#     maxUnavailable: 25%
+#   type: RollingUpdate
+updateStrategy:
+  type: Recreate
+
+## @param initContainers array Init containers to run before the main container
+# Init containers
+# initContainers:
+#   - name: do-something
+#     image: busybox
+#     command: ['do', 'something']
+initContainers: []
+
+## @param sidecars array Sidecar containers to run alongside the main container
+# Sidecar containers
+# E.g.
+#  sidecars:
+#   - name: container-name
+#     image: image-name
+#     imagePullPolicy: Always
+sidecars: []
+
+## @param command array Override default container command
+# override default container command
+command: []
+
+## @param args array Override default container args
+# override default container args (useful when using custom images)
+args: []
+
+## @section Environment variables
+
+## @param extraEnvVars array Extra environment variables to set in the container
+# extra environment variables to set in the container
+# E.g.
+## extraEnvVars:
+# - name: MY_ENV_VAR
+#   value: my-value
+extraEnvVars: []
+
+## @param extraEnvVarsSecret string Name of existing Secret containing extra env vars
+# Name of the existing Secret containing extra env vars for container
+extraEnvVarsSecret: ""
+
+## @param extraEnvVarsCM string Name of existing ConfigMap containing extra env vars
+# Name of the existing ConfigMap containing extra env vars for container
+extraEnvVarsCM: ""
+
+## @section WordPress configuration
+
+wordpress:
+  ## @section WordPress initialization settings
+  ## these settings are set with an init container.
+
+  ## @section wordpress.init object Initialization settings for first WordPress installation
+  ## Note: If wordpress is already installed and wordpress.init.enabled is true, the installation process will be skipped,
+  ## but the the following will still be applied: firstname, lastname, permalinks, plugins, users
+  init:
+    ## @param wordpress.init.enabled boolean Enable init container for first installation
+    enabled: false
+    ## @param wordpress.init.existingSecret string Existing secret for WordPress credentials
+    # Existing secret for WordPress credentials. Must contain the keys: wordpress.username, wordpress.password and wordpress.email
+    # if existingSecret is set, username, password and email will be ignored
+    existingSecret: ""
+    ## @param wordpress.init.username string WordPress admin username
+    # WordPress admin user
+    username:
+    ## @param wordpress.init.password string WordPress admin password
+    # WordPress admin password
+    password:
+    ## @param wordpress.init.email string WordPress admin email
+    # WordPress admin email
+    email:
+    ## @param wordpress.init.firstname string WordPress admin first name
+    # WordPress admin first name
+    firstname:
+    ## @param wordpress.init.lastname string WordPress admin last name
+    # WordPress admin last name
+    lastname:
+    ## @param wordpress.init.title string WordPress blog title
+    # WordPress blog title
+    title:
+    ## @param wordpress.init.debug boolean Enable debug mode in Job "setter"
+    debug: false
+
+  ## @section WordPress general settings
+
+  ## @param wordpress.permalinks WordPress permalinks settings
+  ## @param wordpress.permalinks.structure string Permalink structure
+  ## plain:          http://example.com/?p=123
+  ## dayAndName:   http://example.com/2025/09/10/sample-post/
+  ## monthAndName: http://example.com/2025/09/sample-post/
+  ## numeric:        http://example.com/archives/123
+  ## postName:      http://example.com/sample-post/
+  ## custom structure: http://example.com/%year%/%month%/%day%/%postname%/
+  ### the following tags are available for customization:
+  ## %year% %monthnum% %day% %hour% %minute% %second% %post_id% %postname% %category% %author%
+  ## @param wordpress.permalinks.customStructure string Custom permalink structure
+  ## If you use wordpress.permalinks.customStructure, wordpress.permalinks.structure will be ignored
+
+  ## Note: plain is default, if you use the metrics plugin (metrics.wordpress.enabled = true), you have to use any other setting to activate the permalinks
+  permalinks:
+    structure: postName
+    # customStructure: /%year%/%month%/%day%/%postname%/
+
+  ## @param wordpress.plugins array WordPress plugins to install
+  ## @param wordpress.plugins[].name string Name|zip|URL: Name of the plugin (e.g. hello-dolly), local zip file or remote URL
+  ## e.g. you want to install the plugin Two Factor: go to the plugin page and take a look at the url
+  ## e.g. https://wordpress.org/plugins/two-factor/ then is the name of the plugin "two-factor"
+  ## @param wordpress.plugins[].version string Version of the plugin (e.g. 1.0.0)
+  ## If not set, the latest version will be installed
+  ## @param wordpress.plugins[].activate boolean Activate the plugin after install
+  ## @param wordpress.plugins[].autoupdate boolean Enable auto-updates for the plugin
+  # plugins:
+  #   - name: "test-plugin"
+  #     version: "1.1.0"
+  #     activate: true
+  #     autoupdate: true
+  plugins:
+  ## @param wordpress.users array WordPress users to create
+  ## @param wordpress.users[].name string mandatory Name of the user
+  ## @param wordpress.users[].email string mandatory Email of the user
+  ## @param wordpress.users[].displayname string optional Display name of the user
+  ## @param wordpress.users[].firstname string optional First name of the user
+  ## @param wordpress.users[].lastname string optional Last name of the user
+  ## @param wordpress.users[].role string optional Role of the user (administrator, editor, author, contributor, subscriber). Default: none
+  ## @param wordpress.users[].sendEmail boolean optional Send email to user
+  ## note: the password will automatically generated by wordpress. It's recommended to set sendEmail to true, that the user gets his password.
+  # users:
+  #   - username: "johndoe"
+  #     email: "johndoe@example.com"
+  #     displayname: "John Doe"
+  #     firstname: "John"
+  #     lastname: "Doe"
+  #     role: "administrator"
+  #     sendEmail: true
+  users:
+
+  ## @param wordpress.tablePrefix string Prefix for WordPress database tables
+  # prefix for wordpress database tables
+  tablePrefix: wp_
+  ## @param wordpress.language string WordPress language (e.g. de_DE)
+  # set language (e.g. de_DE). Default is en_US. If you need to change the language, you can set it here.
+  language:
+  ## @param wordpress.url string WordPress URL
+  # WordPress URL. This will be use for the internal variables WP_HOME and WP_SITEURL
+  # in Wordpress in the Admin UI it is called Site Address (URL) and WordPress Address (URL)
+  url:
+
+  ## @param wordpress.configExtra string Custom values for wp-config.php
+  # custom values for wp-config.php see: https://developer.wordpress.org/advanced-administration/wordpress/wp-config/
+  # configExtra: |-
+  #   define('WP_MEMORY_LIMIT', '256M');
+  #   define('WP_MAX_MEMORY_LIMIT', '512M');
+  #   define('FORCE_SSL_ADMIN', false);
+  #   define('WP_CACHE', true);
+  configExtra:
+
+  ## @param wordpress.htaccess string Custom .htaccess file
+  ## if metrics.apache.createConfig is true, the modrewrite of server-status will be added automatically before all other rules
+  htaccess:
+
+  ## @param wordpress.enableDebug boolean Enable WordPress debugging
+  # enable debugging see: https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/
+  debug: false
+
+## @section Apache parameters
+apache:
+  ## @param apache.customDefaultSiteConfig string Custom Apache default site config
+  ## this is the file apache2/sites-available/000-default.conf
+  ## this overrides the conf even if metrics.apache.createConfig is true. This setting will always have the highest priority.
+  # customDefaultSiteConfig: |-
+  #   <VirtualHost *:80>
+  #           ServerAdmin webmaster@localhost
+  #           DocumentRoot /var/www/html
+
+  #           ErrorLog ${APACHE_LOG_DIR}/error.log
+  #           CustomLog ${APACHE_LOG_DIR}/access.log combined
+  #   </VirtualHost>
+  customDefaultSiteConfig:
+
+  ## @param apache.customPortsConfig string Custom Apache ports config
+  ## this is the file apache2/ports.conf
+  # customPortsConfig: |-
+  #   Listen 80
+  customPortsConfig:
+
+  ## @param apache.customPhpConfig string Custom Apache PHP config
+  # customPhpConfig: |-
+  #   upload_max_filesize = 64M
+  #   post_max_size = 64M
+  #   memory_limit = 256M
+  customPhpConfig:
+
+## @section Storage parameters
+storage:
+  ## @param storage.existingClaim string Name of an existing PVC to use
+  # Name of an existing PVC to use
+  existingClaim: ""
+  ## @param storage.storageClass string Storage class for PVC
+  # storageClass is required when using a new PVC
+  storageClass: ""
+  ## @param storage.size string Size of PVC
+  # size is required when using a new PVC
+  size: 1Gi
+  ## @param storage.accessModes array Access modes for PVC
+  # accessModes is required when using a new PVC
+  accessModes:
+    - ReadWriteOnce
+  ## @param storage.annotations object Annotations to add to PVC
+  # annotations to add to the PVC
+  annotations: {}
+  ## @param storage.labels object Labels to add to PVC
+  # labels to add to the PVC
+  labels: {}
+  ## @param storage.selector object Selector to add to PVC
+  # selector to add to the PVC
+  selector: {}
+  ## @param storage.resourcePolicy string Resource policy of PVC
+  # resource policy of the PVC
+  resourcePolicy: keep
+
+## @section Service Account parameters
+
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  ## @param serviceAccount.create boolean Specifies whether a service account should be created
+  # Specifies whether a service account should be created
+  create: true
+  ## @param serviceAccount.automount boolean Automatically mount ServiceAccount API credentials
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  ## @param serviceAccount.annotations object Annotations to add to the service account
+  # Annotations to add to the service account
+  annotations: {}
+  ## @param serviceAccount.name string The name of the service account to use
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+## @section Pod parameters
+
+## @param podAnnotations object Annotations to add to pods
+# This is for setting Kubernetes Annotations to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+podAnnotations: {}
+
+## @param podLabels object Labels to add to pods
+# This is for setting Kubernetes Labels to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
+
+## @section Security Context parameters
+
+# Pod security options
+# for debian based default for www-data is fsGroup 33
+# for alpine based default for www-data is fsGroup 82
+podSecurityContext:
+  fsGroup: 33
+  runAsUser: 33
+  runAsNonRoot: true
+  # Ensure seccomp is set to RuntimeDefault to satisfy PodSecurity.
+  seccompProfile:
+    type: RuntimeDefault
+
+## @param containerSecurityContext object Security context for the container
+# Security context for the container
+# readOnlyRootFilesystem: true
+# allowPrivilegeEscalation: false
+# privileged: false
+#
+# for set your own security context, you can override these
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  privileged: false
+  # Drop all capabilities to comply with the "restricted" policy.
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+  runAsNonRoot: true
+
+## @section Service parameters
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  ## @param service.type string Service type
+  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  type: NodePort
+  ## @param service.ports object Service ports configuration
+  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+  # internal container ports, default by 80 and 443
+  ports:
+    http: 80
+    https: 443
+  ## @param service.nodePorts object NodePorts configuration
+  # This sets the NodePorts
+  nodePorts:
+    http:
+    https:
+  ## @param service.clusterIP string Static cluster IP
+  # This sets the ClusterIP
+  clusterIP:
+  ## @param service.annotations object Additional annotations for service
+  # Sets additional annotations to the service
+  annotations: {}
+  ## @param service.labels object Additional labels for service
+  # Sets additional labels to the service
+  labels: {}
+
+## @section Ingress parameters
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  ## @param ingress.enabled boolean Enable ingress
+  enabled: false
+  ## @param ingress.className string Ingress class name
+  className: ""
+  ## @param ingress.maxBodySize string Maximal body size
+  ## Maximal body size (default: 64m - increase if uploads to Wordpress failing)
+  maxBodySize: 64m
+  ## @param ingress.annotations object Ingress annotations
+  annotations:
+    {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  ## @param ingress.hosts array Ingress hosts configuration
+  hosts:
+    - host: wordpress.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  ## @param ingress.tls array Ingress TLS configuration
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+## @section Resource parameters
+resources:
+  {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+  ## @section Health Check parameters
+
+  ## @param livenessProbe.enabled boolean Enable liveness probe
+  ## @param livenessProbe.initialDelaySeconds integer Initial delay seconds for liveness probe
+  ## @param livenessProbe.periodSeconds integer Period seconds for liveness probe
+  ## @param livenessProbe.timeoutSeconds integer Timeout seconds for liveness probe
+  ## @param livenessProbe.failureThreshold integer Failure threshold for liveness probe
+  ## @param livenessProbe.successThreshold integer Success threshold for liveness probe
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+  successThreshold: 1
+
+  ## @param readinessProbe.enabled boolean Enable readiness probe
+  ## @param readinessProbe.initialDelaySeconds integer Initial delay seconds for readiness probe
+  ## @param readinessProbe.periodSeconds integer Period seconds for readiness probe
+  ## @param readinessProbe.timeoutSeconds integer Timeout seconds for readiness probe
+  ## @param readinessProbe.failureThreshold integer Failure threshold for readiness probe
+  ## @param readinessProbe.successThreshold integer Success threshold for readiness probe
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 10
+  successThreshold: 1
+
+  ## @param startupProbe.enabled boolean Enable startup probe
+  ## @param startupProbe.initialDelaySeconds integer Initial delay seconds for startup probe
+  ## @param startupProbe.periodSeconds integer Period seconds for startup probe
+  ## @param startupProbe.timeoutSeconds integer Timeout seconds for startup probe
+  ## @param startupProbe.failureThreshold integer Failure threshold for startup probe
+  ## @param startupProbe.successThreshold integer Success threshold for startup probe
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 20
+  successThreshold: 1
+## @param customLivenessProbe object Override default liveness probe
+# override default liveness probe
+customLivenessProbe: {}
+
+## @param customReadinessProbe object Override default readiness probe
+# override default readiness probe
+customReadinessProbe: {}
+
+## @param customStartupProbe object Override default startup probe
+# override default startup probe
+customStartupProbe: {}
+
+## @section Autoscaling parameters
+
+## @param autoscaling object Autoscaling configuration
+# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+autoscaling:
+  ## @param autoscaling.enabled boolean Enable autoscaling
+  enabled: false
+  ## @param autoscaling.minReplicas integer Minimum number of replicas
+  minReplicas: 1
+  ## @param autoscaling.maxReplicas integer Maximum number of replicas
+  maxReplicas: 100
+  ## @param autoscaling.targetCPUUtilizationPercentage integer Target CPU utilization percentage
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+## @section Volume parameters
+
+## @param extraVolumes array Additional volumes for the deployment
+# Additional volumes on the output Deployment definition.
+extraVolumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+## @param extraVolumeMounts array Additional volume mounts for the deployment
+# Additional volumeMounts on the output Deployment definition.
+extraVolumeMounts: []
+# - name: foo
+#   mountPath: "/var/www/html"
+#   readOnly: true
+
+## @section Node assignment parameters
+
+## @param nodeSelector object Node labels for pod assignment
+nodeSelector: {}
+
+## @param tolerations array Tolerations for pod assignment
+tolerations: []
+
+## @param affinity object Affinity for pod assignment
+affinity: {}
+
+## @param topologySpreadConstraints object Topology spread constraints for pods
+## Topology spread constraints for pods
+topologySpreadConstraints: {}
+
+## @section Other parameters
+
+## @param revisionHistoryLimit integer Maximum number of revisions maintained in revision history
+## Maximum number of revisions maintained in revision history
+revisionHistoryLimit:
+
+## @section podDisruptionBudget object Pod disruption budget configuration
+## Pod disruption budget
+podDisruptionBudget:
+  {}
+  ## Minimum number of pods that must be available after eviction
+  # minAvailable:
+  ## Maximum number of pods that can be unavailable after eviction
+  # maxUnavailable:
+
+## @section Metrics for Apache and WordPress
+metrics:
+  ## @param wordpress object WordPress metrics configuration
+  ## The metrics will exported with a WordPress plugin and provided with a serviceMonitor to Prometheus
+  wordpress:
+    ## @param metrics.wordpress.enabled boolean Specifies if wordpress metrics should be created
+    enabled: false
+    ## @param metrics.wordpress.installPlugin boolean Specifies whether the WordPress exporter plugin should be installed
+    installPlugin: true
+    ## @param metrics.wordpress.pluginNameOverride string Override the name of the to installed plugin
+    pluginNameOverride: ""
+
+    ## @section metrics.wordpress.serviceMonitor object ServiceMonitor configuration
+    serviceMonitor:
+      ## @param metrics.wordpress.serviceMonitor.annotations object Annotations to add to the ServiceMonitor
+      annotations: {}
+      ## @param metrics.wordpress.serviceMonitor.labels object Labels to add to the ServiceMonitor
+      labels: {}
+      ## @param metrics.wordpress.serviceMonitor.selector object Selector to use for the ServiceMonitor
+      selector: {}
+      ## @param metrics.wordpress.serviceMonitor.interval string Interval at which to scrape metrics
+      interval: 30s
+      ## @param metrics.wordpress.serviceMonitor.metricsPath string Path to scrape metrics from
+      metricsPath: /slymetrics/metrics
+      ## @param metrics.wordpress.serviceMonitor.existingSecret string Name of existing secret containing Bearer Token
+      ## you have to authenticate with the WordPress REST API, if not used it not exported all data
+      # create for this authentication a application password
+      # see  https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/#basic-authentication-with-application-passwords
+      # Name of the existing secret. Must contain the Bearer Token as a keys "wordpress.metrics.token"
+      existingSecret: ""
+      ## @param metrics.wordpress.serviceMonitor.token string Alternative authentication token
+      # Alternative use this keys. If existingSecret is used, these are ignored
+      # sample generation: echo $(openssl rand -hex 32)
+      token: ""
+
+  ## @section Apache Metrics parameters
+  ## This uses the Apache Exporter sidecar to expose metrics
+  apache:
+    ## @param metrics.apache.enabled boolean Specifies if apache metrics should be created
+    enabled: false
+    ## @section Image parameters
+    ## @param metrics.apache.createConfig boolean Create in .htaccess and in 000-default.conf the config, that the exporter needs
+    ## Values.apache.customDefaultSiteConfig will override this setting
+    ## .htaccess:
+    # # Server-status exception - for metrics.apache
+    # <IfModule mod_rewrite.c>
+    # RewriteRule ^server-status - [L]
+    # </IfModule>
+    ## Apache VirtualHost configuration 000-default.conf:
+    # <VirtualHost *:{{ .Values.service.ports.http }}>
+    #         ServerAdmin webmaster@localhost
+    #         <Location "/server-status">
+    #                 SetHandler server-status
+    #                 Require local
+    #         </Location>
+    #         DocumentRoot /var/www/html
+    #         ErrorLog ${APACHE_LOG_DIR}/error.log
+    #         CustomLog ${APACHE_LOG_DIR}/access.log combined
+    # </VirtualHost>
+    createConfig: true
+
+    ## @param metrics.apache.image object Container image configuration
+    # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+    image:
+      ## @param metrics.apache.image.repository string WordPress container image repository
+      repository: lusotycoon/apache-exporter
+      ## @param metrics.apache.image.pullPolicy string Image pull policy
+      # This sets the pull policy for images.
+      pullPolicy: IfNotPresent
+      ## @param metrics.apache.image.tag string Overrides the image tag
+      tag: "latest"
+
+    ## @param metrics.apache.imagePullSecrets array Secrets for pulling images from private repository
+    # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    imagePullSecrets:
+      []
+
+      ## @param metrics.apache.livenessProbe.enabled boolean Enable liveness probe
+      ## @param metrics.apache.livenessProbe.initialDelaySeconds integer Initial delay seconds for liveness probe
+      ## @param metrics.apache.livenessProbe.periodSeconds integer Period seconds for liveness probe
+      ## @param metrics.apache.livenessProbe.timeoutSeconds integer Timeout seconds for liveness probe
+      ## @param metrics.apache.livenessProbe.failureThreshold integer Failure threshold for liveness probe
+      ## @param metrics.apache.livenessProbe.successThreshold integer Success threshold for liveness probe
+    livenessProbe:
+      enabled: true
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+
+      ## @param metrics.apache.readinessProbe.enabled boolean Enable readiness probe
+      ## @param metrics.apache.readinessProbe.initialDelaySeconds integer Initial delay seconds for readiness probe
+      ## @param metrics.apache.readinessProbe.periodSeconds integer Period seconds for readiness probe
+      ## @param metrics.apache.readinessProbe.timeoutSeconds integer Timeout seconds for readiness probe
+      ## @param metrics.apache.readinessProbe.failureThreshold integer Failure threshold for readiness probe
+      ## @param metrics.apache.readinessProbe.successThreshold integer Success threshold for readiness probe
+    readinessProbe:
+      enabled: true
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+      successThreshold: 1
+
+      ## @param metrics.apache.startupProbe.enabled boolean Enable startup probe
+      ## @param metrics.apache.startupProbe.initialDelaySeconds integer Initial delay seconds for startup probe
+      ## @param metrics.apache.startupProbe.periodSeconds integer Period seconds for startup probe
+      ## @param metrics.apache.startupProbe.timeoutSeconds integer Timeout seconds for startup probe
+      ## @param metrics.apache.startupProbe.failureThreshold integer Failure threshold for startup probe
+      ## @param metrics.apache.startupProbe.successThreshold integer Success threshold for startup probe
+    startupProbe:
+      enabled: true
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 1
+      failureThreshold: 15
+      successThreshold: 1
+
+    ## @param metrics.apache.customLivenessProbe object Override default liveness probe
+    # override default livness probe
+    customLivenessProbe: {}
+
+    ## @param metrics.apache.customReadinessProbe object Override default readiness probe
+    # override default readiness probe
+    customReadinessProbe: {}
+
+    ## @param metrics.apache.customStartupProbe object Override default startup probe
+    # override default startup probe
+    customStartupProbe: {}
+
+    ## @section metrics.apache.resources parameters
+    resources: {}
+
+    service:
+      ## @param metrics.apache.service.type string Service type
+      # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+      type: ClusterIP
+      ## @param metrics.apache.service.ports object Service ports configuration
+      # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+      # internal container ports, default by 80 and 443
+      ports:
+        metrics: 9117
+      ## @param metrics.apache.service.nodePorts object NodePorts configuration
+      # This sets the NodePorts
+      nodePorts:
+        metrics:
+      ## @param metrics.apache.service.clusterIP string Static cluster IP
+      # This sets the ClusterIP
+      clusterIP:
+      ## @param metrics.apache.service.annotations object Additional annotations for service
+      # Sets additional annotations to the service
+      annotations: {}
+      ## @param metrics.apache.service.labels object Additional labels for service
+      # Sets additional labels to the service
+      labels: {}
+
+    ## @section Security Context
+    ## @param metrics.apache.containerSecurityContext.runAsUser Set container's Security Context runAsUser
+    ## @param metrics.apache.containerSecurityContext.runAsNonRoot Set container's Security Context runAsNonRoot
+    ## @param metrics.apache.containerSecurityContext.allowPrivilegeEscalation Set container's privilege escalation
+    # Drop all capabilities to comply with the "restricted" policy.
+    containerSecurityContext:
+      seLinuxOptions: {}
+      runAsUser: 1001
+      runAsGroup: 1001
+      runAsNonRoot: true
+      privileged: false
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      seccompProfile:
+        type: "RuntimeDefault"
+
+    ## Prometheus Operator ServiceMonitor configuration
+    ##
+    serviceMonitor:
+      ## @param metrics.serviceMonitor.enabled Create ServiceMonitor Resource for scraping metrics using Prometheus Operator
+      enabled: true
+      ## @param metrics.apache.serviceMonitor.annotations object Annotations to add to the ServiceMonitor
+      annotations: {}
+      ## @param metrics.apache.serviceMonitor.labels object Labels to add to the ServiceMonitor
+      labels: {}
+      ## @param metrics.apache.serviceMonitor.selector object Selector to use for the ServiceMonitor
+      selector: {}
+      ## @param metrics.apache.serviceMonitor.interval string Interval at which to scrape metrics
+      interval: 30s
+      ## @param metrics.apache.serviceMonitor.metricsPath string Path to scrape metrics from
+      metricsPath: /metrics
+      ## @param metrics.apache.serviceMonitor.namespace Namespace for the ServiceMonitor Resource (defaults to the Release Namespace)
+      namespace: ""
+
+## @section External Database parameters
+externalDatabase:
+  ## @param externalDatabase.host string External database host
+  # External database host
+  host:
+  ## @param externalDatabase.port integer External database port
+  # External database port
+  port: 3306
+  ## @param externalDatabase.username string External database user
+  # External database user
+  username:
+  ## @param externalDatabase.password string External database password
+  # External database password
+  password: ""
+  ## @param externalDatabase.database string External database name
+  # External database name
+  database: ""
+  ## @param externalDatabase.existingSecret string Name of existing Secret containing database credentials
+  # Name of the existing Secret containing the database password
+  # This secret must contain the following key: db.password and db.username
+  # When this is set, the externalDatabase.password will be ignored
+  existingSecret: ""
+
+## @section MariaDB parameters
+## use mariadb instead of external database
+## for all values see the chart of cloudpirates
+## https://artifacthub.io/packages/helm/cloudpirates-mariadb/mariadb?modal=values
+
+## @param mariadb object MariaDB chart configuration
+mariadb:
+  ## @section MariaDB Common parameters
+
+  ## @param mariadb.enabled boolean Enable MariaDB chart installation
+  enabled: true
+  ## @param mariadb.nameOverride string String to partially override mariadb.fullname
+  nameOverride: ""
+  ## @param mariadb.fullnameOverride string String to fully override mariadb.fullname
+  fullnameOverride: ""
+  ## @param mariadb.commonLabels object Labels to add to all deployed objects
+  commonLabels: {}
+  ## @param mariadb.commonAnnotations object Annotations to add to all deployed objects
+  commonAnnotations: {}
+
+  ## @section MariaDB image parameters
+
+  ## @param mariadb.image object MariaDB image configuration
+  image:
+    ## @param mariadb.image.registry string MariaDB image registry
+    registry: docker.io
+    ## @param mariadb.image.repository string MariaDB image repository
+    repository: mariadb
+    ## @param mariadb.image.tag string MariaDB image tag
+    tag: "latest"
+    ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
+    imagePullPolicy: Always
+
+  ## @section MariaDB Authentication parameters
+  auth:
+    ## @param mariadb.auth.enabled boolean MariaDB authentication enabled or disabled
+    enabled: true
+    ## @param mariadb.auth.rootPassword string MariaDB root password
+    rootPassword: ""
+    ## @param mariadb.auth.database string MariaDB custom database
+    database: ""
+    ## @param mariadb.auth.username string MariaDB custom user name
+    username: ""
+    ## @param mariadb.auth.password string MariaDB custom user password
+    password: ""
+    ## @param mariadb.auth.existingSecret string Name of existing secret for MariaDB credentials
+    existingSecret: ""
+    ## @param mariadb.auth.allowEmptyRootPassword string Allow empty root password
+    allowEmptyRootPassword: "false"
+    ## @param mariadb.auth.secretKeys object Secret keys configuration
+    secretKeys:
+      ## @param mariadb.auth.secretKeys.rootPasswordKey string Name of key in existing secret for root password
+      rootPasswordKey: mariadb-root-password
+      ## @param mariadb.auth.secretKeys.userPasswordKey string Name of key in existing secret for user password
+      userPasswordKey: mariadb-password
+
+  ## @section MariaDB service parameters
+  ## @param service.type MariaDB service type
+  ## @param service.port MariaDB service port
+  ## @param service.nodePort Node port for MariaDB service
+  ## @param service.clusterIP Static cluster IP or "None" for headless service
+  ## @param service.annotations Additional custom annotations for MariaDB service
+  service:
+    type: ClusterIP
+    port: 3306
+    nodePort: ""
+    clusterIP: ""
+    annotations: {}
+
+  ## @section MariaDB Container Security Context
+  ## @param containerSecurityContext.runAsUser Set MariaDB container's Security Context runAsUser
+  ## @param containerSecurityContext.runAsNonRoot Set MariaDB container's Security Context runAsNonRoot
+  ## @param containerSecurityContext.allowPrivilegeEscalation Set MariaDB container's privilege escalation
+  # Drop all capabilities to comply with the "restricted" policy.
+  containerSecurityContext:
+    runAsUser: 999
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+  ## @section MariaDB Persistence parameters
+  persistence:
+    ## @param mariadb.persistence.enabled boolean Enable MariaDB data persistence using PVC
+    enabled: true
+    ## @param mariadb.persistence.storageClass string PVC Storage Class for MariaDB data volume
+    storageClass: ""
+    ## @param mariadb.persistence.accessModes array PVC Access modes
+    accessModes:
+      - ReadWriteOnce
+    ## @param mariadb.persistence.size string PVC Storage Request for MariaDB data volume
+    size: 1Gi
+    ## @param mariadb.persistence.annotations object Additional custom annotations for the PVC
+    annotations: {}
+    ## @param mariadb.persistence.selector object Additional labels for the PVC
+    selector: {}
+
+## @section Memcached parameters
+## using memcached
+## for all values see the chart of cloudpirates
+## https://artifacthub.io/packages/helm/cloudpirates-memcached/memcached?modal=values
+
+## @section memcached object Memcached chart configuration
+memcached:
+  ## @param memcached.enabled boolean Enable Memcached chart installation
+  enabled: false
+
+  ## @param memcached.createConfig boolean Create in wp-config.php the Memcached config that looks like this:
+  # $memcached_servers = array(
+  #   'default' => array(
+  #     '10.10.10.20:11211',
+  #     '10.10.10.30:11211'
+  #   )
+  # );
+  createConfig: true
+
+  ## @section Memcached Common parameters
+  nameOverride: ""
+  ## @param memcached.fullnameOverride string String to fully override memcached.fullname
+  fullnameOverride: ""
+  ## @param memcached.commonLabels object Labels to add to all deployed objects
+  commonLabels: {}
+  ## @param memcached.commonAnnotations object Annotations to add to all deployed objects
+  commonAnnotations: {}
+
+  ## @section Memcached image parameters
+  image:
+    ## @param memcached.image.registry string Memcached image registry
+    registry: docker.io
+    ## @param memcached.image.repository string Memcached image repository
+    repository: memcached
+    ## @param memcached.image.tag string Memcached image tag
+    tag: "latest"
+    ## @param memcached.image.pullPolicy string Memcached image pull policy
+    pullPolicy: Always
+
+  ## @param memcached.replicaCount integer Number of Memcached replicas to deploy
+  replicaCount: 1
+
+  ## @section memcached.service object Memcached service configuration
+  service:
+    ## @param memcached.service.type string Kubernetes service type
+    type: ClusterIP
+    ## @param memcached.service.port integer Memcached service port
+    port: 11211
+
+  containerSecurityContext:
+    ## @param containerSecurityContext.runAsUser User ID to run the container
+    runAsUser: 11211
+    ## @param containerSecurityContext.runAsNonRoot Run as non-root user
+    runAsNonRoot: true
+    ## @param containerSecurityContext.allowPrivilegeEscalation Set Memcached container's privilege escalation
+    allowPrivilegeEscalation: false
+    # Drop all capabilities to comply with the "restricted" policy.
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault

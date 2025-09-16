@@ -1,0 +1,467 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wordpress.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+    {{- with .Values.customLabels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.customAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  {{- if .Values.revisionHistoryLimit }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "wordpress.selectorLabels" . | nindent 6 }}
+  {{- if .Values.updateStrategy }}
+  strategy: {{- toYaml .Values.updateStrategy | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        # checksum/wpconfigmap: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "wordpress.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "wordpress.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.dnsPolicy }}
+      dnsPolicy: {{ .Values.dnsPolicy }}
+      {{- end }}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.hostNetwork }}
+      hostNetwork: {{ .Values.hostNetwork }}
+      {{- end }}
+      initContainers:
+        - name: {{ .Chart.Name }}-base
+          image: "{{ .Values.image.repository }}{{- if or .Values.image.tag .Chart.AppVersion -}}:{{ .Values.image.tag | default .Chart.AppVersion }}{{- end }}"
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: WORDPRESS_DEBUG
+              value: "false"
+          command:
+          - sh
+          - -c
+          - |
+            # copy your base.sh and run it
+            cp /tmp/base.sh.readonly /tmp/base.sh
+            chmod +x /tmp/base.sh
+            /tmp/base.sh
+            
+            # copy .htaccess with correct ownership
+            cp /tmp/configfiles/.htaccess /tmp/htaccess/.htaccess
+            chown www-data:www-data /tmp/htaccess/.htaccess
+            chmod 664 /tmp/htaccess/.htaccess
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: {{ include "wordpress.fullname" . }}
+              mountPath: /tmp/wordpress
+            - name: {{ include "wordpress.fullname" . }}-init
+              mountPath: /tmp/base.sh.readonly
+              subPath: base.sh
+            - name: {{ include "wordpress.fullname" . }}-configfiles
+              mountPath: /tmp/configfiles
+            - name: htaccess-volume
+              mountPath: /tmp/htaccess
+        - name: {{ .Chart.Name }}-init
+          image: docker.io/wordpress:cli
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              # copy your init.sh and run it
+              cp /tmp/init.sh.readonly /tmp/init.sh
+              chmod +x /tmp/init.sh
+              /tmp/init.sh
+          env:
+            - name: WORDPRESS_PATH
+              value: /var/www/html
+            - name: WP_CLI_CACHE_DIR
+              value: /tmp/wp-cli-cache
+            - name: DEBUG
+              value: {{ .Values.wordpress.init.debug | default "false" | quote }}
+            - name: WORDPRESS_TABLE_PREFIX
+              value: {{ .Values.wordpress.tablePrefix| default "wp_" | quote }}
+            - name: WP_URL
+              value: {{ .Values.wordpress.url | quote }}
+            - name: WORDPRESS_METRICS
+              value: {{ include "metrics.wordpress.pluginname" . }}
+            - name: WP_LOCALE
+              value: {{ .Values.wordpress.language | quote }}
+            - name: WP_INIT
+              value: {{ .Values.wordpress.init.enabled | quote }}
+            {{- $permalinkStructures := dict "plain" "" "dayAndName" "/%year%/%monthnum%/%day%/%postname%/" "monthAndName" "/%year%/%monthnum%/%postname%/" "numeric" "/archives/%post_id%/" "postName" "/%postname%/" -}}
+            {{- if .Values.wordpress.permalinks.customStructure }}
+            - name: WP_PERMALINK_STRUCTURE
+              value: {{ .Values.wordpress.permalinks.customStructure | quote }}
+            {{- else if .Values.wordpress.permalinks.structure }}
+            - name: WP_PERMALINK_STRUCTURE
+              value: {{ index $permalinkStructures .Values.wordpress.permalinks.structure | quote }}
+            {{- end }}
+            {{- if .Values.mariadb.enabled }}
+            - name: WORDPRESS_DB_HOST
+              value: {{ include "wordpress.mariadb.fullname" . | default "mariadb" }}
+            - name: WORDPRESS_DB_NAME
+              value: {{ .Values.mariadb.auth.database | quote }}
+            - name: WORDPRESS_DB_USER
+              value: {{ .Values.mariadb.auth.username | quote }}
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.mariadb.auth.existingSecret }}{{ .Values.mariadb.auth.existingSecret }}{{ else }}{{ include "wordpress.mariadb.fullname" . }}{{ end }}
+                  key: {{ .Values.mariadb.auth.secretKeys.userPasswordKey | default "mariadb-password" }}
+            {{- else }}
+            - name: WORDPRESS_DB_HOST
+              value: {{ .Values.externalDatabase.host | quote }}
+            - name: WORDPRESS_DB_NAME
+              value: {{ .Values.externalDatabase.database | quote }}
+            - name: WORDPRESS_DB_USER
+              value: {{ .Values.externalDatabase.username | quote }}
+            - name: WORDPRESS_DB_PASSWORD
+              value: {{ .Values.externalDatabase.password | quote }}
+            {{- end }}
+            {{- if .Values.wordpress.init.enabled }}
+            - name: WP_TITLE
+              value: {{ .Values.wordpress.init.title | default "New Blog" | quote }}
+            - name: WP_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.wordpress.init.existingSecret }}{{ .Values.wordpress.init.existingSecret }}{{ else }}{{ include "wordpress.fullname" . }}-init{{ end }}
+                  key: wordpress.username
+            - name: WP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.wordpress.init.existingSecret }}{{ .Values.wordpress.init.existingSecret }}{{ else }}{{ include "wordpress.fullname" . }}-init{{ end }}
+                  key: wordpress.password
+            - name: WP_ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.wordpress.init.existingSecret }}{{ .Values.wordpress.init.existingSecret }}{{ else }}{{ include "wordpress.fullname" . }}-init{{ end }}
+                  key: wordpress.email
+            {{- if .Values.wordpress.init.firstname }}
+            - name: WP_ADMIN_FIRSTNAME
+              value: {{ .Values.wordpress.init.firstname | quote }}
+            {{- end }}
+            {{- if .Values.wordpress.init.lastname }}
+            - name: WP_ADMIN_LASTNAME
+              value: {{ .Values.wordpress.init.lastname | quote }}
+            {{- end }}
+            {{- end }}
+          volumeMounts:
+            - name: {{ include "wordpress.fullname" . }}
+              mountPath: /var/www/html
+            - name: tmp
+              mountPath: /tmp
+            - name: {{ include "wordpress.fullname" . }}-init
+              mountPath: /tmp/init.sh.readonly
+              subPath: init.sh
+      {{- if .Values.initContainers }}
+        {{- toYaml .Values.initContainers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}{{- if or .Values.image.tag .Chart.AppVersion -}}:{{ .Values.image.tag | default .Chart.AppVersion }}{{- end }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.extraEnvVars }}
+          {{- toYaml .Values.extraEnvVars | nindent 12 }}
+          {{- end }}
+          env:
+            - name: WP_HOME
+              value: {{ .Values.wordpress.url | quote }}
+            - name: WP_SITEURL
+              value: {{ .Values.wordpress.url | quote }}
+          {{ if .Values.wordpress.debug }}  
+            - name: WORDPRESS_DEBUG
+              value: "true"
+          {{- end }}
+          {{ if .Values.mariadb.enabled }}
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{if .Values.mariadb.auth.existingSecret}} {{ .Values.mariadb.auth.existingSecret }} {{ else }} {{ include "wordpress.mariadb.fullname" . }} {{ end }}
+                  key: {{ .Values.mariadb.auth.secretKeys.userPasswordKey }}
+          {{- else if and (not .Values.mariadb.enabled ) .Values.externalDatabase.existingSecret }}
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecret }}
+                  key: db.username
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecret }}
+                  key: db.password
+          {{- end }}
+          {{- if .Values.wordpress.debug }}
+            - name: WORDPRESS_DEBUG
+              value: "true"
+          {{- end }}
+          {{ if .Values.wordpress.init.enabled }}  
+            - name: WP_INIT
+              value: {{ .Values.wordpress.init.enabled | quote }}
+          {{- end }}
+          {{ if .Values.metrics.wordpress.enabled }}  
+            - name: SLYMETRICS_BEARER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.metrics.wordpress.serviceMonitor.existingSecret }}{{ .Values.metrics.wordpress.serviceMonitor.existingSecret }}{{ else }}{{ include "metrics.wordpress.fullname" . }}{{ end }}
+                  key: wordpress.metrics.token
+            - name: SLYMETRICS_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "metrics.wordpress.fullname" . }}
+                  key: wordpress.metrics.encryptionKey
+          {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ include "wordpress.fullname" . }}
+          {{- if or .Values.extraEnvVarsCM .Values.extraEnvVarsSecret }}
+            {{- if .Values.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ .Values.extraEnvVarsCM }}
+            {{- end }}
+            {{- if .Values.extraEnvVarsSecret }}
+            - secretRef:
+                name: {{ .Values.extraEnvVarsSecret }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.ports.http }}
+              protocol: TCP
+            - name: https
+              containerPort: {{ .Values.service.ports.https }}
+              protocol: TCP
+          {{- if .Values.customLivenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.customLivenessProbe | nindent 12 }}
+          {{- else if .Values.livenessProbe.enabled }}
+          livenessProbe: 
+            {{- toYaml (omit .Values.livenessProbe "enabled") | nindent 12 }}
+            httpGet:
+              path: /wp-login.php
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost:{{ .Values.service.ports.http }}
+                - name: x-forwarded-proto
+                  value: https
+          {{- end }}
+          {{- if .Values.customReadinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.customReadinessProbe | nindent 12 }}
+          {{- else if .Values.readinessProbe.enabled }}
+          readinessProbe: 
+            {{- toYaml (omit .Values.readinessProbe "enabled") | nindent 12 }}
+            httpGet:
+              path: /wp-login.php
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost:{{ .Values.service.ports.http }}
+                - name: x-forwarded-proto
+                  value: https
+          {{- end }}
+          {{- if .Values.customStartupProbe }}
+          startupProbe:
+            {{- toYaml .Values.customStartupProbe | nindent 12 }}
+          {{- else if .Values.startupProbe.enabled }}
+          startupProbe:
+            {{- toYaml (omit .Values.startupProbe "enabled") | nindent 12 }}
+            httpGet:
+              path: /wp-login.php
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: localhost:{{ .Values.service.ports.http }}
+                - name: x-forwarded-proto
+                  value: https
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: {{ include "wordpress.fullname" . }}
+              mountPath: /var/www/html
+            - name: tmp
+              mountPath: /tmp
+            - name: run
+              mountPath: /var/run
+            {{- if .Values.extraVolumeMounts }}
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+            - name: {{ include "wordpress.fullname" . }}-configfiles
+              mountPath: /etc/apache2/sites-enabled/000-default.conf
+              subPath: 000-default.conf
+            - name: {{ include "wordpress.fullname" . }}-configfiles
+              mountPath: /etc/apache2/ports.conf
+              subPath: ports.conf
+            - name: {{ include "wordpress.fullname" . }}-configfiles
+              mountPath: /usr/local/etc/php/conf.d/custom.ini
+              subPath: custom.ini
+            - name: htaccess-volume
+              mountPath: /var/www/html/.htaccess
+              subPath: .htaccess
+              readOnly: false
+        {{- if .Values.metrics.apache.enabled}}
+        - name: metrics-apache
+          image: "{{ .Values.metrics.apache.image.repository }}{{- if or .Values.metrics.apache.image.tag -}}:{{ .Values.metrics.apache.image.tag }}{{- end }}"
+          imagePullPolicy: {{ .Values.metrics.apache.image.pullPolicy | quote }}
+          command: 
+            - sh
+            - -c
+            - |
+              echo "Waiting for WordPress to be ready..."
+              until wget -q -O /dev/null http://localhost:{{ .Values.service.ports.http }}/server-status/?auto; do
+                echo "WordPress not ready yet, waiting..."
+                sleep 10
+              done
+              echo "WordPress is ready, starting exporter..."
+              exec /bin/apache_exporter --scrape_uri http://localhost:{{ .Values.service.ports.http }}/server-status/?auto
+          ports:
+          - name: metrics
+            containerPort: {{ .Values.metrics.apache.service.ports.metrics }}
+          {{ if .Values.metrics.apache.customLivenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.metrics.apache.customLivenessProbe | nindent 12 }}
+          {{- else if .Values.metrics.apache.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: {{ .Values.metrics.apache.livenessProbe.initialDelaySeconds | default 5 }}
+            periodSeconds: {{ .Values.metrics.apache.livenessProbe.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.metrics.apache.livenessProbe.timeoutSeconds | default 3 }}
+            failureThreshold: {{ .Values.metrics.apache.livenessProbe.failureThreshold | default 3 }}
+            successThreshold: {{ .Values.metrics.apache.livenessProbe.successThreshold | default 1 }}
+          {{ end }}
+          {{ if .Values.metrics.apache.customReadinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.metrics.apache.customReadinessProbe | nindent 12 }}
+          {{- else if .Values.metrics.apache.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: {{ .Values.metrics.apache.readinessProbe.initialDelaySeconds | default 5 }}
+            periodSeconds: {{ .Values.metrics.apache.readinessProbe.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.metrics.apache.readinessProbe.timeoutSeconds | default 3 }}
+            failureThreshold: {{ .Values.metrics.apache.readinessProbe.failureThreshold | default 3 }}
+            successThreshold: {{ .Values.metrics.apache.readinessProbe.successThreshold | default 1 }}
+          {{ end }}
+          {{ if .Values.metrics.apache.customStartupProbe }}
+          startupProbe:
+            {{- toYaml .Values.metrics.apache.customStartupProbe | nindent 12 }}
+          {{- else if .Values.metrics.apache.startupProbe.enabled }}
+          startupProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: {{ .Values.metrics.apache.startupProbe.initialDelaySeconds | default 10 }}
+            periodSeconds: {{ .Values.metrics.apache.startupProbe.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.metrics.apache.startupProbe.timeoutSeconds | default 1 }}
+            failureThreshold: {{ .Values.metrics.apache.startupProbe.failureThreshold | default 15 }}
+            successThreshold: {{ .Values.metrics.apache.startupProbe.successThreshold | default 1 }}
+          {{ end }}
+          resources:
+            {{ toYaml .Values.metrics.resources | indent 10 }}
+          securityContext:
+            {{- toYaml .Values.metrics.apache.containerSecurityContext | nindent 12 }}
+        {{- end }}
+      {{- with .Values.sidecars }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: run
+        emptyDir: {}
+      - name: htaccess-volume
+        emptyDir: {}
+      - name: {{ include "wordpress.fullname" . }}-configfiles
+        configMap:
+          name: {{ include "wordpress.fullname" . }}-configfiles
+          defaultMode: 0664
+          items:
+            - key: 000-default.conf
+              path: 000-default.conf
+            - key: ports.conf
+              path: ports.conf
+            - key: custom.ini
+              path: custom.ini
+            - key: htaccess
+              path: .htaccess
+      - name: {{ include "wordpress.fullname" . }}-init
+        configMap:
+          name: {{ include "wordpress.fullname" . }}-init
+          items:
+            - key: base.sh
+              path: base.sh
+            - key: init.sh
+              path: init.sh
+      {{- if .Values.externalDatabase.existingSecret }}
+      - name: {{ .Values.externalDatabase.existingSecret }}
+        secret:
+          secretName: {{ .Values.externalDatabase.existingSecret }}
+      {{- end }}
+      - name: {{ include "wordpress.fullname" . }}
+        persistentVolumeClaim:
+          claimName: {{ if .Values.storage.existingClaim }}{{ .Values.storage.existingClaim }}{{ else }}{{ include "wordpress.fullname" . }}{{ end }}
+      {{- if .Values.extraVolumes }}
+      {{- toYaml .Values.extraVolumes | nindent 6 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

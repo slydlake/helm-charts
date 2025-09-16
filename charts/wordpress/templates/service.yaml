@@ -1,0 +1,69 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wordpress.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+    {{- with .Values.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.ports.http }}
+      targetPort: 80
+      protocol: TCP
+      name: http
+      {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePorts.http }}
+      nodePort: {{ .Values.service.nodePorts.http }}
+      {{- end }}
+    - port: {{ .Values.service.ports.https }}
+      targetPort: 443
+      protocol: TCP
+      name: https
+      {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePorts.https }}
+      nodePort: {{ .Values.service.nodePorts.https }}
+      {{- end }}
+  {{- if .Values.service.clusterIP }}
+  clusterIP: {{ .Values.service.clusterIP }}
+  {{- end }}
+  selector:
+    {{- include "wordpress.selectorLabels" . | nindent 4 }}
+{{- if .Values.metrics.apache.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wordpress.fullname" . }}-metrics-apache
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wordpress.labels" . | nindent 4 }}
+    {{- with .Values.metrics.apache.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.metrics.apache.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.metrics.apache.service.type }}
+  ports:
+    - port: {{ .Values.metrics.apache.service.ports.metrics }}
+      targetPort: 9117
+      protocol: TCP
+      name: metrics
+      {{- if eq .Values.metrics.apache.service.type "NodePort" }}
+      nodePort: {{ .Values.metrics.apache.service.nodePorts.metrics }}
+      {{- end }}
+  {{- if .Values.metrics.apache.service.clusterIP }}
+  clusterIP: {{ .Values.metrics.apache.service.clusterIP }}
+  {{- end }}
+  selector:
+    {{- include "wordpress.selectorLabels" . | nindent 4 }}
+{{- end }}

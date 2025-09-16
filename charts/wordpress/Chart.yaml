@@ -1,0 +1,51 @@
+apiVersion: v2
+name: wordpress
+description: "Using the official WordPress image. This chart also provides automation for installation, user management, plugin installation, and metrics."
+type: application
+version: 0.1.0
+icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
+home: https://github.com/slydlake/helm-charts
+maintainers:
+  - name: slydlake
+sources:
+  - https://github.com/slydlake/helm-charts
+annotations:
+  artifacthub.io/category: networking
+  artifacthub.io/license: MIT
+  artifacthub.io/links: |
+    - name: SlyCharts GitHub Repository
+      url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
+    - name: Official WordPress Repository
+      url: https://github.com/docker-library/
+    - name: WordPress Prometheus Metrics plugin (SlyMetrics)
+      url: https://github.com/slydlake/slymetrics
+    - name: Apache Metrics container
+      url: https://github.com/Lusitaniae/apache_exporter
+    artifacthub.io/maintainers: |
+    - name: slydlake
+      email: sly.dlake@gmail.com
+  artifacthub.io/changes: |
+    - kind: added
+      description: "initial release"
+  artifacthub.io/containsSecurityUpdates: false
+  artifacthub.io/images: |
+    - name: wordpress
+      image: docker.io/wordpress:latest
+    - name: metrics-apache
+      image: lusotycoon/apache-exporter:latest
+    - name: mariadb
+      image: docker.io/mariadb:latest
+    - name: memcached
+      image: docker.io/memcached:latest
+dependencies:
+  - condition: memcached.enabled
+    name: memcached
+    repository: oci://registry-1.docker.io/cloudpirates
+    version: 0.1.x
+  - condition: mariadb.enabled
+    name: mariadb
+    repository: oci://registry-1.docker.io/cloudpirates
+    version: ">=0.2.2"
+keywords:
+  - wordpress
+  - blog
