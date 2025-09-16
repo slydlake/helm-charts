@@ -898,7 +898,7 @@ memcached:
     ## @param memcached.image.repository string Memcached image repository
     repository: memcached
     ## @param memcached.image.tag string Memcached image tag
-    tag: "0.1.2"
+    tag: "latest"
     ## @param memcached.image.pullPolicy string Memcached image pull policy
     pullPolicy: Always
 
