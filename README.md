@@ -38,7 +38,7 @@ helm install wg-easy slydlake/wg-easy
 
 ```bash
 # Install directly from OCI registry
-helm install wg-easy oci://ghcr.io/slybase/helm-charts/wg-easy
+helm install wg-easy oci://ghcr.io/slybase/charts/wg-easy
 ```
 
 ### FluxCD with Signature Verification
@@ -52,7 +52,7 @@ metadata:
 spec:
   type: oci
   interval: 10m
-  url: oci://ghcr.io/slybase/helm-charts
+  url: oci://ghcr.io/slybase/charts
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
@@ -78,7 +78,7 @@ Verify chart authenticity before installation:
 
 ```bash
 # For OCI charts
-cosign verify ghcr.io/slybase/helm-charts/wg-easy:latest \
+cosign verify ghcr.io/slybase/charts/wg-easy:latest \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   --certificate-identity "https://github.com/slydlake/helm-charts/.github/workflows/oci-release.yaml@refs/heads/main"
 
@@ -116,7 +116,7 @@ helm install test-release charts/wg-easy --dry-run
 Charts are automatically released on every push to `main` branch:
 
 1. **Traditional Release**: GitHub Pages + signed bundles via Chart Releaser
-2. **OCI Release**: Signed OCI artifacts to `ghcr.io/slybase/helm-charts`
+2. **OCI Release**: Signed OCI artifacts to `ghcr.io/slybase/charts`
 3. **Signing**: All charts signed with Cosign keyless signing
 4. **Verification**: Automatic signature verification in CI/CD
 
@@ -140,5 +140,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Documentation**: [Chart Signing Guide](./README-SIGNING.md)
 - **Issues**: [GitHub Issues](https://github.com/slydlake/helm-charts/issues)
-- **OCI Registry**: [ghcr.io/slybase/helm-charts](https://github.com/orgs/SlyBase/packages)
+- **OCI Registry**: [ghcr.io/slybase/charts](https://github.com/orgs/SlyBase/packages)
 - **Traditional Repo**: [slydlake.github.io/helm-charts](https://slydlake.github.io/helm-charts)
