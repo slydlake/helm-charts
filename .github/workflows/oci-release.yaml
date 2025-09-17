@@ -71,13 +71,13 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "Target registry: ghcr.io/slybase/charts"
           
-          # Determine which token to use
-          if [ -n "${{ steps.app-token.outputs.token }}" ]; then
-            echo "Using GitHub App token"
-            token="${{ steps.app-token.outputs.token }}"
-          elif [ -n "${{ secrets.SLYBASE_GHCR_TOKEN }}" ]; then
-            echo "Using Personal Access Token fallback"
+          # Prioritize Personal Access Token over GitHub App
+          if [ -n "${{ secrets.SLYBASE_GHCR_TOKEN }}" ]; then
+            echo "Using Personal Access Token (preferred for package creation)"
             token="${{ secrets.SLYBASE_GHCR_TOKEN }}"
+          elif [ -n "${{ steps.app-token.outputs.token }}" ]; then
+            echo "Using GitHub App token (may have limitations for new packages)"
+            token="${{ steps.app-token.outputs.token }}"
           else
             echo "❌ No authentication token available!"
             exit 1
@@ -98,7 +98,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ steps.app-token.outputs.token || secrets.SLYBASE_GHCR_TOKEN }}
+          password: ${{ secrets.SLYBASE_GHCR_TOKEN || steps.app-token.outputs.token }}
 
       - name: Check for chart changes
         id: chart-changes
