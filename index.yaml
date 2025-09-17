@@ -21,6 +21,45 @@ entries:
           email: sly.dlake@gmail.com
     apiVersion: v2
     appVersion: "15"
+    created: "2025-09-17T22:13:45.633256612Z"
+    description: Using the offical wg-easy/wg-easy image with almost any environment
+      variables for K8s. Supporting Init Mode.
+    digest: a86544f8aaad333ff47ca09dc929e3e8169216154738bf2818d8d1df99938d63
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - wg-easy
+    maintainers:
+    - name: slydlake
+    name: wg-easy
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wg-easy-0.1.14/wg-easy-0.1.14.tgz
+    version: 0.1.14
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: added
+          description: "signed the chart with cosign"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wg-easy
+          image: ghcr.io/wg-easy/wg-easy:latest
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wg-easy
+        - name: Offical wg-easy Documentation
+          url: https://wg-easy.github.io/wg-easy/latest/
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: "15"
     created: "2025-09-17T21:54:35.037076829Z"
     description: Using the offical wg-easy/wg-easy image with almost any environment
       variables for K8s. Supporting Init Mode.
@@ -1125,4 +1164,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-09-17T21:54:35.037172609Z"
+generated: "2025-09-17T22:13:45.633384672Z"
