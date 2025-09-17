@@ -41,20 +41,21 @@ jobs:
         with:
           cosign-release: 'v2.4.1'
 
-      - name: Generate GitHub App Token
+      - name: Generate GitHub App Token (fallback to PAT if needed)
         id: app-token
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.SLYBASE_APP_ID }}
           private-key: ${{ secrets.SLYBASE_APP_PRIVATE_KEY }}
           owner: SlyBase
+        continue-on-error: true
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ steps.app-token.outputs.token }}
+          password: ${{ steps.app-token.outputs.token || secrets.SLYBASE_GHCR_TOKEN }}
 
       - name: Test different authentication methods
         run: |
@@ -62,24 +63,37 @@ jobs:
           echo "github.actor: ${{ github.actor }}"
           echo "repository_owner: ${{ github.repository_owner }}"
           
-          # Test API access with the token
-          echo "=== Testing GitHub API access ==="
-          user_info=$(curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
-               -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/user)
-          echo "User info: $user_info"
+          # Test which token we're using
+          if [ -n "${{ steps.app-token.outputs.token }}" ]; then
+            echo "Using GitHub App token"
+            token="${{ steps.app-token.outputs.token }}"
+          else
+            echo "Using Personal Access Token fallback"
+            token="${{ secrets.SLYBASE_GHCR_TOKEN }}"
+          fi
           
-          echo "=== Testing SlyBase organization access ==="
-          org_info=$(curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
-               -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/orgs/SlyBase)
-          echo "Org info: $org_info"
-          
-          echo "=== Testing package permissions ==="
-          package_info=$(curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
-               -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/orgs/SlyBase/packages)
-          echo "Package info: $package_info"
+          if [ -n "$token" ]; then
+            # Test API access with the token
+            echo "=== Testing GitHub API access ==="
+            user_info=$(curl -s -H "Authorization: Bearer $token" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 https://api.github.com/user)
+            echo "User info: $user_info"
+            
+            echo "=== Testing SlyBase organization access ==="
+            org_info=$(curl -s -H "Authorization: Bearer $token" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 https://api.github.com/orgs/SlyBase)
+            echo "Org info: $org_info"
+            
+            echo "=== Testing package permissions ==="
+            package_info=$(curl -s -H "Authorization: Bearer $token" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 https://api.github.com/orgs/SlyBase/packages)
+            echo "Package info: $package_info"
+          else
+            echo "No authentication token available!"
+          fi
 
       - name: Check for chart changes
         id: chart-changes
@@ -123,8 +137,8 @@ jobs:
           echo "Pushing to OCI registry: oci://ghcr.io/slybase/charts"
           echo "Chart file: ./packages/${chart_name}-${chart_version}.tgz"
           
-          # Try different registry paths - GitHub Container Registry uses lowercase org names
-          for registry_path in "ghcr.io/slybase/charts" "ghcr.io/slybase/${chart_name}"; do
+          # Try both case variants since GitHub can be inconsistent
+          for registry_path in "ghcr.io/slybase/charts" "ghcr.io/SlyBase/charts" "ghcr.io/slybase/${chart_name}" "ghcr.io/SlyBase/${chart_name}"; do
             echo "=== Trying registry: oci://$registry_path ==="
             
             set -x  # Enable debug output
