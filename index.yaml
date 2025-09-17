@@ -21,6 +21,45 @@ entries:
           email: sly.dlake@gmail.com
     apiVersion: v2
     appVersion: "15"
+    created: "2025-09-17T21:47:29.895858043Z"
+    description: Using the offical wg-easy/wg-easy image with almost any environment
+      variables for K8s. Supporting Init Mode.
+    digest: 80264c6b644cff307161c84555bb9b168d0ab3753d8e3058e627d52ada4c99d0
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - wg-easy
+    maintainers:
+    - name: slydlake
+    name: wg-easy
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wg-easy-0.1.11/wg-easy-0.1.11.tgz
+    version: 0.1.11
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: added
+          description: "signed the chart with cosign"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wg-easy
+          image: ghcr.io/wg-easy/wg-easy:latest
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wg-easy
+        - name: Offical wg-easy Documentation
+          url: https://wg-easy.github.io/wg-easy/latest/
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: "15"
     created: "2025-09-17T21:46:02.602730794Z"
     description: Using the offical wg-easy/wg-easy image with almost any environment
       variables for K8s. Supporting Init Mode.
@@ -1008,4 +1047,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-09-17T21:46:02.602829309Z"
+generated: "2025-09-17T21:47:29.895951859Z"
