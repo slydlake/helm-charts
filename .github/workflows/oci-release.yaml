@@ -53,8 +53,25 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: slybase
+          username: ${{ github.actor }}
           password: ${{ steps.app-token.outputs.token }}
+
+      - name: Test different authentication methods
+        run: |
+          echo "=== Testing authentication approaches ==="
+          echo "github.actor: ${{ github.actor }}"
+          echo "repository_owner: ${{ github.repository_owner }}"
+          
+          # Test API access with the token
+          echo "=== Testing GitHub API access ==="
+          curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               https://api.github.com/user | jq '.login // .message'
+          
+          echo "=== Testing SlyBase organization access ==="
+          curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               https://api.github.com/orgs/SlyBase | jq '.login // .message'
 
       - name: Check for chart changes
         id: chart-changes
@@ -99,7 +116,7 @@ jobs:
           echo "Chart file: ./packages/${chart_name}-${chart_version}.tgz"
           
           # Try different registry paths to see what works
-          for registry_path in "ghcr.io/slybase/charts" "ghcr.io/slybase/${chart_name}"; do
+          for registry_path in "ghcr.io/slybase/charts" "ghcr.io/SlyBase/charts" "ghcr.io/slybase/${chart_name}" "ghcr.io/SlyBase/${chart_name}"; do
             echo "=== Trying registry: oci://$registry_path ==="
             
             set -x  # Enable debug output
