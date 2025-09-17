@@ -41,59 +41,20 @@ jobs:
         with:
           cosign-release: 'v2.4.1'
 
-      - name: Generate GitHub App Token (fallback to PAT if needed)
+      - name: Generate GitHub App Token
         id: app-token
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.SLYBASE_APP_ID }}
           private-key: ${{ secrets.SLYBASE_APP_PRIVATE_KEY }}
           owner: SlyBase
-        continue-on-error: true
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ steps.app-token.outputs.token || secrets.SLYBASE_GHCR_TOKEN }}
-
-      - name: Test different authentication methods
-        run: |
-          echo "=== Testing authentication approaches ==="
-          echo "github.actor: ${{ github.actor }}"
-          echo "repository_owner: ${{ github.repository_owner }}"
-          
-          # Test which token we're using
-          if [ -n "${{ steps.app-token.outputs.token }}" ]; then
-            echo "Using GitHub App token"
-            token="${{ steps.app-token.outputs.token }}"
-          else
-            echo "Using Personal Access Token fallback"
-            token="${{ secrets.SLYBASE_GHCR_TOKEN }}"
-          fi
-          
-          if [ -n "$token" ]; then
-            # Test API access with the token
-            echo "=== Testing GitHub API access ==="
-            user_info=$(curl -s -H "Authorization: Bearer $token" \
-                 -H "Accept: application/vnd.github.v3+json" \
-                 https://api.github.com/user)
-            echo "User info: $user_info"
-            
-            echo "=== Testing SlyBase organization access ==="
-            org_info=$(curl -s -H "Authorization: Bearer $token" \
-                 -H "Accept: application/vnd.github.v3+json" \
-                 https://api.github.com/orgs/SlyBase)
-            echo "Org info: $org_info"
-            
-            echo "=== Testing package permissions ==="
-            package_info=$(curl -s -H "Authorization: Bearer $token" \
-                 -H "Accept: application/vnd.github.v3+json" \
-                 https://api.github.com/orgs/SlyBase/packages)
-            echo "Package info: $package_info"
-          else
-            echo "No authentication token available!"
-          fi
+          password: ${{ steps.app-token.outputs.token }}
 
       - name: Check for chart changes
         id: chart-changes
@@ -114,7 +75,7 @@ jobs:
           echo "chart_name=$chart_name" >> $GITHUB_OUTPUT
           
           # Check if this version already exists in the registry
-          if helm pull "oci://ghcr.io/slybase/helm-charts/$chart_name" --version "$chart_version" 2>/dev/null; then
+          if helm pull "oci://ghcr.io/slybase/charts/$chart_name" --version "$chart_version" 2>/dev/null; then
             echo "Chart $chart_name:$chart_version already exists in registry"
             echo "skip=true" >> $GITHUB_OUTPUT
           else
@@ -137,59 +98,43 @@ jobs:
           echo "Pushing to OCI registry: oci://ghcr.io/slybase/charts"
           echo "Chart file: ./packages/${chart_name}-${chart_version}.tgz"
           
-          # Try both case variants since GitHub can be inconsistent
-          for registry_path in "ghcr.io/slybase/charts" "ghcr.io/SlyBase/charts" "ghcr.io/slybase/${chart_name}" "ghcr.io/SlyBase/${chart_name}"; do
-            echo "=== Trying registry: oci://$registry_path ==="
-            
-            set -x  # Enable debug output
-            if push_output=$(helm push "./packages/${chart_name}-${chart_version}.tgz" "oci://$registry_path" 2>&1); then
-              set +x  # Disable debug output
-              echo "Push successful to $registry_path!"
-              echo "$push_output"
-              
-              # Extract digest from the push output
-              digest=$(echo "$push_output" | grep -o 'sha256:[a-f0-9]\{64\}' | head -1)
-              
-              if [ -z "$digest" ]; then
-                echo "Failed to extract digest from push output"
-                echo "Full push output was:"
-                echo "$push_output"
-                exit 1
-              fi
-              
-              echo "Chart pushed with digest: $digest"
-              echo "chart_digest=$digest" >> $GITHUB_OUTPUT
-              
-              # Save chart reference for signing
-              chart_ref="$registry_path/${chart_name}@${digest}"
-              echo "chart_ref=$chart_ref" >> $GITHUB_OUTPUT
-              echo "registry_used=$registry_path" >> $GITHUB_OUTPUT
-              
-              # Success, break out of loop
-              break
-            else
-              set +x  # Disable debug output
-              echo "Failed to push to $registry_path:"
-              echo "$push_output"
-              echo "Trying next registry path..."
-            fi
-          done
+          # Push to OCI registry and capture the digest
+          set -x  # Enable debug output
+          push_output=$(helm push "./packages/${chart_name}-${chart_version}.tgz" "oci://ghcr.io/slybase/charts" 2>&1) || {
+            echo "Helm push failed with exit code $?"
+            echo "Push output:"
+            echo "$push_output"
+            exit 1
+          }
+          set +x  # Disable debug output
           
-          # Check if any push succeeded
-          if [ -z "${chart_ref:-}" ]; then
-            echo "All registry paths failed!"
+          echo "Push successful!"
+          echo "$push_output"
+          
+          # Extract digest from the push output
+          digest=$(echo "$push_output" | grep -o 'sha256:[a-f0-9]\{64\}' | head -1)
+          
+          if [ -z "$digest" ]; then
+            echo "Failed to extract digest from push output"
+            echo "Full push output was:"
+            echo "$push_output"
             exit 1
           fi
+          
+          echo "Chart pushed with digest: $digest"
+          echo "chart_digest=$digest" >> $GITHUB_OUTPUT
+          
+          # Save chart reference for signing
+          chart_ref="ghcr.io/slybase/charts/${chart_name}@${digest}"
+          echo "chart_ref=$chart_ref" >> $GITHUB_OUTPUT
         id: push
 
       - name: Sign chart with Cosign
         if: steps.chart-changes.outputs.skip == 'false' && steps.push.outputs.chart_ref != ''
         run: |
           chart_ref="${{ steps.push.outputs.chart_ref }}"
-          registry_used="${{ steps.push.outputs.registry_used }}"
           
           echo "Signing chart: $chart_ref"
-          echo "Registry used: $registry_used"
           
           # Sign the chart using keyless signing
           cosign sign --yes "$chart_ref"
@@ -216,16 +161,14 @@ jobs:
           chart_name="${{ steps.chart-changes.outputs.chart_name }}"
           chart_version="${{ steps.chart-changes.outputs.chart_version }}"
           chart_ref="${{ steps.push.outputs.chart_ref }}"
-          registry_used="${{ steps.push.outputs.registry_used }}"
           
           echo "📦 Chart: $chart_name"
           echo "🏷️  Version: $chart_version"
           echo "📍 Reference: $chart_ref"
-          echo "🗂️  Registry: $registry_used"
           echo "✅ Signed and verified with Cosign"
           echo ""
           echo "To use this chart with Helm:"
-          echo "helm install my-release oci://$registry_used/$chart_name --version $chart_version"
+          echo "helm install my-release oci://ghcr.io/slybase/charts/$chart_name --version $chart_version"
           echo ""
           echo "To verify signature:"
           echo "cosign verify $chart_ref --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity https://github.com/${{ github.repository }}/.github/workflows/oci-release.yaml@refs/heads/main"
