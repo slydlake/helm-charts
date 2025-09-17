@@ -29,6 +29,8 @@ jobs:
       packages: write
       id-token: write # Required for cosign keyless signing
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     strategy:
       matrix:
@@ -53,13 +55,14 @@ jobs:
         with:
           cosign-release: 'v2.4.1'
 
-      - name: Generate GitHub App Token
+      - name: Generate GitHub App Token (with fallback)
         id: app-token
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.SLYBASE_APP_ID }}
           private-key: ${{ secrets.SLYBASE_APP_PRIVATE_KEY }}
           owner: SlyBase
+        continue-on-error: true
 
       - name: Debug authentication and registry access
         run: |
@@ -68,28 +71,34 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "Target registry: ghcr.io/slybase/charts"
           
-          echo "=== Test GitHub App token ==="
-          # Test if the token can access SlyBase org
-          if curl -s -f -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
-               -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/orgs/SlyBase; then
-            echo "✅ GitHub App token can access SlyBase org"
+          # Determine which token to use
+          if [ -n "${{ steps.app-token.outputs.token }}" ]; then
+            echo "Using GitHub App token"
+            token="${{ steps.app-token.outputs.token }}"
+          elif [ -n "${{ secrets.SLYBASE_GHCR_TOKEN }}" ]; then
+            echo "Using Personal Access Token fallback"
+            token="${{ secrets.SLYBASE_GHCR_TOKEN }}"
           else
-            echo "❌ GitHub App token cannot access SlyBase org"
+            echo "❌ No authentication token available!"
+            exit 1
           fi
           
-          echo "=== Test registry namespace ==="
-          # Try to list packages in the namespace
-          curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
+          echo "=== Test token access ==="
+          # Test if the token can access SlyBase org
+          if curl -s -f -H "Authorization: Bearer $token" \
                -H "Accept: application/vnd.github.v3+json" \
-               "https://api.github.com/orgs/SlyBase/packages?package_type=container" | head -20
+               https://api.github.com/orgs/SlyBase >/dev/null; then
+            echo "✅ Token can access SlyBase org"
+          else
+            echo "❌ Token cannot access SlyBase org"
+          fi
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ steps.app-token.outputs.token }}
+          password: ${{ steps.app-token.outputs.token || secrets.SLYBASE_GHCR_TOKEN }}
 
       - name: Check for chart changes
         id: chart-changes
