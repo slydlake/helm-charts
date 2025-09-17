@@ -1,0 +1,160 @@
+name: Release Charts to OCI Registry
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  oci-release:
+    name: Release to OCI Registry
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # Required for cosign keyless signing
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        chart:
+          - wg-easy
+          - wireguard
+          - wordpress
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+        with:
+          cosign-release: 'v2.4.1'
+
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.SLYBASE_APP_ID }}
+          private-key: ${{ secrets.SLYBASE_APP_PRIVATE_KEY }}
+          owner: SlyBase
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: slybase
+          password: ${{ steps.app-token.outputs.token }}
+
+      - name: Check for chart changes
+        id: chart-changes
+        run: |
+          chart_dir="charts/${{ matrix.chart }}"
+          
+          if [ ! -d "$chart_dir" ]; then
+            echo "Chart directory $chart_dir does not exist"
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Get the current chart version
+          chart_version=$(helm show chart "$chart_dir" | grep '^version:' | cut -d' ' -f2)
+          chart_name="${{ matrix.chart }}"
+          
+          echo "chart_version=$chart_version" >> $GITHUB_OUTPUT
+          echo "chart_name=$chart_name" >> $GITHUB_OUTPUT
+          
+          # Check if this version already exists in the registry
+          if helm pull "oci://ghcr.io/slybase/helm-charts/$chart_name" --version "$chart_version" 2>/dev/null; then
+            echo "Chart $chart_name:$chart_version already exists in registry"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "Chart $chart_name:$chart_version does not exist, will publish"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package and push chart to OCI registry
+        if: steps.chart-changes.outputs.skip == 'false'
+        run: |
+          chart_dir="charts/${{ matrix.chart }}"
+          chart_name="${{ steps.chart-changes.outputs.chart_name }}"
+          chart_version="${{ steps.chart-changes.outputs.chart_version }}"
+          
+          echo "Packaging chart $chart_name version $chart_version"
+          
+          # Package the chart
+          helm package "$chart_dir" --destination ./packages
+          
+          # Push to OCI registry and capture the digest
+          push_output=$(helm push "./packages/${chart_name}-${chart_version}.tgz" "oci://ghcr.io/slybase/helm-charts" 2>&1)
+          echo "$push_output"
+          
+          # Extract digest from the push output
+          digest=$(echo "$push_output" | grep -o 'sha256:[a-f0-9]\{64\}' | head -1)
+          
+          if [ -z "$digest" ]; then
+            echo "Failed to extract digest from push output"
+            exit 1
+          fi
+          
+          echo "Chart pushed with digest: $digest"
+          echo "chart_digest=$digest" >> $GITHUB_OUTPUT
+          
+          # Save chart reference for signing
+          chart_ref="ghcr.io/slybase/helm-charts/${chart_name}@${digest}"
+          echo "chart_ref=$chart_ref" >> $GITHUB_OUTPUT
+        id: push
+
+      - name: Sign chart with Cosign
+        if: steps.chart-changes.outputs.skip == 'false' && steps.push.outputs.chart_ref != ''
+        run: |
+          chart_ref="${{ steps.push.outputs.chart_ref }}"
+          
+          echo "Signing chart: $chart_ref"
+          
+          # Sign the chart using keyless signing
+          cosign sign --yes "$chart_ref"
+          
+          echo "Chart signed successfully"
+
+      - name: Verify chart signature
+        if: steps.chart-changes.outputs.skip == 'false' && steps.push.outputs.chart_ref != ''
+        run: |
+          chart_ref="${{ steps.push.outputs.chart_ref }}"
+          
+          echo "Verifying signature for: $chart_ref"
+          
+          # Verify the signature
+          cosign verify "$chart_ref" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/oci-release.yaml@refs/heads/main"
+          
+          echo "Signature verification successful"
+
+      - name: Output chart information
+        if: steps.chart-changes.outputs.skip == 'false'
+        run: |
+          chart_name="${{ steps.chart-changes.outputs.chart_name }}"
+          chart_version="${{ steps.chart-changes.outputs.chart_version }}"
+          chart_ref="${{ steps.push.outputs.chart_ref }}"
+          
+          echo "📦 Chart: $chart_name"
+          echo "🏷️  Version: $chart_version"
+          echo "📍 Reference: $chart_ref"
+          echo "✅ Signed and verified with Cosign"
+          echo ""
+          echo "To use this chart with Helm:"
+          echo "helm install my-release oci://ghcr.io/slybase/helm-charts/$chart_name --version $chart_version"
+          echo ""
+          echo "To verify signature:"
+          echo "cosign verify $chart_ref --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity https://github.com/${{ github.repository }}/.github/workflows/oci-release.yaml@refs/heads/main"

@@ -11,6 +11,7 @@ jobs:
     # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
     permissions:
       contents: write
+      id-token: write # Required for cosign keyless signing
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -26,9 +27,55 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+        with:
+          cosign-release: 'v2.4.1'
+
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.7.0
         with:
           skip_existing: true
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Sign released charts with Cosign
+        run: |
+          # Get all releases and their assets
+          releases=$(gh release list --repo ${{ github.repository }} --limit 10 --json tagName,assets)
+          
+          # Process each release
+          echo "$releases" | jq -r '.[] | select(.assets | length > 0) | .tagName' | while read tag; do
+            echo "Processing release: $tag"
+            
+            # Get chart assets (.tgz files) for this release
+            chart_assets=$(gh release view "$tag" --repo ${{ github.repository }} --json assets | jq -r '.assets[] | select(.name | endswith(".tgz")) | .name')
+            
+            for chart_file in $chart_assets; do
+              echo "Checking chart: $chart_file"
+              
+              # Check if signature already exists
+              bundle_file="${chart_file}.cosign.bundle"
+              if gh release view "$tag" --repo ${{ github.repository }} --json assets | jq -e ".assets[] | select(.name == \"$bundle_file\")" > /dev/null; then
+                echo "Signature already exists for $chart_file, skipping..."
+                continue
+              fi
+              
+              echo "Signing $chart_file..."
+              
+              # Download the chart file
+              gh release download "$tag" --repo ${{ github.repository }} --pattern "$chart_file" --dir ./temp-signing
+              
+              # Sign the chart and create bundle
+              cosign sign-blob ./temp-signing/"$chart_file" \
+                --bundle ./temp-signing/"$bundle_file" \
+                --yes
+              
+              # Upload the signature bundle to the release
+              gh release upload "$tag" ./temp-signing/"$bundle_file" --repo ${{ github.repository }}
+              
+              echo "Signed and uploaded bundle for $chart_file"
+            done
+          done
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
