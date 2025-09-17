@@ -56,15 +56,6 @@ jobs:
           username: slybase
           password: ${{ steps.app-token.outputs.token }}
 
-      - name: Test registry access
-        run: |
-          echo "Testing registry access..."
-          echo "Username: slybase"
-          echo "Registry: ghcr.io"
-          # Test with docker to verify login
-          echo "${{ steps.app-token.outputs.token }}" | docker login ghcr.io -u slybase --password-stdin
-          echo "Docker login successful"
-
       - name: Check for chart changes
         id: chart-changes
         run: |
