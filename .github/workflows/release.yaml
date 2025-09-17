@@ -41,27 +41,44 @@ jobs:
 
       - name: Sign released charts with Cosign
         run: |
-          # Get all releases and their assets
-          releases=$(gh release list --repo ${{ github.repository }} --limit 10 --json tagName,assets)
+          # Get all releases
+          releases=$(gh release list --repo ${{ github.repository }} --limit 10 --json tagName)
           
           # Process each release
-          echo "$releases" | jq -r '.[] | select(.assets | length > 0) | .tagName' | while read tag; do
+          echo "$releases" | jq -r '.[].tagName' | while read tag; do
             echo "Processing release: $tag"
             
+            # Get release assets for this tag
+            assets=$(gh release view "$tag" --repo ${{ github.repository }} --json assets)
+            
+            # Check if release has any assets
+            if ! echo "$assets" | jq -e '.assets | length > 0' > /dev/null; then
+              echo "No assets found for release $tag, skipping..."
+              continue
+            fi
+            
             # Get chart assets (.tgz files) for this release
-            chart_assets=$(gh release view "$tag" --repo ${{ github.repository }} --json assets | jq -r '.assets[] | select(.name | endswith(".tgz")) | .name')
+            chart_assets=$(echo "$assets" | jq -r '.assets[] | select(.name | endswith(".tgz")) | .name')
+            
+            if [ -z "$chart_assets" ]; then
+              echo "No chart files found for release $tag, skipping..."
+              continue
+            fi
             
             for chart_file in $chart_assets; do
               echo "Checking chart: $chart_file"
               
               # Check if signature already exists
               bundle_file="${chart_file}.cosign.bundle"
-              if gh release view "$tag" --repo ${{ github.repository }} --json assets | jq -e ".assets[] | select(.name == \"$bundle_file\")" > /dev/null; then
+              if echo "$assets" | jq -e ".assets[] | select(.name == \"$bundle_file\")" > /dev/null; then
                 echo "Signature already exists for $chart_file, skipping..."
                 continue
               fi
               
               echo "Signing $chart_file..."
+              
+              # Create temp directory
+              mkdir -p ./temp-signing
               
               # Download the chart file
               gh release download "$tag" --repo ${{ github.repository }} --pattern "$chart_file" --dir ./temp-signing
@@ -75,7 +92,13 @@ jobs:
               gh release upload "$tag" ./temp-signing/"$bundle_file" --repo ${{ github.repository }}
               
               echo "Signed and uploaded bundle for $chart_file"
+              
+              # Cleanup
+              rm -f ./temp-signing/"$chart_file" ./temp-signing/"$bundle_file"
             done
           done
+          
+          # Final cleanup
+          rm -rf ./temp-signing
         env:
           GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
