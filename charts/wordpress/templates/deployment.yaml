@@ -418,18 +418,56 @@ spec:
       - name: htaccess-volume
         emptyDir: {}
       - name: {{ include "wordpress.fullname" . }}-configfiles
-        configMap:
-          name: {{ include "wordpress.fullname" . }}-configfiles
+        projected:
           defaultMode: 0664
-          items:
-            - key: 000-default.conf
-              path: 000-default.conf
-            - key: ports.conf
-              path: ports.conf
-            - key: custom.ini
-              path: custom.ini
-            - key: htaccess
-              path: .htaccess
+          sources:
+          - configMap:
+              name: {{ include "wordpress.fullname" . }}-configfiles
+              items:
+                {{- if (not .Values.apache.customDefaultSiteConfigMap) }}
+                - key: 000-default.conf
+                  path: 000-default.conf
+                {{- end }}
+                {{- if (not .Values.apache.customPortsConfigMap) }}
+                - key: ports.conf
+                  path: ports.conf
+                {{- end }}
+                {{- if (not .Values.apache.customPhpConfigMap) }}
+                - key: custom.ini
+                  path: custom.ini
+                {{- end }}
+                {{- if (not .Values.wordpress.htaccessConfigMap) }}
+                - key: htaccess
+                  path: .htaccess
+                {{- end }}
+          {{- if .Values.apache.customDefaultSiteConfigMap }}
+          - configMap:
+              name: {{ .Values.apache.customDefaultSiteConfigMap }}
+              items:
+                - key: 000-default.conf
+                  path: 000-default.conf
+          {{- end }}
+          {{- if .Values.apache.customPortsConfigMap }}
+          - configMap:
+              name: {{ .Values.apache.customPortsConfigMap }}
+              items:
+                - key: ports.conf
+                  path: ports.conf
+          {{- end }}
+          {{- if .Values.apache.customPhpConfigMap }}
+          - configMap:
+              name: {{ .Values.apache.customPhpConfigMap }}
+              items:
+                - key: custom.ini
+                  path: custom.ini
+          {{- end }}
+          {{- if .Values.wordpress.htaccessConfigMap }}
+          - configMap:
+              name: {{ .Values.wordpress.htaccessConfigMap }}
+              items:
+                - key: htaccess
+                  path: .htaccess 
+          {{- end }}
       - name: {{ include "wordpress.fullname" . }}-init
         configMap:
           name: {{ include "wordpress.fullname" . }}-init

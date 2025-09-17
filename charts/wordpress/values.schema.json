@@ -352,6 +352,11 @@
                     "type": "string",
                     "description": "Custom .htaccess content"
                 },
+                "htaccessConfigMap": {
+                    "type": "string",
+                    "description": "Name of existing ConfigMap containing .htaccess file",
+                    "default": ""
+                },
                 "debug": {
                     "type": "boolean",
                     "description": "Enable WordPress debug mode",
@@ -366,13 +371,28 @@
                     "type": "string",
                     "description": "Custom Apache default site config"
                 },
+                "customDefaultSiteConfigMap": {
+                    "type": "string",
+                    "description": "Name of existing ConfigMap containing default site config",
+                    "default": ""
+                },
                 "customPortsConfig": {
                     "type": "string",
                     "description": "Custom Apache ports config"
                 },
+                "customPortsConfigMap": {
+                    "type": "string",
+                    "description": "Name of existing ConfigMap containing ports config",
+                    "default": ""
+                },
                 "customPhpConfig": {
                     "type": "string",
                     "description": "Custom PHP configuration"
+                },
+                "customPhpConfigMap": {
+                    "type": "string",
+                    "description": "Name of existing ConfigMap containing PHP config",
+                    "default": ""
                 }
             }
         },

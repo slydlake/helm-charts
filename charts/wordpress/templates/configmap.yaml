@@ -1,3 +1,4 @@
+{{- if or (not .Values.apache.customDefaultSiteConfigMap) (not .Values.apache.customPortsConfigMap) (not .Values.apache.customPhpConfigMap) (not .Values.wordpress.htaccessConfigMap)  }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,6 +7,7 @@ metadata:
   labels:
     {{- include "wordpress.labels" . | nindent 4 }}
 data:
+  {{- if (not .Values.apache.customDefaultSiteConfigMap)  }}
   000-default.conf: |
     {{- if .Values.apache.customDefaultSiteConfig }}
     {{ .Values.apache.customDefaultSiteConfig | nindent 4 }}
@@ -29,18 +31,24 @@ data:
             CustomLog ${APACHE_LOG_DIR}/access.log combined
     </VirtualHost>
     {{- end }}
+  {{- end }}
+  {{- if (not .Values.apache.customPortsConfigMap) }}
   ports.conf: |
     {{- if .Values.apache.customPortsConfig }}
     {{ .Values.apache.customPortsConfig | nindent 4 }}
     {{- else }}
     Listen {{ .Values.service.ports.http }}
     {{- end }}
+  {{- end }}
+  {{- if (not .Values.apache.customPhpConfigMap) }}
   custom.ini: |
-    {{- if .Values.apache.customPhpConfig }}
+    {{- if and .Values.apache.customPhpConfig  (not .Values.apache.customPhpConfigMap) }}
     {{ .Values.apache.customPhpConfig | nindent 4 }}
     {{- end }}
+  {{- end }}
+  {{- if (not .Values.wordpress.htaccessConfigMap) }}
   htaccess: |
-    {{- if .Values.wordpress.htaccess }}
+    {{- if and .Values.wordpress.htaccess  (not .Values.wordpress.htaccessConfigMap) }}
     {{ .Values.wordpress.htaccess | nindent 4 }}
     {{ else if .Values.metrics.apache.enabled }}
     # Server-status exception
@@ -79,6 +87,8 @@ data:
     </IfModule>
     # END WordPress
     {{- end }}
+  {{- end }}
+{{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap

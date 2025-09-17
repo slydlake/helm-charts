@@ -236,7 +236,20 @@ wordpress:
 
   ## @param wordpress.htaccess string Custom .htaccess file
   ## if metrics.apache.createConfig is true, the modrewrite of server-status will be added automatically before all other rules
+  # htaccess: |-
+  #   # Server-status exception - for metrics.apache
+  #   <IfModule mod_rewrite.c>
+  #   RewriteRule ^server-status - [L]
+  #   </IfModule>
+  #   <Files wp-config.php>
+  #   order allow,deny
+  #   deny from all
+  #   </Files>
   htaccess:
+
+  ## @param wordpress.htaccessConfigMap string Name of existing ConfigMap containing .htaccess file
+  # Must contain the key "htaccess" with the content of the .htaccess file
+  htaccessConfigMap: ""
 
   ## @param wordpress.enableDebug boolean Enable WordPress debugging
   # enable debugging see: https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/
@@ -257,11 +270,19 @@ apache:
   #   </VirtualHost>
   customDefaultSiteConfig:
 
+  ## @param apache.customDefaultSiteConfigMap string Name of existing ConfigMap containing default site config
+  ## Must contain the key "000-default.conf"
+  customDefaultSiteConfigMap: ""
+
   ## @param apache.customPortsConfig string Custom Apache ports config
   ## this is the file apache2/ports.conf
   # customPortsConfig: |-
   #   Listen 80
   customPortsConfig:
+
+  ## @param apache.customPortsConfigMap string Name of existing ConfigMap containing ports config
+  ## Must contain the key "ports.conf"
+  customPortsConfigMap: ""
 
   ## @param apache.customPhpConfig string Custom Apache PHP config
   # customPhpConfig: |-
@@ -269,6 +290,10 @@ apache:
   #   post_max_size = 64M
   #   memory_limit = 256M
   customPhpConfig:
+
+  ## @param apache.customPhpConfigMap string Name of existing ConfigMap containing PHP config
+  ## Must contain the key "custom.ini"
+  customPhpConfigMap: ""
 
 ## @section Storage parameters
 storage:
