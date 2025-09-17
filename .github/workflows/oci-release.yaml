@@ -64,14 +64,22 @@ jobs:
           
           # Test API access with the token
           echo "=== Testing GitHub API access ==="
-          curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
+          user_info=$(curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
                -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/user | jq '.login // .message'
+               https://api.github.com/user)
+          echo "User info: $user_info"
           
           echo "=== Testing SlyBase organization access ==="
-          curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
+          org_info=$(curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
                -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/orgs/SlyBase | jq '.login // .message'
+               https://api.github.com/orgs/SlyBase)
+          echo "Org info: $org_info"
+          
+          echo "=== Testing package permissions ==="
+          package_info=$(curl -s -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               https://api.github.com/orgs/SlyBase/packages)
+          echo "Package info: $package_info"
 
       - name: Check for chart changes
         id: chart-changes
@@ -115,8 +123,8 @@ jobs:
           echo "Pushing to OCI registry: oci://ghcr.io/slybase/charts"
           echo "Chart file: ./packages/${chart_name}-${chart_version}.tgz"
           
-          # Try different registry paths to see what works
-          for registry_path in "ghcr.io/slybase/charts" "ghcr.io/SlyBase/charts" "ghcr.io/slybase/${chart_name}" "ghcr.io/SlyBase/${chart_name}"; do
+          # Try different registry paths - GitHub Container Registry uses lowercase org names
+          for registry_path in "ghcr.io/slybase/charts" "ghcr.io/slybase/${chart_name}"; do
             echo "=== Trying registry: oci://$registry_path ==="
             
             set -x  # Enable debug output
