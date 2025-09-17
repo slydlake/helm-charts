@@ -95,46 +95,62 @@ jobs:
           # Package the chart
           helm package "$chart_dir" --destination ./packages
           
-          echo "Pushing to OCI registry: oci://ghcr.io/slybase/helm-charts"
+          echo "Pushing to OCI registry: oci://ghcr.io/slybase/charts"
           echo "Chart file: ./packages/${chart_name}-${chart_version}.tgz"
           
-          # Push to OCI registry and capture the digest
-          set -x  # Enable debug output
-          push_output=$(helm push "./packages/${chart_name}-${chart_version}.tgz" "oci://ghcr.io/slybase/helm-charts" 2>&1) || {
-            echo "Helm push failed with exit code $?"
-            echo "Push output:"
-            echo "$push_output"
-            exit 1
-          }
-          set +x  # Disable debug output
+          # Try different registry paths to see what works
+          for registry_path in "ghcr.io/slybase/charts" "ghcr.io/slybase/${chart_name}"; do
+            echo "=== Trying registry: oci://$registry_path ==="
+            
+            set -x  # Enable debug output
+            if push_output=$(helm push "./packages/${chart_name}-${chart_version}.tgz" "oci://$registry_path" 2>&1); then
+              set +x  # Disable debug output
+              echo "Push successful to $registry_path!"
+              echo "$push_output"
+              
+              # Extract digest from the push output
+              digest=$(echo "$push_output" | grep -o 'sha256:[a-f0-9]\{64\}' | head -1)
+              
+              if [ -z "$digest" ]; then
+                echo "Failed to extract digest from push output"
+                echo "Full push output was:"
+                echo "$push_output"
+                exit 1
+              fi
+              
+              echo "Chart pushed with digest: $digest"
+              echo "chart_digest=$digest" >> $GITHUB_OUTPUT
+              
+              # Save chart reference for signing
+              chart_ref="$registry_path/${chart_name}@${digest}"
+              echo "chart_ref=$chart_ref" >> $GITHUB_OUTPUT
+              echo "registry_used=$registry_path" >> $GITHUB_OUTPUT
+              
+              # Success, break out of loop
+              break
+            else
+              set +x  # Disable debug output
+              echo "Failed to push to $registry_path:"
+              echo "$push_output"
+              echo "Trying next registry path..."
+            fi
+          done
           
-          echo "Push successful!"
-          echo "$push_output"
-          
-          # Extract digest from the push output
-          digest=$(echo "$push_output" | grep -o 'sha256:[a-f0-9]\{64\}' | head -1)
-          
-          if [ -z "$digest" ]; then
-            echo "Failed to extract digest from push output"
-            echo "Full push output was:"
-            echo "$push_output"
+          # Check if any push succeeded
+          if [ -z "${chart_ref:-}" ]; then
+            echo "All registry paths failed!"
             exit 1
           fi
-          
-          echo "Chart pushed with digest: $digest"
-          echo "chart_digest=$digest" >> $GITHUB_OUTPUT
-          
-          # Save chart reference for signing
-          chart_ref="ghcr.io/slybase/helm-charts/${chart_name}@${digest}"
-          echo "chart_ref=$chart_ref" >> $GITHUB_OUTPUT
         id: push
 
       - name: Sign chart with Cosign
         if: steps.chart-changes.outputs.skip == 'false' && steps.push.outputs.chart_ref != ''
         run: |
           chart_ref="${{ steps.push.outputs.chart_ref }}"
+          registry_used="${{ steps.push.outputs.registry_used }}"
           
           echo "Signing chart: $chart_ref"
+          echo "Registry used: $registry_used"
           
           # Sign the chart using keyless signing
           cosign sign --yes "$chart_ref"
@@ -161,14 +177,16 @@ jobs:
           chart_name="${{ steps.chart-changes.outputs.chart_name }}"
           chart_version="${{ steps.chart-changes.outputs.chart_version }}"
           chart_ref="${{ steps.push.outputs.chart_ref }}"
+          registry_used="${{ steps.push.outputs.registry_used }}"
           
           echo "📦 Chart: $chart_name"
           echo "🏷️  Version: $chart_version"
           echo "📍 Reference: $chart_ref"
+          echo "🗂️  Registry: $registry_used"
           echo "✅ Signed and verified with Cosign"
           echo ""
           echo "To use this chart with Helm:"
-          echo "helm install my-release oci://ghcr.io/slybase/helm-charts/$chart_name --version $chart_version"
+          echo "helm install my-release oci://$registry_used/$chart_name --version $chart_version"
           echo ""
           echo "To verify signature:"
           echo "cosign verify $chart_ref --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity https://github.com/${{ github.repository }}/.github/workflows/oci-release.yaml@refs/heads/main"
