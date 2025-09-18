@@ -221,6 +221,8 @@ service:
   port: 51820
   # This sets the NodePort
   nodePort: 31822
+  # External IPs to bind the LoadBalancer service to (if using LoadBalancer type)
+  externalIPs: []
 
 resources:
   {}
