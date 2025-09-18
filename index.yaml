@@ -3,6 +3,45 @@ entries:
   wg-easy:
   - annotations:
       artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: added
+          description: "externalIPs in values.yaml"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wg-easy
+          image: ghcr.io/wg-easy/wg-easy:latest
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wg-easy
+        - name: Offical wg-easy Documentation
+          url: https://wg-easy.github.io/wg-easy/latest/
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: "15"
+    created: "2025-09-18T11:33:33.094829525Z"
+    description: Using the offical wg-easy/wg-easy image with almost any environment
+      variables for K8s. Supporting Init Mode.
+    digest: 20df54e2e984d6cdca52dbfc5a556df181d70ff9ebe821881a027958d55514ec
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - wg-easy
+    maintainers:
+    - name: slydlake
+    name: wg-easy
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wg-easy-0.1.16/wg-easy-0.1.16.tgz
+    version: 0.1.16
+  - annotations:
+      artifacthub.io/category: security
       artifacthub.io/changes: "- kind: fixed\n  description: \"wrong indentation of
         externalIPs in service\"\n  links: \n    - name: GitHub PR\n      url: https://github.com/slydlake/helm-charts/pull/8\n"
       artifacthub.io/containsSecurityUpdates: "false"
@@ -643,6 +682,46 @@ entries:
   - annotations:
       artifacthub.io/category: security
       artifacthub.io/changes: |
+        - kind: added
+          description: "LoadBalancer service type support"
+        - kind: added
+          description: "externalIPs in values.yaml"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wireguard
+          image: docker.io/linuxserver/wireguard:latest
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wireguard
+        - name: Offical WireGuard Repository
+          url: https://github.com/linuxserver/docker-wireguard
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    created: "2025-09-18T11:33:33.231223683Z"
+    description: Using the offical linuxserver/wireguard image with almost any environment
+      variables for K8S. Supporting server and client mode.
+    digest: 4a249e171aae28d068eacb16d0d5fe419057e4941c11032a8762ef1ad02b972d
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - linuxserver
+    maintainers:
+    - name: slydlake
+    name: wireguard
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.14/wireguard-0.1.14.tgz
+    version: 0.1.14
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
         - kind: changed
           description: "changed to MIT license"
         - kind: changed
@@ -1202,4 +1281,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-09-18T11:16:18.676594372Z"
+generated: "2025-09-18T11:33:33.231450449Z"
