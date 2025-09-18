@@ -2,7 +2,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: wordpress-custom-config
-  namespace: websites
 data:
   custom.ini: |
     upload_max_filesize = 64M
