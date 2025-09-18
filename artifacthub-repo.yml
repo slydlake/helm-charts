@@ -1,11 +1,10 @@
 # Artifact Hub repository metadata file for OCI registry
 # This file provides metadata for the SlyBase Helm charts OCI repository
 
-repositoryID: d3f6ad16-a203-4439-842f-c76bd70fbbce-oci
+repositoryID: d3f6ad16-a203-4439-842f-c76bd70fbbce
 owners:
   - name: slydlake
     email: sly.dlake@gmail.com
-
 # Optional: ignore specific packages (currently none ignored)
 # ignore:
 #   - name: example-chart

@@ -1,4 +1,4 @@
-# 🚀 SlyLake Helm Charts
+# 🚀 SlyCharts - The sly Helm Charts
 
 A collection of production-ready Helm charts for self-hosted applications, featuring **signed charts** for enhanced security.
 
