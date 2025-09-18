@@ -3,6 +3,44 @@ entries:
   wg-easy:
   - annotations:
       artifacthub.io/category: security
+      artifacthub.io/changes: "- kind: fixed\n  description: \"wrong indentation of
+        externalIPs in service\"\n  links: \n    - name: GitHub PR\n      url: https://github.com/slydlake/helm-charts/pull/8\n"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wg-easy
+          image: ghcr.io/wg-easy/wg-easy:latest
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wg-easy
+        - name: Offical wg-easy Documentation
+          url: https://wg-easy.github.io/wg-easy/latest/
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: "15"
+    created: "2025-09-18T11:16:18.676428592Z"
+    description: Using the offical wg-easy/wg-easy image with almost any environment
+      variables for K8s. Supporting Init Mode.
+    digest: 799435a2f775f8e692396747b76af4f51bce6daf89c3417f2226801fcd7faba8
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - wg-easy
+    maintainers:
+    - name: slydlake
+    name: wg-easy
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wg-easy-0.1.15/wg-easy-0.1.15.tgz
+    version: 0.1.15
+  - annotations:
+      artifacthub.io/category: security
       artifacthub.io/changes: |
         - kind: added
           description: "signed the chart with cosign"
@@ -1164,4 +1202,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-09-17T22:13:45.633384672Z"
+generated: "2025-09-18T11:16:18.676594372Z"
