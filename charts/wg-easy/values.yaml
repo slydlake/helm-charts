@@ -14,13 +14,11 @@ image:
   # recommended to use higher then 15 because of new environment variables and database change
   tag: 15.1.0
 
-
 # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
 # This is to override the chart name.
 nameOverride: ""
 fullnameOverride: ""
-
 
 # DNS policy and configuration of the pod
 # E.g.
@@ -65,7 +63,6 @@ initContainers: []
 #     imagePullPolicy: Always
 sidecars: []
 
-
 # persistent volume claim for wireguard configuration
 storage:
   # Name of an existing PVC to use
@@ -76,7 +73,7 @@ storage:
   size: 100Mi
   # accessModes is required when using a new PVC
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   # annotations to add to the PVC
   annotations: {}
   # labels to add to the PVC
@@ -87,7 +84,7 @@ storage:
   resourcePolicy: keep
 
 config:
-  # Optional configuration, 
+  # Optional configuration,
   # For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/config/optional-config/
 
   # IP address web UI binds to. E.g. 0.0.0.0 or localhost
@@ -97,7 +94,7 @@ config:
   insecure: true
   # If IPv6 support should be disabled
   disable_ipv6: true
-  
+
   # for unattended setup
   # For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/config/unattended-setup/
   init:
@@ -115,7 +112,7 @@ config:
     host: "vpn.example.com"
     # Sets global dns setting
     dns: "1.1.1.1,8.8.8.8"
-    
+
     # Sets IPv4 cidr
     ipv4_cidr: "10.8.0.0/24"
     # Sets IPv6 cidr
@@ -150,7 +147,7 @@ serviceAccount:
 # For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/metrics/prometheus/
 serviceMonitor:
   # Specifies whether a ServiceMonitor should be created
-  # Additionally you have to enable it in the WebUI: Go to Admin Panel > General and enable Prometheus 
+  # Additionally you have to enable it in the WebUI: Go to Admin Panel > General and enable Prometheus
   create: false
   # Annotations to add to the ServiceMonitor
   annotations: {}
@@ -174,7 +171,8 @@ podAnnotations: {}
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 podLabels: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  {}
   # fsGroup: 2000
 
 securityContext:
@@ -207,16 +205,19 @@ service:
     type: NodePort
     # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
     port: 51820
-    # This sets the nodeport 
+    # This sets the nodeport
     nodePort: 30200
     # Annotations to add to the service
     annotations: {}
+    # External IPs to bind the LoadBalancer service to (if using LoadBalancer type)
+    externalIPs: []
 
 # This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
 ingress:
   enabled: false
   className: ""
-  annotations: {}
+  annotations:
+    {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
@@ -229,7 +230,8 @@ ingress:
   #    hosts:
   #      - wg-easy.local
 
-resources: {}
+resources:
+  {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
