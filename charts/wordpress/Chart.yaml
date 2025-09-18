@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.2.0
+version: 0.2.1
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
@@ -25,9 +25,7 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: added
-      description: "added support for custom configmaps for apache and php configurations as well as .htaccess file"
-    - kind: added
+    - kind: changed
       description: "signed the chart with cosign"
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
