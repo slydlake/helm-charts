@@ -594,6 +594,8 @@ metrics:
       selector: {}
       ## @param metrics.wordpress.serviceMonitor.interval string Interval at which to scrape metrics
       interval: 30s
+      ## @param metrics.wordpress.serviceMonitor.namespace Namespace for the ServiceMonitor Resource (defaults to the Release Namespace)
+      namespace: ""
       ## @param metrics.wordpress.serviceMonitor.metricsPath string Path to scrape metrics from
       metricsPath: /slymetrics/metrics
       ## @param metrics.wordpress.serviceMonitor.existingSecret string Name of existing secret containing Bearer Token

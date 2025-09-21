@@ -16,7 +16,7 @@ metadata:
 spec:
   namespaceSelector:
     matchNames:
-    - {{ .Release.Namespace }}
+    - {{ if .Values.metrics.wordpress.serviceMonitor.namespace }}{{ .Values.metrics.wordpress.serviceMonitor.namespace }}{{ else }}{{ .Release.Namespace }}{{ end }}
   {{ if .Values.metrics.wordpress.serviceMonitor.selector }}
   selector:
     {{- toYaml .Values.metrics.wordpress.serviceMonitor.selector | nindent 6 }}

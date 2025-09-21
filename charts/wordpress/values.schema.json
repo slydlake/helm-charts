@@ -890,7 +890,131 @@
             "properties": {
                 "wordpress": {
                     "type": "object",
-                    "description": "WordPress metrics configuration"
+                    "description": "WordPress metrics configuration",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable WordPress metrics",
+                            "default": false
+                        },
+                        "installPlugin": {
+                            "type": "boolean",
+                            "description": "Install WordPress metrics plugin",
+                            "default": true
+                        },
+                        "pluginNameOverride": {
+                            "type": "string",
+                            "description": "Override the plugin name",
+                            "default": ""
+                        },
+                        "serviceMonitor": {
+                            "type": "object",
+                            "description": "ServiceMonitor configuration for WordPress metrics",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "description": "Enable ServiceMonitor for WordPress metrics",
+                                    "default": true
+                                },
+                                "namespace": {
+                                    "type": "string",
+                                    "description": "Namespace for WordPress ServiceMonitor",
+                                    "default": ""
+                                },
+                                "interval": {
+                                    "type": "string",
+                                    "description": "Scrape interval",
+                                    "default": "30s"
+                                },
+                                "metricsPath": {
+                                    "type": "string",
+                                    "description": "Metrics endpoint path",
+                                    "default": "/slymetrics/metrics"
+                                },
+                                "path": {
+                                    "type": "string",
+                                    "description": "Alternative metrics path (legacy)",
+                                    "default": "/slymetrics/metrics"
+                                },
+                                "existingSecret": {
+                                    "type": "string",
+                                    "description": "Existing secret for metrics authentication",
+                                    "default": ""
+                                },
+                                "labels": {
+                                    "type": "object",
+                                    "description": "Additional labels for ServiceMonitor"
+                                },
+                                "annotations": {
+                                    "type": "object",
+                                    "description": "Additional annotations for ServiceMonitor"
+                                },
+                                "selector": {
+                                    "type": "object",
+                                    "description": "Custom selector for ServiceMonitor"
+                                }
+                            }
+                        }
+                    }
+                },
+                "apache": {
+                    "type": "object",
+                    "description": "Apache metrics configuration",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable Apache metrics",
+                            "default": false
+                        },
+                        "createConfig": {
+                            "type": "boolean",
+                            "description": "Create Apache config for metrics",
+                            "default": true
+                        },
+                        "serviceMonitor": {
+                            "type": "object",
+                            "description": "ServiceMonitor configuration for Apache metrics",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "description": "Enable ServiceMonitor for Apache metrics",
+                                    "default": true
+                                },
+                                "namespace": {
+                                    "type": "string",
+                                    "description": "Namespace for Apache ServiceMonitor",
+                                    "default": ""
+                                },
+                                "interval": {
+                                    "type": "string",
+                                    "description": "Scrape interval",
+                                    "default": "30s"
+                                },
+                                "metricsPath": {
+                                    "type": "string",
+                                    "description": "Metrics endpoint path",
+                                    "default": "/metrics"
+                                },
+                                "path": {
+                                    "type": "string",
+                                    "description": "Alternative metrics path (legacy)",
+                                    "default": "/metrics"
+                                },
+                                "labels": {
+                                    "type": "object",
+                                    "description": "Additional labels for ServiceMonitor"
+                                },
+                                "annotations": {
+                                    "type": "object",
+                                    "description": "Additional annotations for ServiceMonitor"
+                                },
+                                "selector": {
+                                    "type": "object",
+                                    "description": "Custom selector for ServiceMonitor"
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
