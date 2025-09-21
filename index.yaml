@@ -4,6 +4,53 @@ entries:
   - annotations:
       artifacthub.io/category: security
       artifacthub.io/changes: |
+        - kind: changed
+          description: "Improved PodSecurity Standards compliance with minimal privileges"
+        - kind: added
+          description: "OCI-repo called SlyBase"
+        - kind: added
+          description: "Improved ServiceMonitor namespace isolation for metrics."
+        - kind: changed
+          description: "AppVersion for wg-easy for default image tag."
+        - kind: changed
+          description: "sample value and secret in separate folder."
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wg-easy
+          image: ghcr.io/wg-easy/wg-easy:latest
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wg-easy
+        - name: Offical wg-easy Documentation
+          url: https://wg-easy.github.io/wg-easy/latest/
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: "15"
+    created: "2025-09-21T21:42:07.095424839Z"
+    description: Using the offical wg-easy/wg-easy image with almost any environment
+      variables for K8s. Supporting Init Mode.
+    digest: 284b2baa4f5c0ed2258c28194ab3dbf97ce2a6d3f5bc5b5fc68c269ae1fa702a
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - wg-easy
+    maintainers:
+    - name: slydlake
+    name: wg-easy
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wg-easy-0.1.17/wg-easy-0.1.17.tgz
+    version: 0.1.17
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
         - kind: added
           description: "externalIPs in values.yaml"
       artifacthub.io/containsSecurityUpdates: "false"
@@ -1561,4 +1608,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-09-21T18:19:15.970331336Z"
+generated: "2025-09-21T21:42:07.095538803Z"
