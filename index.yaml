@@ -1170,6 +1170,62 @@ entries:
   - annotations:
       artifacthub.io/category: networking
       artifacthub.io/changes: |
+        - kind: added
+          description: "Improved ServiceMonitor namespace isolation for WordPress metrics"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wordpress
+          image: docker.io/wordpress:latest
+        - name: metrics-apache
+          image: lusotycoon/apache-exporter:latest
+        - name: mariadb
+          image: docker.io/mariadb:latest
+        - name: memcached
+          image: docker.io/memcached:latest
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
+        - name: Official WordPress Repository
+          url: https://github.com/docker-library/
+        - name: "WordPress Prometheus Metrics plugin - SlyMetrics"
+          url: https://github.com/slydlake/slymetrics
+        - name: Apache Metrics container
+          url: https://github.com/Lusitaniae/apache_exporter
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    created: "2025-09-21T18:19:15.970233933Z"
+    dependencies:
+    - condition: memcached.enabled
+      name: memcached
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.1.2
+    - condition: mariadb.enabled
+      name: mariadb
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: '>=0.2.2'
+    description: Using the official WordPress image. This chart provides automation
+      for installation, user management, plugin installation, and metrics.
+    digest: 0c87427a6ad3d6569deea213de5cd5955c906f7756ed954d1f0cbb0b1e10712c
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
+    keywords:
+    - wordpress
+    - blog
+    maintainers:
+    - name: slydlake
+    name: wordpress
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.2.5/wordpress-0.2.5.tgz
+    version: 0.2.5
+  - annotations:
+      artifacthub.io/category: networking
+      artifacthub.io/changes: |
         - kind: changed
           description: "Added namespaceSelector to ServiceMonitors to prevent cross-namespace scraping conflicts and Target Down alerts"
       artifacthub.io/containsSecurityUpdates: "false"
@@ -1505,4 +1561,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-09-21T16:25:24.17565136Z"
+generated: "2025-09-21T18:19:15.970331336Z"
