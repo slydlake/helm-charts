@@ -18,11 +18,31 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "repository": { "title": "Image repository", "type": "string", "description": "Container image repository, e.g. ghcr.io/wg-easy/wg-easy." },
-        "pullPolicy": { "title": "Image pull policy", "type": "string", "enum": ["IfNotPresent", "Always", "Never"], "description": "Kubernetes image pull policy." },
-        "tag": { "title": "Image tag", "type": "string", "description": "Image tag to deploy. Defaults to the chart appVersion when unset." }
+        "repository": {
+          "title": "Image repository",
+          "type": "string",
+          "description": "Container image repository, e.g. ghcr.io/wg-easy/wg-easy."
+        },
+        "pullPolicy": {
+          "title": "Image pull policy",
+          "type": "string",
+          "enum": [
+            "IfNotPresent",
+            "Always",
+            "Never"
+          ],
+          "description": "Kubernetes image pull policy."
+        },
+        "tag": {
+          "title": "Image tag",
+          "type": "string",
+          "description": "Image tag to deploy. Defaults to the chart appVersion when unset."
+        }
       },
-  "required": ["repository", "tag"]
+      "required": [
+        "repository",
+        "pullPolicy"
+      ]
     },
     "imagePullSecrets": {
       "title": "Image pull secrets",
@@ -32,7 +52,11 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "name": { "title": "Secret name", "type": "string", "description": "Name of the image pull secret." }
+          "name": {
+            "title": "Secret name",
+            "type": "string",
+            "description": "Name of the image pull secret."
+          }
         },
         "required": []
       },
@@ -43,11 +67,27 @@
       "title": "Update Strategy",
       "description": "Strategy for deployment updates.",
       "properties": {
-  "type": { "type": "string", "title": "Update Strategy Type", "description": "Type of update strategy (e.g. RollingUpdate or Recreate). Note: Use Recreate for PVCs that cannot be mounted by multiple pods.", "enum": ["RollingUpdate", "Recreate"] }
+        "type": {
+          "type": "string",
+          "title": "Update Strategy Type",
+          "description": "Type of update strategy (e.g. RollingUpdate or Recreate). Note: Use Recreate for PVCs that cannot be mounted by multiple pods.",
+          "enum": [
+            "RollingUpdate",
+            "Recreate"
+          ]
+        }
       }
     },
-    "nameOverride": { "title": "Name override", "type": "string", "description": "Override the chart name used in names of Kubernetes resources." },
-    "fullnameOverride": { "title": "Full name override", "type": "string", "description": "Override the full resource name used for Kubernetes objects." },
+    "nameOverride": {
+      "title": "Name override",
+      "type": "string",
+      "description": "Override the chart name used in names of Kubernetes resources."
+    },
+    "fullnameOverride": {
+      "title": "Full name override",
+      "type": "string",
+      "description": "Override the full resource name used for Kubernetes objects."
+    },
     "initContainers": {
       "type": "array",
       "title": "Init Containers",
@@ -66,13 +106,17 @@
           "type": "array",
           "title": "Nameservers",
           "description": "List of DNS server IPs (max 3).",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "searches": {
           "type": "array",
           "title": "Search Domains",
           "description": "List of search domains.",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "options": {
           "type": "array",
@@ -81,8 +125,14 @@
           "items": {
             "type": "object",
             "properties": {
-              "name": { "type": "string", "title": "Option Name" },
-              "value": { "type": "string", "title": "Option Value" }
+              "name": {
+                "type": "string",
+                "title": "Option Name"
+              },
+              "value": {
+                "type": "string",
+                "title": "Option Value"
+              }
             },
             "required": [],
             "additionalProperties": false
@@ -110,51 +160,150 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "existingClaim": { "title": "Existing PVC", "type": "string", "description": "Use an existing PersistentVolumeClaim by name." },
-        "storageClass": { "title": "StorageClass", "type": "string", "description": "StorageClass to use for a new PVC." },
-        "size": { "title": "Storage size", "type": "string", "description": "Requested storage size for a new PVC (e.g. 100Mi)." },
+        "existingClaim": {
+          "title": "Existing PVC",
+          "type": "string",
+          "description": "Use an existing PersistentVolumeClaim by name."
+        },
+        "storageClass": {
+          "title": "StorageClass",
+          "type": "string",
+          "description": "StorageClass to use for a new PVC."
+        },
+        "size": {
+          "title": "Storage size",
+          "type": "string",
+          "description": "Requested storage size for a new PVC (e.g. 100Mi)."
+        },
         "accessModes": {
           "title": "Access modes",
           "type": "array",
-          "items": { "type": "string", "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"] },
+          "items": {
+            "type": "string",
+            "enum": [
+              "ReadWriteOnce",
+              "ReadOnlyMany",
+              "ReadWriteMany",
+              "ReadWriteOncePod"
+            ]
+          },
           "description": "Access modes for the PVC."
         },
-        "annotations": { "title": "PVC annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
-        "labels": { "title": "PVC labels", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
-        "selector": { "title": "PVC selector", "type": "object", "description": "Label selector for binding to existing PVs." },
-        "resourcePolicy": { "title": "Resource policy", "type": "string", "enum": ["keep", "delete"], "default": "keep", "description": "Whether to keep or delete the PVC when uninstalling the release." }
+        "annotations": {
+          "title": "PVC annotations",
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "labels": {
+          "title": "PVC labels",
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "selector": {
+          "title": "PVC selector",
+          "type": "object",
+          "description": "Label selector for binding to existing PVs."
+        },
+        "resourcePolicy": {
+          "title": "Resource policy",
+          "type": "string",
+          "enum": [
+            "keep",
+            "delete"
+          ],
+          "default": "keep",
+          "description": "Whether to keep or delete the PVC when uninstalling the release."
+        }
       },
-      "required": ["size", "accessModes", "resourcePolicy"]
+      "required": [
+        "size",
+        "accessModes",
+        "resourcePolicy"
+      ]
     },
-
     "config": {
       "title": "Application config",
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "host": { "title": "UI bind host", "type": "string", "description": "IP address the web UI binds to, e.g. 0.0.0.0 or localhost." },
-        "insecure": { "title": "Allow HTTP access", "type": "boolean", "description": "Allow plain HTTP access to the UI (no TLS)." },
-        "disable_ipv6": { "title": "Disable IPv6", "type": "boolean", "description": "Disable IPv6 support in the application." },
+        "host": {
+          "title": "UI bind host",
+          "type": "string",
+          "description": "IP address the web UI binds to, e.g. 0.0.0.0 or localhost."
+        },
+        "insecure": {
+          "title": "Allow HTTP access",
+          "type": "boolean",
+          "description": "Allow plain HTTP access to the UI (no TLS)."
+        },
+        "disable_ipv6": {
+          "title": "Disable IPv6",
+          "type": "boolean",
+          "description": "Disable IPv6 support in the application."
+        },
         "init": {
           "title": "Unattended setup",
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "enabled": { "title": "Enable unattended setup", "type": "boolean", "description": "Enable one-time initialization of admin credentials and network settings." },
-            "existingSecret": { "title": "Existing secret", "type": "string", "description": "Name of a Kubernetes secret containing 'username' and 'password'." },
-            "username": { "title": "Admin username", "type": "string", "description": "Admin username (prefer using an existing secret)." },
-            "password": { "title": "Admin password", "type": "string", "description": "Admin password (prefer using an existing secret)." },
-            "host": { "title": "Public host", "type": "string", "description": "Public host clients connect to (e.g. vpn.example.com)." },
-            "dns": { "title": "Global DNS", "type": "string", "description": "Comma-separated DNS servers for clients." },
-            "ipv4_cidr": { "title": "IPv4 CIDR", "type": "string", "description": "WireGuard IPv4 network in CIDR notation." },
-            "ipv6_cidr": { "title": "IPv6 CIDR", "type": "string", "description": "WireGuard IPv6 network in CIDR notation." }
+            "enabled": {
+              "title": "Enable unattended setup",
+              "type": "boolean",
+              "description": "Enable one-time initialization of admin credentials and network settings."
+            },
+            "existingSecret": {
+              "title": "Existing secret",
+              "type": "string",
+              "description": "Name of a Kubernetes secret containing 'username' and 'password'."
+            },
+            "username": {
+              "title": "Admin username",
+              "type": "string",
+              "description": "Admin username (prefer using an existing secret)."
+            },
+            "password": {
+              "title": "Admin password",
+              "type": "string",
+              "description": "Admin password (prefer using an existing secret)."
+            },
+            "host": {
+              "title": "Public host",
+              "type": "string",
+              "description": "Public host clients connect to (e.g. vpn.example.com)."
+            },
+            "dns": {
+              "title": "Global DNS",
+              "type": "string",
+              "description": "Comma-separated DNS servers for clients."
+            },
+            "ipv4_cidr": {
+              "title": "IPv4 CIDR",
+              "type": "string",
+              "description": "WireGuard IPv4 network in CIDR notation."
+            },
+            "ipv6_cidr": {
+              "title": "IPv6 CIDR",
+              "type": "string",
+              "description": "WireGuard IPv6 network in CIDR notation."
+            }
           },
           "required": []
         }
       },
       "required": []
     },
-
     "extraEnvVars": {
       "title": "Extra environment variables",
       "type": "array",
@@ -163,69 +312,231 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "name": { "title": "Variable name", "type": "string" },
-          "value": { "title": "Variable value", "type": "string" }
+          "name": {
+            "title": "Variable name",
+            "type": "string"
+          },
+          "value": {
+            "title": "Variable value",
+            "type": "string"
+          }
         },
         "required": []
       },
       "default": []
     },
-    "extraEnvVarsSecret": { "title": "Extra env secret", "type": "string", "description": "Name of an existing secret providing extra environment variables." },
-    "extraEnvVarsCM": { "title": "Extra env configmap", "type": "string", "description": "Name of an existing configmap providing extra environment variables." },
-
+    "extraEnvVarsSecret": {
+      "title": "Extra env secret",
+      "type": "string",
+      "description": "Name of an existing secret providing extra environment variables."
+    },
+    "extraEnvVarsCM": {
+      "title": "Extra env configmap",
+      "type": "string",
+      "description": "Name of an existing configmap providing extra environment variables."
+    },
     "serviceAccount": {
       "title": "ServiceAccount",
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "create": { "title": "Create ServiceAccount", "type": "boolean", "description": "Whether to create a dedicated ServiceAccount." },
-        "automount": { "title": "Automount API token", "type": "boolean", "description": "Automatically mount the ServiceAccount token." },
-        "annotations": { "title": "ServiceAccount annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
-        "name": { "title": "ServiceAccount name", "type": "string", "description": "Name of an existing ServiceAccount to use." }
+        "create": {
+          "title": "Create ServiceAccount",
+          "type": "boolean",
+          "description": "Whether to create a dedicated ServiceAccount."
+        },
+        "automount": {
+          "title": "Automount API token",
+          "type": "boolean",
+          "description": "Automatically mount the ServiceAccount token."
+        },
+        "annotations": {
+          "title": "ServiceAccount annotations",
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "name": {
+          "title": "ServiceAccount name",
+          "type": "string",
+          "description": "Name of an existing ServiceAccount to use."
+        }
       },
       "required": []
     },
-
     "serviceMonitor": {
       "title": "ServiceMonitor",
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "create": { "title": "Create ServiceMonitor", "type": "boolean", "description": "Create a Prometheus Operator ServiceMonitor for scraping metrics." },
-        "annotations": { "title": "ServiceMonitor annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
-        "labels": { "title": "ServiceMonitor labels", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
-        "selector": { "title": "Service selector override", "type": "object", "description": "Override the ServiceMonitor label selector." },
-        "interval": { "title": "Scrape interval", "type": "string", "description": "How often Prometheus scrapes the endpoint (e.g. 30s)." },
-        "metricsPath": { "title": "Metrics path", "type": "string", "description": "HTTP path on the UI Service that exposes Prometheus metrics." },
-        "existingSecret": { "title": "Bearer token secret", "type": "string", "description": "Name of an existing secret to use for bearer token auth." },
-        "existingSecretKey": { "title": "Bearer token key", "type": "string", "description": "Key within the secret that contains the token." }
+        "create": {
+          "title": "Create ServiceMonitor",
+          "type": "boolean",
+          "description": "Create a Prometheus Operator ServiceMonitor for scraping metrics."
+        },
+        "annotations": {
+          "title": "ServiceMonitor annotations",
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "labels": {
+          "title": "ServiceMonitor labels",
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "selector": {
+          "title": "Service selector override",
+          "type": "object",
+          "description": "Override the ServiceMonitor label selector."
+        },
+        "interval": {
+          "title": "Scrape interval",
+          "type": "string",
+          "description": "How often Prometheus scrapes the endpoint (e.g. 30s)."
+        },
+        "namespace": {
+          "title": "ServiceMonitor namespace",
+          "type": "string",
+          "description": "Name of the namespace to create the ServiceMonitor in. Defaults to the release namespace."
+        },
+        "metricsPath": {
+          "title": "Metrics path",
+          "type": "string",
+          "description": "HTTP path on the UI Service that exposes Prometheus metrics."
+        },
+        "existingSecret": {
+          "title": "Bearer token secret",
+          "type": "string",
+          "description": "Name of an existing secret to use for bearer token auth."
+        },
+        "existingSecretKey": {
+          "title": "Bearer token key",
+          "type": "string",
+          "description": "Key within the secret that contains the token."
+        }
       },
       "required": []
     },
-
-  "podAnnotations": { "title": "Pod annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
-  "podLabels": { "title": "Pod labels", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
-
-  "podSecurityContext": { "title": "Pod security context", "type": "object", "description": "SecurityContext applied at the pod level." },
-
+    "podAnnotations": {
+      "title": "Pod annotations",
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      }
+    },
+    "podLabels": {
+      "title": "Pod labels",
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      }
+    },
+    "podSecurityContext": {
+      "title": "Pod security context",
+      "type": "object",
+      "description": "SecurityContext applied at the pod level."
+    },
     "securityContext": {
       "title": "Container security context",
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "privileged": { "title": "Privileged", "type": "boolean", "description": "Run the container in privileged mode." },
-        "allowPrivilegeEscalation": { "title": "Allow privilege escalation", "type": "boolean", "description": "Whether a process can gain more privileges than its parent." },
+        "privileged": {
+          "title": "Privileged",
+          "type": "boolean",
+          "description": "Run the container in privileged mode."
+        },
+        "allowPrivilegeEscalation": {
+          "title": "Allow privilege escalation",
+          "type": "boolean",
+          "description": "Whether a process can gain more privileges than its parent."
+        },
+        "readOnlyRootFilesystem": {
+          "title": "Read-only root filesystem",
+          "type": "boolean",
+          "description": "Whether the root filesystem should be mounted read-only."
+        },
+        "runAsNonRoot": {
+          "title": "Run as non-root",
+          "type": "boolean",
+          "description": "Whether the container should run as a non-root user."
+        },
+        "runAsUser": {
+          "title": "Run as user",
+          "type": "integer",
+          "description": "The UID to run the container as."
+        },
+        "seccompProfile": {
+          "title": "Seccomp profile",
+          "type": "object",
+          "description": "The seccomp profile to use for the container.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "Localhost",
+                "RuntimeDefault",
+                "Unconfined"
+              ],
+              "description": "The type of seccomp profile to use."
+            },
+            "localhostProfile": {
+              "type": "string",
+              "description": "The path to a custom seccomp profile on the node."
+            }
+          },
+          "additionalProperties": false
+        },
         "capabilities": {
           "title": "Linux capabilities",
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "add": { "title": "Add capabilities", "type": "array", "items": { "type": "string" }, "description": "Additional Linux capabilities to add." }
+            "add": {
+              "title": "Add capabilities",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Additional Linux capabilities to add."
+            },
+            "drop": {
+              "title": "Drop capabilities",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Linux capabilities to drop."
+            }
           }
         }
       }
     },
-
     "service": {
       "title": "Services",
       "type": "object",
@@ -236,10 +547,41 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "type": { "title": "Service type", "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"], "description": "Kubernetes Service type for the UI port." },
-            "port": { "title": "UI port", "type": "integer", "minimum": 1, "maximum": 65535, "description": "Service port that targets the HTTP UI container port." },
-            "nodePort": { "title": "UI NodePort", "type": "integer", "minimum": 30000, "maximum": 32767, "description": "NodePort to expose the UI when type is NodePort." },
-            "annotations": { "title": "UI Service annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } }
+            "type": {
+              "title": "Service type",
+              "type": "string",
+              "enum": [
+                "ClusterIP",
+                "NodePort",
+                "LoadBalancer"
+              ],
+              "description": "Kubernetes Service type for the UI port."
+            },
+            "port": {
+              "title": "UI port",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535,
+              "description": "Service port that targets the HTTP UI container port."
+            },
+            "nodePort": {
+              "title": "UI NodePort",
+              "type": "integer",
+              "minimum": 30000,
+              "maximum": 32767,
+              "description": "NodePort to expose the UI when type is NodePort."
+            },
+            "annotations": {
+              "title": "UI Service annotations",
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            }
           },
           "required": []
         },
@@ -248,26 +590,81 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "type": { "title": "Service type", "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"], "description": "Kubernetes Service type for the WireGuard UDP port." },
-            "port": { "title": "WireGuard port", "type": "integer", "minimum": 1, "maximum": 65535, "description": "Service port that targets the WireGuard UDP container port." },
-            "nodePort": { "title": "WireGuard NodePort", "type": "integer", "minimum": 30000, "maximum": 32767, "description": "NodePort to expose WireGuard when type is NodePort." },
-            "externalIPs": { "title": "External IPs", "type": "array",  "description": "External IPs (LoadBalancer only)", "items": {"type": "string"} },
-            "annotations": { "title": "WireGuard Service annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } }
+            "type": {
+              "title": "Service type",
+              "type": "string",
+              "enum": [
+                "ClusterIP",
+                "NodePort",
+                "LoadBalancer"
+              ],
+              "description": "Kubernetes Service type for the WireGuard UDP port."
+            },
+            "port": {
+              "title": "WireGuard port",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535,
+              "description": "Service port that targets the WireGuard UDP container port."
+            },
+            "nodePort": {
+              "title": "WireGuard NodePort",
+              "type": "integer",
+              "minimum": 30000,
+              "maximum": 32767,
+              "description": "NodePort to expose WireGuard when type is NodePort."
+            },
+            "externalIPs": {
+              "title": "External IPs",
+              "type": "array",
+              "description": "External IPs (LoadBalancer only)",
+              "items": {
+                "type": "string"
+              }
+            },
+            "annotations": {
+              "title": "WireGuard Service annotations",
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            }
           },
           "required": []
         }
       },
       "required": []
     },
-
     "ingress": {
       "title": "Ingress",
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": { "title": "Enable ingress", "type": "boolean", "description": "Whether to create an Ingress resource for the UI." },
-        "className": { "title": "IngressClass name", "type": "string", "description": "IngressClass to use (if your cluster requires it)." },
-        "annotations": { "title": "Ingress annotations", "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } },
+        "enabled": {
+          "title": "Enable ingress",
+          "type": "boolean",
+          "description": "Whether to create an Ingress resource for the UI."
+        },
+        "className": {
+          "title": "IngressClass name",
+          "type": "string",
+          "description": "IngressClass to use (if your cluster requires it)."
+        },
+        "annotations": {
+          "title": "Ingress annotations",
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
         "hosts": {
           "title": "Ingress hosts",
           "type": "array",
@@ -275,7 +672,10 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "host": { "title": "Host", "type": "string" },
+              "host": {
+                "title": "Host",
+                "type": "string"
+              },
               "paths": {
                 "title": "Paths",
                 "type": "array",
@@ -283,8 +683,14 @@
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
-                    "path": { "title": "Path", "type": "string" },
-                    "pathType": { "title": "Path type", "type": "string" }
+                    "path": {
+                      "title": "Path",
+                      "type": "string"
+                    },
+                    "pathType": {
+                      "title": "Path type",
+                      "type": "string"
+                    }
                   },
                   "required": []
                 }
@@ -293,18 +699,30 @@
             "required": []
           }
         },
-        "tls": { "title": "TLS entries", "type": "array", "items": { "type": "object" }, "description": "TLS configuration for the Ingress (secret names and hosts)." }
+        "tls": {
+          "title": "TLS entries",
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "TLS configuration for the Ingress (secret names and hosts)."
+        }
       },
       "required": []
     },
-
-  "resources": { "title": "Resource requests/limits", "type": "object", "description": "Kubernetes CPU/memory resource requests and limits for the container." },
-
+    "resources": {
+      "title": "Resource requests/limits",
+      "type": "object",
+      "description": "Kubernetes CPU/memory resource requests and limits for the container."
+    },
     "livenessProbe": {
       "title": "Liveness probe",
       "type": "object",
       "properties": {
-        "enabled": { "title": "Enable liveness probe", "type": "boolean" }
+        "enabled": {
+          "title": "Enable liveness probe",
+          "type": "boolean"
+        }
       },
       "additionalProperties": true
     },
@@ -312,7 +730,10 @@
       "title": "Readiness probe",
       "type": "object",
       "properties": {
-        "enabled": { "title": "Enable readiness probe", "type": "boolean" }
+        "enabled": {
+          "title": "Enable readiness probe",
+          "type": "boolean"
+        }
       },
       "additionalProperties": true
     },
@@ -320,34 +741,93 @@
       "title": "Startup probe",
       "type": "object",
       "properties": {
-        "enabled": { "title": "Enable startup probe", "type": "boolean" }
+        "enabled": {
+          "title": "Enable startup probe",
+          "type": "boolean"
+        }
       },
       "additionalProperties": true
     },
-
-  "customLivenessProbe": { "title": "Custom liveness probe", "type": "object", "description": "Override the default liveness probe with a custom one." },
-  "customReadinessProbe": { "title": "Custom readiness probe", "type": "object", "description": "Override the default readiness probe with a custom one." },
-  "customStartupProbe": { "title": "Custom startup probe", "type": "object", "description": "Override the default startup probe with a custom one." },
-
+    "customLivenessProbe": {
+      "title": "Custom liveness probe",
+      "type": "object",
+      "description": "Override the default liveness probe with a custom one."
+    },
+    "customReadinessProbe": {
+      "title": "Custom readiness probe",
+      "type": "object",
+      "description": "Override the default readiness probe with a custom one."
+    },
+    "customStartupProbe": {
+      "title": "Custom startup probe",
+      "type": "object",
+      "description": "Override the default startup probe with a custom one."
+    },
     "autoscaling": {
       "title": "Horizontal Pod Autoscaler",
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": { "title": "Enable HPA", "type": "boolean", "description": "Enable Horizontal Pod Autoscaling for the workload." },
-        "minReplicas": { "title": "Minimum replicas", "type": "integer", "minimum": 1, "description": "Lower bound for autoscaled replicas." },
-        "maxReplicas": { "title": "Maximum replicas", "type": "integer", "minimum": 1, "description": "Upper bound for autoscaled replicas." },
-        "targetCPUUtilizationPercentage": { "title": "Target CPU utilization (%)", "type": "integer", "minimum": 1, "description": "Average CPU utilization percentage target for the HPA." }
+        "enabled": {
+          "title": "Enable HPA",
+          "type": "boolean",
+          "description": "Enable Horizontal Pod Autoscaling for the workload."
+        },
+        "minReplicas": {
+          "title": "Minimum replicas",
+          "type": "integer",
+          "minimum": 1,
+          "description": "Lower bound for autoscaled replicas."
+        },
+        "maxReplicas": {
+          "title": "Maximum replicas",
+          "type": "integer",
+          "minimum": 1,
+          "description": "Upper bound for autoscaled replicas."
+        },
+        "targetCPUUtilizationPercentage": {
+          "title": "Target CPU utilization (%)",
+          "type": "integer",
+          "minimum": 1,
+          "description": "Average CPU utilization percentage target for the HPA."
+        }
       },
       "required": []
     },
-
-  "extraVolumes": { "title": "Extra volumes", "type": "array", "items": { "type": "object" }, "description": "Additional volumes to mount into the pod." },
-  "extraVolumeMounts": { "title": "Extra volume mounts", "type": "array", "items": { "type": "object" }, "description": "Additional volumeMounts to add to the container." },
-
-  "nodeSelector": { "title": "Node selector", "type": "object", "description": "Node labels for pod assignment." },
-  "tolerations": { "title": "Tolerations", "type": "array", "items": { "type": "object" }, "description": "Tolerations for taints the pod can tolerate." },
-  "affinity": { "title": "Affinity", "type": "object", "description": "Affinity and anti-affinity rules for pod scheduling." }
+    "extraVolumes": {
+      "title": "Extra volumes",
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Additional volumes to mount into the pod."
+    },
+    "extraVolumeMounts": {
+      "title": "Extra volume mounts",
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Additional volumeMounts to add to the container."
+    },
+    "nodeSelector": {
+      "title": "Node selector",
+      "type": "object",
+      "description": "Node labels for pod assignment."
+    },
+    "tolerations": {
+      "title": "Tolerations",
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Tolerations for taints the pod can tolerate."
+    },
+    "affinity": {
+      "title": "Affinity",
+      "type": "object",
+      "description": "Affinity and anti-affinity rules for pod scheduling."
+    }
   },
   "allOf": [
     {
@@ -356,14 +836,24 @@
           "config": {
             "properties": {
               "init": {
-                "properties": { "enabled": { "const": true } },
-                "required": ["enabled"]
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
               }
             },
-            "required": ["init"]
+            "required": [
+              "init"
+            ]
           }
         },
-        "required": ["config"]
+        "required": [
+          "config"
+        ]
       },
       "then": {
         "properties": {
@@ -371,10 +861,21 @@
             "properties": {
               "init": {
                 "anyOf": [
-                  { "required": ["existingSecret"] },
-                  { "required": ["username", "password"] }
+                  {
+                    "required": [
+                      "existingSecret"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "username",
+                      "password"
+                    ]
+                  }
                 ],
-                "required": ["host"]
+                "required": [
+                  "host"
+                ]
               }
             }
           }
@@ -387,10 +888,32 @@
           "config": {
             "properties": {
               "init": {
-                "properties": { "enabled": { "const": true } },
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  }
+                },
                 "anyOf": [
-                  { "properties": { "ipv4_cidr": { "minLength": 1 } }, "required": ["ipv4_cidr"] },
-                  { "properties": { "ipv6_cidr": { "minLength": 1 } }, "required": ["ipv6_cidr"] }
+                  {
+                    "properties": {
+                      "ipv4_cidr": {
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "ipv4_cidr"
+                    ]
+                  },
+                  {
+                    "properties": {
+                      "ipv6_cidr": {
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "ipv6_cidr"
+                    ]
+                  }
                 ]
               }
             }
@@ -402,10 +925,17 @@
           "config": {
             "properties": {
               "init": {
-                "required": ["ipv4_cidr", "ipv6_cidr"],
+                "required": [
+                  "ipv4_cidr",
+                  "ipv6_cidr"
+                ],
                 "properties": {
-                  "ipv4_cidr": { "minLength": 1 },
-                  "ipv6_cidr": { "minLength": 1 }
+                  "ipv4_cidr": {
+                    "minLength": 1
+                  },
+                  "ipv6_cidr": {
+                    "minLength": 1
+                  }
                 }
               }
             }

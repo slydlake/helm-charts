@@ -15,6 +15,9 @@ metadata:
 spec:
   {{ if .Values.serviceMonitor.selector }}
   selector:
+    namespaceSelector:
+      matchNames:
+      - {{ if .Values.serviceMonitor.namespace }}{{ .Values.serviceMonitor.namespace }}{{ else }}{{ .Release.Namespace }}{{ end }}
     {{- toYaml .Values.serviceMonitor.selector | nindent 6 }}
   {{ else }}
   selector:

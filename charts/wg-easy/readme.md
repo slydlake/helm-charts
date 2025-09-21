@@ -20,11 +20,20 @@ metadata:
   name:  wg-easy
   labels:
     pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
 ```
 Or you can create this with:
 ```bash
-kubectl create namespace wg-easy && kubectl label namespace wg-easy pod-security.kubernetes.io/enforce=privileged --overwrite
+kubectl create namespace wg-easy && kubectl label namespace wg-easy pod-security.kubernetes.io/enforce=privileged pod-security.kubernetes.io/warn=privileged --overwrite
 ```
+
+### Why privileged namespace?
+WireGuard requires the `NET_ADMIN` and `NET_RAW` Linux capabilities to create and manage VPN network interfaces and iptables NAT rules. These capabilities are not allowed in Kubernetes Pod Security Standards "restricted" mode, which is why a privileged namespace is required. The chart uses the minimal required privileges while still maintaining security best practices (no unnecessary privileged mode, explicit capability dropping, etc.).
+
+### Pod Security Standards Compliance
+- **Baseline**: ❌ Not compliant due to NET_ADMIN + NET_RAW requirements
+- **Restricted**: ❌ Not compliant due to NET_ADMIN + NET_RAW requirements
+- **Privileged**: ✅ Compliant (privileged namespace required)
 I recommend using the Init mode to set everything once. 
 Also, it's recommended to use a secret for the username and password.
 You can find a sample of the secret file (for username/password and the prometheus metrics) in the repo.
