@@ -14,6 +14,9 @@ metadata:
 {{ toYaml .Values.metrics.wordpress.serviceMonitor.annotations | nindent 4 }}
 {{ end }}
 spec:
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
   {{ if .Values.metrics.wordpress.serviceMonitor.selector }}
   selector:
     {{- toYaml .Values.metrics.wordpress.serviceMonitor.selector | nindent 6 }}
@@ -50,6 +53,9 @@ metadata:
 {{ toYaml .Values.metrics.apache.serviceMonitor.annotations | nindent 4 }}
 {{ end }}
 spec:
+  namespaceSelector:
+    matchNames:
+    - {{ if .Values.metrics.apache.serviceMonitor.namespace }}{{ .Values.metrics.apache.serviceMonitor.namespace }}{{ else }}{{ .Release.Namespace }}{{ end }}
   {{ if .Values.metrics.apache.serviceMonitor.selector }}
   selector:
     {{- toYaml .Values.metrics.apache.serviceMonitor.selector | nindent 6 }}
