@@ -15,3 +15,7 @@ updates:
       - dependency-name: "docker.io/mariadb"
       - dependency-name: "docker.io/memcached"
       - dependency-name: "lusotycoon/apache-exporter"
+  - package-ecosystem: "helm"
+    directory: "/charts/wg-easy"
+    schedule:
+      interval: "weekly"
