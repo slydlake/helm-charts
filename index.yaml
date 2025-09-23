@@ -773,6 +773,53 @@ entries:
       artifacthub.io/category: security
       artifacthub.io/changes: |
         - kind: added
+          description: "Digest field for the image to improve security"
+        - kind: added
+          description: "Pinned appVersion and image to 1.0.20250521"
+        - kind: changed
+          description: "PUID and PGID environment variables set to .Values.wireguard.PUID and .Values.wireguard.PGID"
+        - kind: fixed
+          description: "Security context improvements for minimal privilege principle"
+        - kind: changed
+          description: "Sample values files moved to samples/ directory"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wireguard
+          image: docker.io/linuxserver/wireguard:1.0.20250521@sha256:c9863e07db79437228fa6b174523491abf9c560fb4c273a635214440e7b46c41
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wireguard
+        - name: Offical WireGuard Repository
+          url: https://github.com/linuxserver/docker-wireguard
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: 1.0.20250521
+    created: "2025-09-23T22:17:55.257962035Z"
+    description: Using the offical linuxserver/wireguard image with almost any environment
+      variables for K8S. Supporting server and client mode.
+    digest: f0a99f63fa125b5e6fdbb7cdef4ce4bbfdce69ffd55df7e8bf9bf4ca6ced3c8c
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - linuxserver
+    maintainers:
+    - name: slydlake
+    name: wireguard
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.15/wireguard-0.1.15.tgz
+    version: 0.1.15
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: added
           description: "LoadBalancer service type support"
         - kind: added
           description: "externalIPs in values.yaml"
@@ -1651,4 +1698,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-09-23T18:16:27.913628732Z"
+generated: "2025-09-23T22:17:55.258369138Z"
