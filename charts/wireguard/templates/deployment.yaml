@@ -32,10 +32,16 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "wireguard.serviceAccountName" . }}
-      {{- with .Values.podSecurityContext }}
       securityContext:
+      {{- if .Values.podSecurityContext }}
+      {{- with .Values.podSecurityContext }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- else}}
+        runAsUser: {{ .Values.wireguard.PUID | default "1000" }}
+        runAsGroup: {{ .Values.wireguard.PGID | default "1000" }}
+        fsGroup: {{ .Values.wireguard.PGID | default "1000" }}
+      {{- end}}
       {{- if .Values.dnsPolicy }}
       dnsPolicy: {{ .Values.dnsPolicy }}
       {{- end }}
@@ -56,19 +62,42 @@ spec:
           {{ if not (empty .Values.securityContext) }}
             {{ toYaml .Values.securityContext | nindent 12 }}
           {{ else if .Values.wireguard.server.enabled }}
+            # Server mode needs more privileges for interface creation and routing
             capabilities:
               add:
                 - NET_ADMIN
-                - SYS_MODULE
+                # - SYS_MODULE
+              drop:
+                - ALL
             privileged: true
-            # readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            runAsUser: 0
           {{ else }}
+            # Client mode - more secure with minimal capabilities
+            capabilities:
+              add:
+                - NET_ADMIN
+              drop:
+                - ALL
             privileged: true
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false 
+            runAsUser: 0
           {{ end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}{{ if .Values.image.digest }}@{{ .Values.image.digest }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if (empty .Values.wireguard.existingSecret) }}
           env:
+            {{- if .Values.wireguard.PUID }}
+            - name: PUID
+              value: "{{ .Values.wireguard.PUID | default "1000" }}"
+            {{- end }}
+            {{- if .Values.wireguard.PGID }}
+            - name: PGID
+              value: "{{ .Values.wireguard.PGID | default "1000" }}"
+            {{- end }}
             - name: PEERDNS
               value: {{ if .Values.wireguard.dns }}"{{ .Values.wireguard.dns }}"{{ else }}"auto"{{ end }}
             - name: TZ
@@ -96,7 +125,6 @@ spec:
             {{- if .Values.wireguard.extraEnvVars }}
             {{- toYaml .Values.wireguard.extraEnvVars | nindent 12 }}
             {{- end }}
-          {{- end }}
           {{- if or .Values.wireguard.extraEnvVarsCM .Values.wireguard.extraEnvVarsSecret }}
           envFrom:
             {{- if .Values.wireguard.extraEnvVarsCM }}

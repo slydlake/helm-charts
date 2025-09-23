@@ -19,30 +19,56 @@
           "type": "string",
           "title": "Image Pull Policy",
           "description": "Pull policy for the container image. See https://kubernetes.io/docs/concepts/containers/images/",
-          "enum": ["IfNotPresent", "Always", "Never"]
+          "enum": [
+            "IfNotPresent",
+            "Always",
+            "Never"
+          ]
         },
         "tag": {
           "type": "string",
           "title": "Image Tag",
           "description": "Image tag, overrides default AppVersion."
         }
-  },
-  "required": ["repository", "tag", "pullPolicy"]
+      },
+      "required": [
+        "repository",
+        "pullPolicy"
+      ]
     },
     "imagePullSecrets": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "title": "Image Pull Secrets",
       "description": "Secrets for pulling images from private repositories. See https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/"
     },
-    "nameOverride": { "type": "string", "title": "Name Override", "description": "Overrides the chart name." },
-    "fullnameOverride": { "type": "string", "title": "Fullname Override", "description": "Overrides the full chart name." },
-    "replicaCount": { "type": "integer", "title": "Replica Count", "description": "Number of replicas for the deployment. See https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/" },
+    "nameOverride": {
+      "type": "string",
+      "title": "Name Override",
+      "description": "Overrides the chart name."
+    },
+    "fullnameOverride": {
+      "type": "string",
+      "title": "Fullname Override",
+      "description": "Overrides the full chart name."
+    },
+    "replicaCount": {
+      "type": "integer",
+      "title": "Replica Count",
+      "description": "Number of replicas for the deployment. See https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/"
+    },
     "dnsPolicy": {
       "type": "string",
       "title": "DNS Policy",
       "description": "Pod dnsPolicy. Defaults to ClusterFirst. Use None to supply custom dnsConfig.",
-      "enum": ["ClusterFirst", "None", "ClusterFirstWithHostNet", "Default"]
+      "enum": [
+        "ClusterFirst",
+        "None",
+        "ClusterFirstWithHostNet",
+        "Default"
+      ]
     },
     "dnsConfig": {
       "type": "object",
@@ -53,13 +79,17 @@
           "type": "array",
           "title": "Nameservers",
           "description": "List of DNS server IPs (max 3).",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "searches": {
           "type": "array",
           "title": "Search Domains",
           "description": "List of search domains.",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "options": {
           "type": "array",
@@ -68,8 +98,14 @@
           "items": {
             "type": "object",
             "properties": {
-              "name": { "type": "string", "title": "Option Name" },
-              "value": { "type": "string", "title": "Option Value" }
+              "name": {
+                "type": "string",
+                "title": "Option Name"
+              },
+              "value": {
+                "type": "string",
+                "title": "Option Value"
+              }
             },
             "required": [],
             "additionalProperties": false
@@ -88,7 +124,15 @@
       "title": "Update Strategy",
       "description": "Strategy for deployment updates.",
       "properties": {
-  "type": { "type": "string", "title": "Update Strategy Type", "description": "Type of update strategy (e.g. RollingUpdate or Recreate). Note: Use Recreate for PVCs that cannot be mounted by multiple pods.", "enum": ["RollingUpdate", "Recreate"] }
+        "type": {
+          "type": "string",
+          "title": "Update Strategy Type",
+          "description": "Type of update strategy (e.g. RollingUpdate or Recreate). Note: Use Recreate for PVCs that cannot be mounted by multiple pods.",
+          "enum": [
+            "RollingUpdate",
+            "Recreate"
+          ]
+        }
       }
     },
     "initContainers": {
@@ -114,9 +158,21 @@
       "title": "Wireguard Settings",
       "description": "Specific configuration for Wireguard server and client.",
       "properties": {
-        "timezone": { "type": "string", "title": "Timezone", "description": "Optional timezone (Default: Etc/UTC). See list: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List" },
-        "dns": { "type": "string", "title": "DNS Server", "description": "Optional DNS servers in peer/client configuration. Server default: auto. Client default: 1.1.1.1, 2606:4700:4700::1111" },
-        "allowedIPs": { "type": "string", "title": "Allowed IPs", "description": "IPs/networks reachable via VPN connection. Default: 0.0.0.0/0, ::0/0 (routes all traffic through VPN). For split tunneling, set only required networks including server WG IP." },
+        "timezone": {
+          "type": "string",
+          "title": "Timezone",
+          "description": "Optional timezone (Default: Etc/UTC). See list: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List"
+        },
+        "dns": {
+          "type": "string",
+          "title": "DNS Server",
+          "description": "Optional DNS servers in peer/client configuration. Server default: auto. Client default: 1.1.1.1, 2606:4700:4700::1111"
+        },
+        "allowedIPs": {
+          "type": "string",
+          "title": "Allowed IPs",
+          "description": "IPs/networks reachable via VPN connection. Default: 0.0.0.0/0, ::0/0 (routes all traffic through VPN). For split tunneling, set only required networks including server WG IP."
+        },
         "extraEnvVars": {
           "type": "array",
           "title": "Additional Environment Variables",
@@ -124,38 +180,108 @@
           "items": {
             "type": "object",
             "properties": {
-              "name": { "type": "string", "title": "Environment Variable Name", "description": "Name of the additional environment variable for the Wireguard container." },
-              "value": { "type": "string", "title": "Environment Variable Value", "description": "Value of the additional environment variable for the Wireguard container." }
+              "name": {
+                "type": "string",
+                "title": "Environment Variable Name",
+                "description": "Name of the additional environment variable for the Wireguard container."
+              },
+              "value": {
+                "type": "string",
+                "title": "Environment Variable Value",
+                "description": "Value of the additional environment variable for the Wireguard container."
+              }
             }
           }
         },
-        "extraEnvVarsSecret": { "type": "string", "title": "Extra EnvVars Secret", "description": "Name of an existing secret with additional environment variables for the Wireguard container." },
-        "extraEnvVarsCM": { "type": "string", "title": "Extra EnvVars ConfigMap", "description": "Name of an existing ConfigMap with additional environment variables for the Wireguard container." },
-        "existingSecret": { "type": "string", "title": "Existing Wireguard Secret", "description": "Name of an existing secret for the complete Wireguard configuration (stringData wg0.conf). Ignores server/client configuration if set." },
+        "extraEnvVarsSecret": {
+          "type": "string",
+          "title": "Extra EnvVars Secret",
+          "description": "Name of an existing secret with additional environment variables for the Wireguard container."
+        },
+        "extraEnvVarsCM": {
+          "type": "string",
+          "title": "Extra EnvVars ConfigMap",
+          "description": "Name of an existing ConfigMap with additional environment variables for the Wireguard container."
+        },
+        "existingSecret": {
+          "type": "string",
+          "title": "Existing Wireguard Secret",
+          "description": "Name of an existing secret for the complete Wireguard configuration (stringData wg0.conf). Ignores server/client configuration if set."
+        },
+        "PUID": {
+          "type": "string",
+          "title": "Process User ID",
+          "description": "User ID for the main process (linuxserver default: 1000). Optional."
+        },
+        "PGID": {
+          "type": "string",
+          "title": "Process Group ID",
+          "description": "Group ID for the main process (linuxserver default: 1000). Optional."
+        },
         "server": {
           "type": "object",
           "title": "Wireguard Server Settings",
           "description": "Settings for Wireguard server mode.",
           "properties": {
-            "enabled": { "type": "boolean", "title": "Server Mode Enabled", "description": "Enables Wireguard server mode. Cannot be active at the same time as wireguard.client.enabled." },
+            "enabled": {
+              "type": "boolean",
+              "title": "Server Mode Enabled",
+              "description": "Enables Wireguard server mode. Cannot be active at the same time as wireguard.client.enabled."
+            },
             "storage": {
               "type": "object",
               "title": "Wireguard Server Storage",
               "description": "Storage settings for Wireguard server configuration.",
               "properties": {
-                "existingClaim": { "type": "string", "title": "Existing PVC", "description": "Name of an existing PersistentVolumeClaim for Wireguard configuration." },
-                "storageClass": { "type": "string", "title": "Storage Class", "description": "StorageClass for new PVC." },
-                "size": { "type": "string", "title": "Storage Size", "description": "Size of the persistent volume (e.g. 250Mi)." },
+                "existingClaim": {
+                  "type": "string",
+                  "title": "Existing PVC",
+                  "description": "Name of an existing PersistentVolumeClaim for Wireguard configuration."
+                },
+                "storageClass": {
+                  "type": "string",
+                  "title": "Storage Class",
+                  "description": "StorageClass for new PVC."
+                },
+                "size": {
+                  "type": "string",
+                  "title": "Storage Size",
+                  "description": "Size of the persistent volume (e.g. 250Mi)."
+                },
                 "accessModes": {
                   "type": "array",
-                  "items": { "type": "string", "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"] },
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "ReadWriteOnce",
+                      "ReadOnlyMany",
+                      "ReadWriteMany",
+                      "ReadWriteOncePod"
+                    ]
+                  },
                   "title": "Access Modes",
                   "description": "Access modes for the persistent volume (e.g. ReadWriteOnce)."
                 },
-                "annotations": { "type": "object", "title": "PVC Annotations", "description": "Annotations for the PVC." },
-                "labels": { "type": "object", "title": "PVC Labels", "description": "Labels for the PVC." },
-                "selector": { "type": "object", "title": "PVC Selector", "description": "Selector for the PVC." },
-                "resourcePolicy": { "type": "string", "title": "Resource Policy", "description": "Resource policy of the PVC (e.g. keep)." }
+                "annotations": {
+                  "type": "object",
+                  "title": "PVC Annotations",
+                  "description": "Annotations for the PVC."
+                },
+                "labels": {
+                  "type": "object",
+                  "title": "PVC Labels",
+                  "description": "Labels for the PVC."
+                },
+                "selector": {
+                  "type": "object",
+                  "title": "PVC Selector",
+                  "description": "Selector for the PVC."
+                },
+                "resourcePolicy": {
+                  "type": "string",
+                  "title": "Resource Policy",
+                  "description": "Resource policy of the PVC (e.g. keep)."
+                }
               }
             },
             "config": {
@@ -163,11 +289,31 @@
               "title": "Wireguard Server Config",
               "description": "Configuration for the Wireguard server.",
               "properties": {
-                "address": { "type": "string", "title": "External Address", "description": "External IP or domain for the Wireguard server. If 'auto', IP is determined automatically." },
-                "peers": { "type": "string", "title": "Peers", "description": "Number of peer configurations to create or comma-separated list of names (alphanumeric). Default: 1" },
-                "subnet": { "type": "string", "title": "Internal Subnet", "description": "Internal subnet for Wireguard server and peers (Default 10.13.13.0/24). Change only if it collides." },
-                "keepalivePeers": { "type": "string", "title": "Keepalive Peers", "description": "'all' or comma-separated list (e.g. 1,4,laptop) to which the server sends keepalives every 25s. Useful for dynamic IP." },
-                "peerQR": { "type": "boolean", "title": "Peer QR in Log", "description": "Shows generated QR codes in the log. false to skip log output. Default false." }
+                "address": {
+                  "type": "string",
+                  "title": "External Address",
+                  "description": "External IP or domain for the Wireguard server. If 'auto', IP is determined automatically."
+                },
+                "peers": {
+                  "type": "string",
+                  "title": "Peers",
+                  "description": "Number of peer configurations to create or comma-separated list of names (alphanumeric). Default: 1"
+                },
+                "subnet": {
+                  "type": "string",
+                  "title": "Internal Subnet",
+                  "description": "Internal subnet for Wireguard server and peers (Default 10.13.13.0/24). Change only if it collides."
+                },
+                "keepalivePeers": {
+                  "type": "string",
+                  "title": "Keepalive Peers",
+                  "description": "'all' or comma-separated list (e.g. 1,4,laptop) to which the server sends keepalives every 25s. Useful for dynamic IP."
+                },
+                "peerQR": {
+                  "type": "boolean",
+                  "title": "Peer QR in Log",
+                  "description": "Shows generated QR codes in the log. false to skip log output. Default false."
+                }
               }
             }
           }
@@ -177,21 +323,61 @@
           "title": "Wireguard Client Settings",
           "description": "Settings for Wireguard client mode.",
           "properties": {
-            "enabled": { "type": "boolean", "title": "Client Mode Enabled", "description": "Enables Wireguard client mode. Cannot be active at the same time as wireguard.server.enabled." },
+            "enabled": {
+              "type": "boolean",
+              "title": "Client Mode Enabled",
+              "description": "Enables Wireguard client mode. Cannot be active at the same time as wireguard.server.enabled."
+            },
             "config": {
               "type": "object",
               "title": "Wireguard Client Config",
               "description": "Configuration for the Wireguard client.",
               "properties": {
-                "existingSecret": { "type": "string", "title": "Existing Client Secret", "description": "Secret name for the peer configuration (Keys: privatekey, publickey, presharedkey)." },
-                "address": { "type": "string", "title": "Client Address", "description": "Address for the Wireguard peer (e.g. 10.13.13.2/24)." }, 
-                "preUp": { "type": "string", "title": "Hook preUp", "description": "Command executed before interface is brought up (client preUp)." },
-                "postUp": { "type": "string", "title": "Hook postUp", "description": "Command executed after interface is brought up (client postUp)." },
-                "preDown": { "type": "string", "title": "Hook preDown", "description": "Command executed before interface is brought down (client preDown)." },
-                "postDown": { "type": "string", "title": "Hook postDown", "description": "Command executed after interface is brought down (client postDown)." },
-                "mtu": { "type": "integer", "title": "MTU", "description": "MTU value (Default 1420)." },
-                "persistentKeepalive": { "type": "integer", "title": "Persistent Keepalive", "description": "Keepalive in seconds (0 to disable, Default 25)." },
-                "endpoint": { "type": "string", "title": "Server Endpoint", "description": "Endpoint IP/hostname with port of the Wireguard server (e.g. vpn.example.com:51820)." }
+                "existingSecret": {
+                  "type": "string",
+                  "title": "Existing Client Secret",
+                  "description": "Secret name for the peer configuration (Keys: privatekey, publickey, presharedkey)."
+                },
+                "address": {
+                  "type": "string",
+                  "title": "Client Address",
+                  "description": "Address for the Wireguard peer (e.g. 10.13.13.2/24)."
+                },
+                "preUp": {
+                  "type": "string",
+                  "title": "Hook preUp",
+                  "description": "Command executed before interface is brought up (client preUp)."
+                },
+                "postUp": {
+                  "type": "string",
+                  "title": "Hook postUp",
+                  "description": "Command executed after interface is brought up (client postUp)."
+                },
+                "preDown": {
+                  "type": "string",
+                  "title": "Hook preDown",
+                  "description": "Command executed before interface is brought down (client preDown)."
+                },
+                "postDown": {
+                  "type": "string",
+                  "title": "Hook postDown",
+                  "description": "Command executed after interface is brought down (client postDown)."
+                },
+                "mtu": {
+                  "type": "integer",
+                  "title": "MTU",
+                  "description": "MTU value (Default 1420)."
+                },
+                "persistentKeepalive": {
+                  "type": "integer",
+                  "title": "Persistent Keepalive",
+                  "description": "Keepalive in seconds (0 to disable, Default 25)."
+                },
+                "endpoint": {
+                  "type": "string",
+                  "title": "Server Endpoint",
+                  "description": "Endpoint IP/hostname with port of the Wireguard server (e.g. vpn.example.com:51820)."
+                }
               }
             }
           }
@@ -203,38 +389,182 @@
       "title": "Service Account",
       "description": "ServiceAccount configuration for the deployment.",
       "properties": {
-        "create": { "type": "boolean", "title": "Create", "description": "Indicates whether a ServiceAccount should be created." },
-        "automount": { "type": "boolean", "title": "Automount", "description": "Automatically mount API credentials?" },
-        "annotations": { "type": "object", "title": "Annotations", "description": "Annotations to add to the ServiceAccount." },
-        "name": { "type": "string", "title": "Name", "description": "Name of the ServiceAccount to use. If empty and create=true, a name is generated." }
+        "create": {
+          "type": "boolean",
+          "title": "Create",
+          "description": "Indicates whether a ServiceAccount should be created."
+        },
+        "automount": {
+          "type": "boolean",
+          "title": "Automount",
+          "description": "Automatically mount API credentials?"
+        },
+        "annotations": {
+          "type": "object",
+          "title": "Annotations",
+          "description": "Annotations to add to the ServiceAccount."
+        },
+        "name": {
+          "type": "string",
+          "title": "Name",
+          "description": "Name of the ServiceAccount to use. If empty and create=true, a name is generated."
+        }
       }
     },
-    "podAnnotations": { "type": "object", "title": "Pod Annotations", "description": "Kubernetes annotations for the pod." },
-    "podLabels": { "type": "object", "title": "Pod Labels", "description": "Kubernetes labels for the pod." },
-    "podSecurityContext": { "type": "object", "title": "Pod Security Context", "description": "SecurityContext at pod level (e.g. fsGroup)." },
-    "securityContext": { "type": "object", "title": "Container Security Context", "description": "SecurityContext at container level (e.g. NET_ADMIN, SYS_MODULE, runAsUser, privileged)." },
+    "podAnnotations": {
+      "type": "object",
+      "title": "Pod Annotations",
+      "description": "Kubernetes annotations for the pod."
+    },
+    "podLabels": {
+      "type": "object",
+      "title": "Pod Labels",
+      "description": "Kubernetes labels for the pod."
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "title": "Pod Security Context",
+      "description": "SecurityContext at pod level (e.g. fsGroup)."
+    },
+    "securityContext": {
+      "type": "object",
+      "title": "Container Security Context",
+      "description": "SecurityContext at container level (e.g. NET_ADMIN, SYS_MODULE, runAsUser, privileged).",
+      "additionalProperties": false,
+      "properties": {
+        "privileged": {
+          "type": "boolean",
+          "title": "Privileged",
+          "description": "Run the container in privileged mode."
+        },
+        "allowPrivilegeEscalation": {
+          "type": "boolean",
+          "title": "Allow Privilege Escalation",
+          "description": "Whether a process can gain more privileges than its parent."
+        },
+        "readOnlyRootFilesystem": {
+          "type": "boolean",
+          "title": "Read-only Root Filesystem",
+          "description": "Whether the root filesystem should be mounted read-only."
+        },
+        "runAsNonRoot": {
+          "type": "boolean",
+          "title": "Run as Non-root",
+          "description": "Whether the container should run as a non-root user."
+        },
+        "runAsUser": {
+          "type": "integer",
+          "title": "Run as User",
+          "description": "The UID to run the container as."
+        },
+        "seccompProfile": {
+          "type": "object",
+          "title": "Seccomp Profile",
+          "description": "The seccomp profile to use for the container.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "Localhost",
+                "RuntimeDefault",
+                "Unconfined"
+              ],
+              "description": "The type of seccomp profile to use."
+            },
+            "localhostProfile": {
+              "type": "string",
+              "description": "The path to a custom seccomp profile on the node."
+            }
+          },
+          "additionalProperties": false
+        },
+        "capabilities": {
+          "type": "object",
+          "title": "Linux Capabilities",
+          "description": "Linux capabilities to add or drop.",
+          "additionalProperties": false,
+          "properties": {
+            "add": {
+              "type": "array",
+              "title": "Add Capabilities",
+              "description": "Additional Linux capabilities to add.",
+              "items": {
+                "type": "string"
+              }
+            },
+            "drop": {
+              "type": "array",
+              "title": "Drop Capabilities",
+              "description": "Linux capabilities to drop.",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
     "service": {
       "type": "object",
       "title": "Service",
       "description": "Service configuration for server mode.",
       "properties": {
-  "type": { "type": "string", "title": "Service Type", "description": "Service type (e.g. ClusterIP, NodePort, LoadBalancer).", "enum": ["ClusterIP", "NodePort", "LoadBalancer"] },
-        "port": { "type": "integer", "title": "Service Port", "description": "Service port." },
-        "nodePort": { "type": "integer", "title": "NodePort", "description": "Fixed NodePort (only for service type NodePort)." }
+        "type": {
+          "type": "string",
+          "title": "Service Type",
+          "description": "Service type (e.g. ClusterIP, NodePort, LoadBalancer).",
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer"
+          ]
+        },
+        "port": {
+          "type": "integer",
+          "title": "Service Port",
+          "description": "Service port."
+        },
+        "nodePort": {
+          "type": "integer",
+          "title": "NodePort",
+          "description": "Fixed NodePort (only for service type NodePort)."
+        }
       }
     },
-    "resources": { "type": "object", "title": "Resources", "description": "Resource limits/requests (limits, requests). Left empty by default." },
+    "resources": {
+      "type": "object",
+      "title": "Resources",
+      "description": "Resource limits/requests (limits, requests). Left empty by default."
+    },
     "livenessProbe": {
       "type": "object",
       "title": "Liveness Probe",
       "description": "Configuration of the liveness probe.",
       "properties": {
-        "enabled": { "type": "boolean", "title": "Enabled" },
-        "initialDelaySeconds": { "type": "integer", "title": "Initial Delay (s)" },
-        "periodSeconds": { "type": "integer", "title": "Period (s)" },
-        "timeoutSeconds": { "type": "integer", "title": "Timeout (s)" },
-        "failureThreshold": { "type": "integer", "title": "Failure Threshold" },
-        "successThreshold": { "type": "integer", "title": "Success Threshold" }
+        "enabled": {
+          "type": "boolean",
+          "title": "Enabled"
+        },
+        "initialDelaySeconds": {
+          "type": "integer",
+          "title": "Initial Delay (s)"
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period (s)"
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout (s)"
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold"
+        },
+        "successThreshold": {
+          "type": "integer",
+          "title": "Success Threshold"
+        }
       }
     },
     "readinessProbe": {
@@ -242,12 +572,30 @@
       "title": "Readiness Probe",
       "description": "Configuration of the readiness probe.",
       "properties": {
-        "enabled": { "type": "boolean", "title": "Enabled" },
-        "initialDelaySeconds": { "type": "integer", "title": "Initial Delay (s)" },
-        "periodSeconds": { "type": "integer", "title": "Period (s)" },
-        "timeoutSeconds": { "type": "integer", "title": "Timeout (s)" },
-        "failureThreshold": { "type": "integer", "title": "Failure Threshold" },
-        "successThreshold": { "type": "integer", "title": "Success Threshold" }
+        "enabled": {
+          "type": "boolean",
+          "title": "Enabled"
+        },
+        "initialDelaySeconds": {
+          "type": "integer",
+          "title": "Initial Delay (s)"
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period (s)"
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout (s)"
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold"
+        },
+        "successThreshold": {
+          "type": "integer",
+          "title": "Success Threshold"
+        }
       }
     },
     "startupProbe": {
@@ -255,27 +603,72 @@
       "title": "Startup Probe",
       "description": "Configuration of the startup probe.",
       "properties": {
-        "enabled": { "type": "boolean", "title": "Enabled" },
-        "initialDelaySeconds": { "type": "integer", "title": "Initial Delay (s)" },
-        "periodSeconds": { "type": "integer", "title": "Period (s)" },
-        "timeoutSeconds": { "type": "integer", "title": "Timeout (s)" },
-        "failureThreshold": { "type": "integer", "title": "Failure Threshold" },
-        "successThreshold": { "type": "integer", "title": "Success Threshold" }
+        "enabled": {
+          "type": "boolean",
+          "title": "Enabled"
+        },
+        "initialDelaySeconds": {
+          "type": "integer",
+          "title": "Initial Delay (s)"
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period (s)"
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout (s)"
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold"
+        },
+        "successThreshold": {
+          "type": "integer",
+          "title": "Success Threshold"
+        }
       }
     },
-    "customLivenessProbe": { "type": "object", "title": "Custom Liveness Probe", "description": "Overrides the default liveness probe for Wireguard." },
-    "customReadinessProbe": { "type": "object", "title": "Custom Readiness Probe", "description": "Overrides the default readiness probe for Wireguard." },
-    "customStartupProbe": { "type": "object", "title": "Custom Startup Probe", "description": "Overrides the default startup probe for Wireguard." },
+    "customLivenessProbe": {
+      "type": "object",
+      "title": "Custom Liveness Probe",
+      "description": "Overrides the default liveness probe for Wireguard."
+    },
+    "customReadinessProbe": {
+      "type": "object",
+      "title": "Custom Readiness Probe",
+      "description": "Overrides the default readiness probe for Wireguard."
+    },
+    "customStartupProbe": {
+      "type": "object",
+      "title": "Custom Startup Probe",
+      "description": "Overrides the default startup probe for Wireguard."
+    },
     "autoscaling": {
       "type": "object",
       "title": "Autoscaling",
       "description": "Horizontal Pod Autoscaler configuration.",
       "properties": {
-        "enabled": { "type": "boolean", "title": "Enabled" },
-        "minReplicas": { "type": "integer", "title": "Min Replicas" },
-        "maxReplicas": { "type": "integer", "title": "Max Replicas" },
-        "targetCPUUtilizationPercentage": { "type": "integer", "title": "Target CPU %" },
-        "targetMemoryUtilizationPercentage": { "type": "integer", "title": "Target Memory %" }
+        "enabled": {
+          "type": "boolean",
+          "title": "Enabled"
+        },
+        "minReplicas": {
+          "type": "integer",
+          "title": "Min Replicas"
+        },
+        "maxReplicas": {
+          "type": "integer",
+          "title": "Max Replicas"
+        },
+        "targetCPUUtilizationPercentage": {
+          "type": "integer",
+          "title": "Target CPU %"
+        },
+        "targetMemoryUtilizationPercentage": {
+          "type": "integer",
+          "title": "Target Memory %"
+        }
       }
     },
     "extraVolumes": {
@@ -285,8 +678,15 @@
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "title": "Name" },
-          "secret": { "type": "object", "title": "Secret Volume", "description": "Secret volume source (secretName, optional)." }
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "secret": {
+            "type": "object",
+            "title": "Secret Volume",
+            "description": "Secret volume source (secretName, optional)."
+          }
         },
         "additionalProperties": true
       }
@@ -298,16 +698,40 @@
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "title": "Name" },
-          "mountPath": { "type": "string", "title": "Mount Path" },
-          "readOnly": { "type": "boolean", "title": "ReadOnly" }
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "mountPath": {
+            "type": "string",
+            "title": "Mount Path"
+          },
+          "readOnly": {
+            "type": "boolean",
+            "title": "ReadOnly"
+          }
         },
         "additionalProperties": true
       }
     },
-    "nodeSelector": { "type": "object", "title": "Node Selector", "description": "NodeSelector for pod scheduling." },
-    "tolerations": { "type": "array", "title": "Tolerations", "description": "Tolerations for pod scheduling.", "items": { "type": "object" } },
-    "affinity": { "type": "object", "title": "Affinity", "description": "Affinity rules for pod scheduling." }
+    "nodeSelector": {
+      "type": "object",
+      "title": "Node Selector",
+      "description": "NodeSelector for pod scheduling."
+    },
+    "tolerations": {
+      "type": "array",
+      "title": "Tolerations",
+      "description": "Tolerations for pod scheduling.",
+      "items": {
+        "type": "object"
+      }
+    },
+    "affinity": {
+      "type": "object",
+      "title": "Affinity",
+      "description": "Affinity rules for pod scheduling."
+    }
   },
   "allOf": [
     {
@@ -317,7 +741,11 @@
             "wireguard": {
               "properties": {
                 "server": {
-                  "properties": { "enabled": { "const": true } }
+                  "properties": {
+                    "enabled": {
+                      "const": true
+                    }
+                  }
                 }
               }
             }
@@ -328,7 +756,11 @@
             "wireguard": {
               "properties": {
                 "client": {
-                  "properties": { "enabled": { "const": true } }
+                  "properties": {
+                    "enabled": {
+                      "const": true
+                    }
+                  }
                 }
               }
             }
@@ -341,7 +773,13 @@
         "properties": {
           "wireguard": {
             "properties": {
-              "client": { "properties": { "enabled": { "const": true } } }
+              "client": {
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  }
+                }
+              }
             }
           }
         }
@@ -349,33 +787,47 @@
       "then": {
         "anyOf": [
           {
-        "properties": {
-          "wireguard": {
             "properties": {
-          "client": {
-            "properties": {
-              "config": {
-            "required": ["existingSecret"],
-            "properties": {
-              "existingSecret": { "type": "string", "minLength": 1 },
-              "address": { "type": "string", "minLength": 1 },
-              "endpoint": { "type": "string", "minLength": 1 }
-            }
+              "wireguard": {
+                "properties": {
+                  "client": {
+                    "properties": {
+                      "config": {
+                        "required": [
+                          "existingSecret"
+                        ],
+                        "properties": {
+                          "existingSecret": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "address": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "endpoint": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
-          }
-            }
-          }
-        }
           },
           {
-        "properties": {
-          "wireguard": {
             "properties": {
-          "existingSecret": { "type": "string", "minLength": 1 }
+              "wireguard": {
+                "properties": {
+                  "existingSecret": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
             }
-          }
-        }
           }
         ]
       }

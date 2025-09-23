@@ -1,11 +1,12 @@
-
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
   repository: linuxserver/wireguard
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
+  tag: "1.0.20250521"
+  # digest of the image
+  digest: "sha256:c9863e07db79437228fa6b174523491abf9c560fb4c273a635214440e7b46c41"
 
 # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
@@ -72,9 +73,15 @@ wireguard:
   # for client default is "1.1.1.1, 2606:4700:4700::1111"
   # dns: "1.1.1.1"
 
-  # The IPs/Ranges that the peers will be able to reach using the VPN connection. 
+  # The IPs/Ranges for Client/Server. Defines what IPs/Ranges will be able to reach using the VPN connection.
   # If not specified the default value is: '0.0.0.0/0, ::0/0' This will cause ALL traffic to route through the VPN, if you want split tunneling, set this to only the IPs you would like to use the tunnel AND the ip of the server's WG ip, such as 10.13.13.1.
   # allowedIPs: "0.0.0.0/0, ::0/0"
+
+  # see for more information https://github.com/linuxserver/docker-wireguard?tab=readme-ov-file#user--group-identifiers
+  # UserID, default 1000
+  PUID: 1000
+  # GroupID, default 1000
+  PGID: 1000
 
   # extra environment variables to set in the wireguard container
   # E.g.
@@ -92,7 +99,7 @@ wireguard:
   # Use existing secret for the wireguard configuration. The secret has to contain the stringData wg0.conf
   # This must contain the FULL wireguard configuration file (in client or server mode)
   # NOTE: When it's set the wireguard.server.config or wireguard.client.config are ignored
-  existingSecret: "wg-client-config"
+  existingSecret: ""
 
   # server mode
   server:
@@ -109,7 +116,7 @@ wireguard:
       size: 250Mi
       # accessModes is required when using a new PVC
       accessModes:
-      - ReadWriteOnce
+        - ReadWriteOnce
       # annotations to add to the PVC
       annotations: {}
       # labels to add to the PVC
@@ -123,13 +130,7 @@ wireguard:
     config:
       # External IP or domain name. If set to auto, the container will try to determine and set the external IP automatically (for a static IP address)
       # This address will be used by the WireGuard clients to connect to the server
-      # address: vpn.example.com
-
-      # see for more information https://github.com/linuxserver/docker-wireguard?tab=readme-ov-file#user--group-identifiers
-      # UserID, default 1000
-      # PUID: 1000
-      # GroupID, default 1000
-      # PGID: 1000
+      address: vpn.example.com
 
       # Number of peers to create confs for. Required for server mode. Can also be a list of names: myPC,myPhone,myTablet (alphanumeric only). Default is 1
       # peers: "test"
@@ -152,7 +153,7 @@ wireguard:
     config:
       # This secret must used for the complete client configuation. Use this information from your peer configuration of the wireguard server
       # The secret has to contain the keys "privatekey", "publickey", "presharedkey"
-      existingSecret: ""
+      existingSecret: "client-secret"
 
       # IP Address to assign to the WireGuard peer
       address: "10.8.0.2/24"
@@ -170,7 +171,7 @@ wireguard:
       persistentKeepalive: 25
 
       # Endpoint ip or hostname with port of the WireGuard server
-      endpoint: "server-wireguard.wireguard.svc.cluster.local:51820"
+      endpoint: "server.wireguard.svc.cluster.local:51820"
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
@@ -193,26 +194,24 @@ podLabels:
   role: gateway
 
 podSecurityContext: {}
-  # fsGroup: 2000
+# default is:
+# runAsUser: 1000
+# runAsGroup: 1000
+# fsGroup: 1000
 
 # Container Security Context
-
-securityContext:
-  privileged: true
-  sysctls:
-    - name: net.ipv4.ip_forward
-      value: "1"
-# when used as server
-  # allowPrivilegeEscalation: true
-  # capabilities:
-  #   add:
-  #   - NET_ADMIN
-  #   - SYS_MODULE
-  # readOnlyRootFilesystem: false
-  # runAsNonRoot: true
-  # runAsUser: 1000
-# when used as client
-  # privileged: true
+securityContext: {}
+# default is:
+# capabilities:
+#   add:
+#     - NET_ADMIN
+#   drop:
+#     - ALL
+# privileged: true
+# allowPrivilegeEscalation: true
+# readOnlyRootFilesystem: false
+# runAsNonRoot: false
+# runAsUser: 0
 
 # used for server mode
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
@@ -223,8 +222,11 @@ service:
   port: 51820
   # This sets the NodePort
   nodePort: 31822
+  # External IPs to bind the LoadBalancer service to (if using LoadBalancer type)
+  externalIPs: []
 
-resources: {}
+resources:
+  {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following

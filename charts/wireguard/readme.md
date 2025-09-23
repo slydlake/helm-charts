@@ -7,7 +7,7 @@
 
 Add Repo
 ```bash
-helm repo add slycharts https://slydlake.github.io/helm-charts
+helm install wireguard oci://ghcr.io/slybase/charts/wireguard
 ```
 
 ## Prerequisites
