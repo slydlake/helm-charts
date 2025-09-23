@@ -12,7 +12,9 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   # recommended to use higher then 15 because of new environment variables and database change
-  tag:
+  tag: 15.1.0
+  # digest of the image
+  digest: sha256:bb8152762c36f824eb42bb2f3c5ab8ad952818fbef677d584bc69ec513b251b0
 
 # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
@@ -178,20 +180,7 @@ podSecurityContext:
   # fsGroup: 2000
 
 securityContext:
-  allowPrivilegeEscalation: false
-  capabilities:
-    add:
-      - NET_ADMIN # Required for VPN interface creation and management
-      - NET_RAW # Required for iptables NAT operations
-      # - SYS_MODULE   # Uncomment only if wireguard module not already loaded (kernels < 5.6)
-    drop:
-      - ALL
-  readOnlyRootFilesystem: false # WireGuard needs to write config and logs
-  runAsNonRoot: false # WireGuard needs root for network operations
-  runAsUser: 0
-  seccompProfile:
-    type: RuntimeDefault # Required for PodSecurity Standards compliance
-  # privileged: true            # Avoid privileged mode - use specific capabilities instead
+  privileged: true
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:

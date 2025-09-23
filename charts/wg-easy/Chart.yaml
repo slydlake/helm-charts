@@ -2,7 +2,8 @@ apiVersion: v2
 name: wg-easy
 description: Using the offical wg-easy/wg-easy image with almost any environment variables for K8s. Supporting Init Mode.
 type: application
-version: 0.1.17
+version: 0.1.18
+appVersion: 15.1.0
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
@@ -21,21 +22,16 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: changed
-      description: "Improved PodSecurity Standards compliance with minimal privileges"
     - kind: added
-      description: "OCI-repo called SlyBase"
+      description: Pin image tag to 15.1.0 with digest for better security
     - kind: added
-      description: "Improved ServiceMonitor namespace isolation for metrics."
-    - kind: changed
-      description: "AppVersion for wg-easy for default image tag."
-    - kind: changed
-      description: "sample value and secret in separate folder."
+      description: Image digest for better security
+    - kind: fixed
+      description: securityContext to privileged true
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wg-easy
-      image: ghcr.io/wg-easy/wg-easy:latest
-appVersion: "15"
+      image: ghcr.io/wg-easy/wg-easy:15.1.0@sha256:bb8152762c36f824eb42bb2f3c5ab8ad952818fbef677d584bc69ec513b251b0
 keywords:
   - wireguard
   - vpn

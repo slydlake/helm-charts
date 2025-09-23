@@ -37,6 +37,12 @@
           "title": "Image tag",
           "type": "string",
           "description": "Image tag to deploy. Defaults to the chart appVersion when unset."
+        },
+        "digest": {
+          "title": "Image digest",
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "SHA256 digest of the image for pinning (e.g., sha256:...)."
         }
       },
       "required": [
