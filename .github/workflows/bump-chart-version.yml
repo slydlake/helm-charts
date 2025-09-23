@@ -27,6 +27,20 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
+          
+          # Get the changes from Chart.yaml
+          CHART_DIR=$(dirname "$CHANGED_CHART")
+          CHANGES=$(yq '.annotations."artifacthub.io/changes"' "$CHART_DIR/Chart.yaml" | sed 's/^/  /')
+          
+          # Create commit message
+          MESSAGE="ci: bump chart version automatically if tag exists
+
+          Changes:
+          $CHANGES"
+          
+          # Add changes to git
           git add charts/*/Chart.yaml
-          git commit -m "ci: bump chart version automatically if tag exists" || echo "No changes to commit"
+          
+          # Commit with message
+          git commit -m "$MESSAGE" || echo "No changes to commit"
           git push || echo "No changes to push"
