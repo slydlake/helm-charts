@@ -2,7 +2,8 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.2.5
+version: 0.2.6
+appVersion: "6.8.2"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
@@ -26,26 +27,36 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: added
-      description: "Improved ServiceMonitor namespace isolation for WordPress metrics"
+      description: "Wordpress CLI image version can now be set"
+    - kind: added
+      description: "Detailed comments for all values"
+    - kind: changed
+      description: "Pinned all images to specific tags and digests to improve security"
+    - kind: changed
+      description: "Pinned chart dependencies to specific versions"
+    - kind: changed
+      description: "ImagePullPolicy for all images set to IfNotPresent"
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
-      image: docker.io/wordpress:latest
+      image: docker.io/wordpress:6.8.2-php8.1-apache
+    - name: wordpress-cli
+      image: docker.io/wordpress:cli-2.12.0-php8.1
     - name: metrics-apache
-      image: lusotycoon/apache-exporter:latest
+      image: lusotycoon/apache-exporter:v1.0.10
     - name: mariadb
-      image: docker.io/mariadb:latest
+      image: docker.io/mariadb:12.0.2-noble
     - name: memcached
-      image: docker.io/memcached:latest
+      image: docker.io/memcached:1.6.39
 dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.1.2
+    version: 0.1.3
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: ">=0.2.2"
+    version: 0.2.7
 keywords:
   - wordpress
   - blog

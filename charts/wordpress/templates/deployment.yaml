@@ -94,12 +94,12 @@ spec:
             - name: htaccess-volume
               mountPath: /tmp/htaccess
         - name: {{ .Chart.Name }}-init
-          image: docker.io/wordpress:cli
+          image: "{{ .Values.wordpress.init.image.repository | default .Values.wordpress.init.repository | default "docker.io/wordpress" }}{{- if .Values.wordpress.init.image.tag  -}}:{{ .Values.wordpress.init.image.tag | default "cli" }}{{- end }}{{- if .Values.wordpress.init.image.digest }}@{{ .Values.wordpress.init.image.digest }}{{- end }}"
           {{- with .Values.containerSecurityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.wordpress.init.image.pullPolicy | default .Values.wordpress.init.pullPolicy | default "IfNotPresent" }}
           command:
             - sh
             - -c
@@ -199,8 +199,8 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ .Values.image.repository }}{{- if or .Values.image.tag .Chart.AppVersion -}}:{{ .Values.image.tag | default .Chart.AppVersion }}{{- end }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.image.repository | default "docker.io/wordpress" }}{{- if or .Values.image.tag .Chart.AppVersion -}}:{{ .Values.image.tag | default .Chart.AppVersion }}{{- end }}{{- if .Values.image.digest }}@{{ .Values.image.digest }}{{- end }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
           {{- if .Values.extraEnvVars }}
           {{- toYaml .Values.extraEnvVars | nindent 12 }}
           {{- end }}
@@ -345,7 +345,7 @@ spec:
               readOnly: false
         {{- if .Values.metrics.apache.enabled}}
         - name: metrics-apache
-          image: "{{ .Values.metrics.apache.image.repository }}{{- if or .Values.metrics.apache.image.tag -}}:{{ .Values.metrics.apache.image.tag }}{{- end }}"
+          image: "{{ .Values.metrics.apache.image.repository | default "lusotycoon/apache-exporter" }}{{- if .Values.metrics.apache.image.tag -}}:{{ .Values.metrics.apache.image.tag | default "latest" }}{{- end }}{{- if .Values.metrics.apache.image.digest }}@{{ .Values.metrics.apache.image.digest }}{{- end }}"
           imagePullPolicy: {{ .Values.metrics.apache.image.pullPolicy | quote }}
           command: 
             - sh

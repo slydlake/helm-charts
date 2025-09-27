@@ -15,12 +15,14 @@ replicaCount: 1
 image:
   ## @param image.repository string WordPress container image repository
   repository: docker.io/wordpress
+  ## @param image.tag string Overrides the image tag whose default is the chart appVersion
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "6.8.2-php8.1-apache"
+  ## @param image.digest string Image digest
+  digest: "sha256:a0c99ea1e7ebabb0c903b4da78603ef74cc2a4fa25bb9e349fc8a343c0148702"
   ## @param image.pullPolicy string Image pull policy
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
-  ## @param image.tag string Overrides the image tag whose default is the chart appVersion
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
 
 ## @param imagePullSecrets array Secrets for pulling images from private repository
 # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
@@ -137,6 +139,18 @@ wordpress:
   ## Note: If wordpress is already installed and wordpress.init.enabled is true, the installation process will be skipped,
   ## but the the following will still be applied: firstname, lastname, permalinks, plugins, users
   init:
+    ## @section Image parameters
+    image:
+      ## @param wordpress.init.repository object Container image configuration for init container
+      # NOTE: This image is always needed because of the inital setup of WordPress
+      repository: docker.io/wordpress
+      ## @param wordpress.init.image.tag string Image tag for init container
+      tag: "cli-2.12.0-php8.1"
+      ## @param wordpress.init.image.digest string Image digest for init container
+      digest: "sha256:ceeb2701e2da0758fa3286d7b5da39a586542503983fa4b2cc9fa81fada52f3e"
+      ## @param wordpress.init.image.pullPolicy string Image pull policy for init container
+      pullPolicy: IfNotPresent
+
     ## @param wordpress.init.enabled boolean Enable init container for first installation
     enabled: true
     ## @param wordpress.init.existingSecret string Existing secret for WordPress credentials
@@ -446,8 +460,7 @@ ingress:
   ## Maximal body size (default: 64m - increase if uploads to Wordpress failing)
   maxBodySize: 64m
   ## @param ingress.annotations object Ingress annotations
-  annotations:
-    {}
+  annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   ## @param ingress.hosts array Ingress hosts configuration
@@ -463,8 +476,7 @@ ingress:
   #      - chart-example.local
 
 ## @section Resource parameters
-resources:
-  {}
+resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -586,8 +598,7 @@ revisionHistoryLimit:
 
 ## @section podDisruptionBudget object Pod disruption budget configuration
 ## Pod disruption budget
-podDisruptionBudget:
-  {}
+podDisruptionBudget: {}
   ## Minimum number of pods that must be available after eviction
   # minAvailable:
   ## Maximum number of pods that can be unavailable after eviction
@@ -617,6 +628,8 @@ metrics:
       selector: {}
       ## @param metrics.wordpress.serviceMonitor.interval string Interval at which to scrape metrics
       interval: 30s
+      ## @param metrics.wordpress.serviceMonitor.namespace Namespace for the ServiceMonitor Resource (defaults to the Release Namespace)
+      namespace: ""
       ## @param metrics.wordpress.serviceMonitor.metricsPath string Path to scrape metrics from
       metricsPath: /slymetrics/metrics
       ## @param metrics.wordpress.serviceMonitor.existingSecret string Name of existing secret containing Bearer Token
@@ -638,7 +651,6 @@ metrics:
     ## @param metrics.apache.enabled boolean Specifies if apache metrics should be created
     enabled: true
     ## @section Image parameters
-
     ## @param metrics.apache.createConfig boolean Create in .htaccess and in 000-default.conf the config, that the exporter needs
     ## Values.apache.customDefaultSiteConfig will override this setting
     ## .htaccess:
@@ -668,12 +680,9 @@ metrics:
       # This sets the pull policy for images.
       pullPolicy: IfNotPresent
       ## @param metrics.apache.image.tag string Overrides the image tag
-      tag: "latest"
-
-    ## @param metrics.apache.imagePullSecrets array Secrets for pulling images from private repository
-    # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-    imagePullSecrets:
-      []
+      tag: "v1.0.10"
+      ## @param metrics.apache.image.digest string Image digest
+      digest: "sha256:d95764ed557a9e6cb7550ab66e80a35e227a485aac10ef190343230f4832f035"
 
       ## @param metrics.apache.livenessProbe.enabled boolean Enable liveness probe
       ## @param metrics.apache.livenessProbe.initialDelaySeconds integer Initial delay seconds for liveness probe
@@ -843,9 +852,11 @@ mariadb:
     ## @param mariadb.image.repository string MariaDB image repository
     repository: mariadb
     ## @param mariadb.image.tag string MariaDB image tag
-    tag: "latest"
+    tag: "12.0.2-noble"
+    ## @param mariadb.image.digest string MariaDB image digest
+    digest: "sha256:8a061ef9813cf960f94a262930a32b190c3fbe5c8d3ab58456ef1df4b90fd5dc"
     ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
-    imagePullPolicy: Always
+    imagePullPolicy: IfNotPresent
 
   ## @section MariaDB Authentication parameters
   auth:
@@ -949,9 +960,11 @@ memcached:
     ## @param memcached.image.repository string Memcached image repository
     repository: memcached
     ## @param memcached.image.tag string Memcached image tag
-    tag: "latest"
+    tag: "1.6.39"
+    ## @param memcached.image.digest string Memcached image digest
+    digest: "sha256:68c1185d50600b472705b5a700037f4b8bab28f04a188bdf3a79d38e24dbfb95"
     ## @param memcached.image.pullPolicy string Memcached image pull policy
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
 
   ## @param memcached.replicaCount integer Number of Memcached replicas to deploy
   replicaCount: 1
