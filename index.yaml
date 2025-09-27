@@ -1386,6 +1386,73 @@ entries:
       artifacthub.io/category: networking
       artifacthub.io/changes: |
         - kind: added
+          description: "Wordpress CLI image version can now be set"
+        - kind: added
+          description: "Detailed comments for all values"
+        - kind: changed
+          description: "Pinned all images to specific tags and digests to improve security"
+        - kind: changed
+          description: "Pinned chart dependencies to specific versions"
+        - kind: changed
+          description: "ImagePullPolicy for all images set to IfNotPresent"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wordpress
+          image: docker.io/wordpress:6.8.2-php8.1-apache
+        - name: wordpress-cli
+          image: docker.io/wordpress:cli-2.12.0-php8.1
+        - name: metrics-apache
+          image: lusotycoon/apache-exporter:v1.0.10
+        - name: mariadb
+          image: docker.io/mariadb:12.0.2-noble
+        - name: memcached
+          image: docker.io/memcached:1.6.39
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
+        - name: Official WordPress Repository
+          url: https://github.com/docker-library/
+        - name: "WordPress Prometheus Metrics plugin - SlyMetrics"
+          url: https://github.com/slydlake/slymetrics
+        - name: Apache Metrics container
+          url: https://github.com/Lusitaniae/apache_exporter
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: 6.8.2
+    created: "2025-09-27T20:21:00.844849272Z"
+    dependencies:
+    - condition: memcached.enabled
+      name: memcached
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.1.3
+    - condition: mariadb.enabled
+      name: mariadb
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.2.7
+    description: Using the official WordPress image. This chart provides automation
+      for installation, user management, plugin installation, and metrics.
+    digest: 340c943f4d6e6509918b3a23c27f12133c7bd95db6e1a87e8a3bce41df362e71
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
+    keywords:
+    - wordpress
+    - blog
+    maintainers:
+    - name: slydlake
+    name: wordpress
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.2.6/wordpress-0.2.6.tgz
+    version: 0.2.6
+  - annotations:
+      artifacthub.io/category: networking
+      artifacthub.io/changes: |
+        - kind: added
           description: "Improved ServiceMonitor namespace isolation for WordPress metrics"
       artifacthub.io/containsSecurityUpdates: "false"
       artifacthub.io/images: |
@@ -1776,4 +1843,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-09-27T19:44:03.839113206Z"
+generated: "2025-09-27T20:21:00.844971147Z"
