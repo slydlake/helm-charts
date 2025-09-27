@@ -9,13 +9,11 @@ updates:
     directory: "/charts/wordpress"
     schedule:
       interval: "weekly"
-    ignore:
-      # Ignore container images in values.yaml, but allow Chart.yaml dependencies
-      - dependency-name: "docker.io/wordpress"
-      - dependency-name: "docker.io/mariadb"
-      - dependency-name: "docker.io/memcached"
-      - dependency-name: "lusotycoon/apache-exporter"
   - package-ecosystem: "helm"
     directory: "/charts/wg-easy"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "helm"
+    directory: "/charts/wireguard"
     schedule:
       interval: "weekly"
