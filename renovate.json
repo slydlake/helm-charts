@@ -1,0 +1,91 @@
+{
+    "extends": [
+        "config:recommended"
+    ],
+    "enabledManagers": [
+        "helm-values",
+        "helm"
+    ],
+    "pinDigests": true,
+    "prHourlyLimit": 2,
+    "prConcurrentLimit": 5,
+    "timezone": "Europe/Berlin",
+    "helm-values": {
+        "managerFilePatterns": [
+            "/^charts/.*/values\\.ya?ml$/",
+            "/^charts/.*/samples/values\\.ya?ml$/"
+        ],
+        "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?<prerelease>-[^@]*)?@(?<compatibility>.+)$",
+        "extractVersion": "(?<version>[^@]+)@(?<sha>sha256:[a-f0-9]{64})",
+        "rangeStrategy": "replace"
+    },
+    "helm": {
+        "managerFilePatterns": [
+            "/^charts/.*/Chart\\.ya?ml$/"
+        ]
+    },
+    "regexManagers": [
+        {
+            "fileMatch": [
+                "(^|/)values\\.ya?ml$"
+            ],
+            "matchStrings": [
+                "(?ms)repository:\\s*(?<depName>[^\\n]+).*?tag:\\s*(?<currentValue>[^\\n]+)"
+            ],
+            "datasourceTemplate": "docker",
+            "depNameTemplate": "{{{depName}}}"
+        }
+    ],
+    "packageRules": [
+        {
+            "matchManagers": [
+                "helm-values"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "digest"
+            ],
+            "matchPackageNames": [
+                "/^docker\\.io\\/.+/"
+            ],
+            "labels": [
+                "dependencies",
+                "renovate"
+            ],
+            "commitMessagePrefix": "[{{{ replace \"docker.io/\" \"\" packageName }}}]",
+            "commitMessageAction": "chore(deps): update"
+        },
+        {
+            "matchManagers": [
+                "helm-values"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "digest"
+            ],
+            "labels": [
+                "dependencies",
+                "renovate"
+            ],
+            "commitMessagePrefix": "[{{{ packageName }}}]",
+            "commitMessageAction": "chore(deps): update",
+            "matchPackageNames": [
+                "!/^docker\\.io\\/.+/"
+            ]
+        },
+        {
+            "matchManagers": [
+                "helm-values"
+            ],
+            "matchPackageNames": [
+                "lusotycoon/apache-exporter",
+                "/^docker\\.io\\/lusotycoon\\/apache-exporter$/"
+            ],
+            "allowedVersions": "/^v[0-9]+\\.[0-9]+\\.[0-9]+$/",
+            "automerge": false,
+            "groupName": "apache-exporter updates (v-prefixed semver)"
+        }
+    ]
+}
