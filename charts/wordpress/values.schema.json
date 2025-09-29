@@ -729,6 +729,19 @@
                             }
                         }
                     }
+                },
+                "useHttpsBackend": {
+                    "type": "boolean",
+                    "description": "Ingress use https backend\nwhen true, backend uses service.ports.https; otherwise uses service.ports.http",
+                    "default": false
+                },
+                "extraRules": {
+                    "type": "array",
+                    "description": "Additional rules for ingress. See https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-rules",
+                    "items": {
+                        "type": "object"
+                    },
+                    "default": []
                 }
             }
         },

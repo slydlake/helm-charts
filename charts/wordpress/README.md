@@ -15,6 +15,10 @@ Install WordPress:
 helm install my-wordpress slycharts/wordpress
 ```
 
+## Default installation of WordPress Information
+
+By default this chart does not install any WordPress themes or preconfigure plugins for the frontend. After the chart is deployed you must log in to the WordPress admin (wp-admin) and set up the first theme and any desired plugins.
+
 ## Features
 
 ### Automatic WordPress Installation

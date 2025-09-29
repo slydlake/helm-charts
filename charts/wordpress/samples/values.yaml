@@ -475,6 +475,24 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
+  ## @param ingress.useHttpsBackend boolean Ingress use https backend
+  # when true, backend uses service.ports.https; otherwise uses service.ports.http
+  useHttpsBackend: false
+
+  ## @param ingress.extraRules Additional rules for ingress
+  ## https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-rules
+  # extraRules:
+  # - host: wordpress.local
+  #     http:
+  #       path: /
+  #       backend:
+  #         service:
+  #           name: wordpress-svc
+  #           port:
+  #             name: http
+  #
+  extraRules: []
+
 ## @section Resource parameters
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

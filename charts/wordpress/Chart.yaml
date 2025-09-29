@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.2.6
+version: 0.2.7
 appVersion: "6.8.2"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -18,7 +18,7 @@ annotations:
       url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
     - name: Official WordPress Repository
       url: https://github.com/docker-library/
-    - name: "WordPress Prometheus Metrics plugin - SlyMetrics"
+    - name: "SlyMetrics WordPress plugin for Prometheus Metrics"
       url: https://github.com/slydlake/slymetrics
     - name: Apache Metrics container
       url: https://github.com/Lusitaniae/apache_exporter
@@ -27,15 +27,12 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: added
-      description: "Wordpress CLI image version can now be set"
+      description: "Added Ingress and extraRules support"
+      url: https://github.com/slydlake/helm-charts/issues/11
     - kind: added
-      description: "Detailed comments for all values"
-    - kind: changed
-      description: "Pinned all images to specific tags and digests to improve security"
-    - kind: changed
-      description: "Pinned chart dependencies to specific versions"
-    - kind: changed
-      description: "ImagePullPolicy for all images set to IfNotPresent"
+      description: "Readme: Added note about default WordPress installation"
+    - kind: added
+      description: "If WordPress is already installed, the log will show this"
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress

@@ -184,6 +184,8 @@ data:
           --admin_email="${WP_ADMIN_EMAIL}" \
           --skip-email \
           --locale="${WP_LOCALE}"
+      else
+        echo "WordPress is already installed, skipping installation."
       fi
 
       # set up localization
