@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.2.7
+version: 0.2.8
 appVersion: "6.8.2"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,13 +26,16 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: added
-      description: "Added Ingress and extraRules support"
+    - kind: fixed
+      description: "Service port now using .service.ports instead of hardcoded values"
+      url: https://github.com/slydlake/helm-charts/issues/15
+    - kind: fixed
+      description: "Ingress port formating"
       url: https://github.com/slydlake/helm-charts/issues/11
-    - kind: added
-      description: "Readme: Added note about default WordPress installation"
-    - kind: added
-      description: "If WordPress is already installed, the log will show this"
+    - kind: changed
+      description: "WordPress Metrics Plugin SlyMetrics using now the offical WordPress Plugin repository"
+    - kind: fixed
+      description: "Plugin auto-update logic fixed"
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress

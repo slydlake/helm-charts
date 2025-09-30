@@ -17,14 +17,14 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.ports.http }}
-      targetPort: 80
+      targetPort: http
       protocol: TCP
       name: http
       {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePorts.http }}
       nodePort: {{ .Values.service.nodePorts.http }}
       {{- end }}
     - port: {{ .Values.service.ports.https }}
-      targetPort: 443
+      targetPort: https
       protocol: TCP
       name: https
       {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePorts.https }}

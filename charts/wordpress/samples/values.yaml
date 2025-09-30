@@ -431,8 +431,8 @@ service:
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   # internal container ports, default by 80 and 443
   ports:
-    http: 80
-    https: 443
+    http: 8080
+    https: 8443
   ## @param service.nodePorts object NodePorts configuration
   # This sets the NodePorts
   nodePorts:
@@ -456,9 +456,6 @@ ingress:
   enabled: false
   ## @param ingress.className string Ingress class name
   className: ""
-  ## @param ingress.maxBodySize string Maximal body size
-  ## Maximal body size (default: 64m - increase if uploads to Wordpress failing)
-  maxBodySize: 64m
   ## @param ingress.annotations object Ingress annotations
   annotations: {}
     # kubernetes.io/ingress.class: nginx

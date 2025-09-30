@@ -264,7 +264,7 @@ data:
       fi
 
       # Enable auto-updates if disabled
-      AUTO_UPDATE_STATUS=$(run wp plugin auto-updates status ${WORDPRESS_METRICS} --field=status)
+      AUTO_UPDATE_STATUS=$(wp plugin auto-updates status ${WORDPRESS_METRICS} --field=status 2>/dev/null)
       if [ "$AUTO_UPDATE_STATUS" = "disabled" ]; then
         run wp plugin auto-updates enable ${WORDPRESS_METRICS}
       fi
@@ -300,7 +300,7 @@ data:
     fi
 
     # Enable auto-updates if requested and not enabled
-    AUTO_UPDATE_STATUS=$(run wp plugin auto-updates status "${PLUGIN_NAME}" --field=status)
+    AUTO_UPDATE_STATUS=$(wp plugin auto-updates status "${PLUGIN_NAME}" --field=status 2>/dev/null)
     if [ "${PLUGIN_AUTOUPDATE}" = "true" ] && [ "$AUTO_UPDATE_STATUS" = "disabled" ]; then
       run wp plugin auto-updates enable "${PLUGIN_NAME}"
     fi

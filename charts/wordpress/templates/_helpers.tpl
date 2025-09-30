@@ -99,8 +99,7 @@ Wordpress metrics plugin
 */}}
 {{- define "metrics.wordpress.pluginname" -}}
 {{- if and (default false .Values.metrics.wordpress.enabled) (default false .Values.metrics.wordpress.installPlugin) }}
-{{- default "https://github.com/slydlake/slymetrics/releases/download/v1.3.0/slymetrics-1.3.0.zip" .Values.metrics.wordpress.pluginNameOverride | quote }}
-# {{- default "slymetrics" .Values.metrics.wordpress.pluginNameOverride | trunc 63 | trimSuffix "-" | quote }}
+{{- default "slymetrics" .Values.metrics.wordpress.pluginNameOverride | quote }}
 {{- else }}
 {{- "" | quote }}
 {{- end }}

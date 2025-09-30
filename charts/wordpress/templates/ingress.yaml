@@ -38,7 +38,7 @@ spec:
               service:
                 name: {{ include "wordpress.fullname" $ }}
                 port:
-                  number: {{- if $.Values.ingress.useHttpsBackend }}{{ $.Values.service.ports.https }}{{- else }}{{ $.Values.service.ports.http }}{{- end }}
+                  number: {{ if $.Values.ingress.useHttpsBackend }}{{ $.Values.service.ports.https }}{{ else }}{{ $.Values.service.ports.http }}{{ end }}
           {{- end }}
     {{- end }}
     {{- with .Values.ingress.extraRules }}
