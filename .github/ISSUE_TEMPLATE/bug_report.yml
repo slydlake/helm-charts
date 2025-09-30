@@ -1,0 +1,58 @@
+name: Bug report
+about: Report a bug related to a chart. Please start the issue title with [chartname]
+title: "[chartname] "
+labels: bug
+assignees:
+  - slydlake
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug report! Please fill out the fields below.
+        Important: The issue title should start with the chart name in square brackets, e.g. `[wordpress] Crash on startup`.
+
+  - type: input
+    id: chart_name
+    attributes:
+      label: Chart name and version
+      description: The chart name (e.g. `wordpress`). Please provide the exact chart name and version.
+      placeholder: "wordpress 0.1.1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Steps to reproduce
+      description: Describe how to reproduce the issue.
+      placeholder: |
+        1. Install the chart with `helm install ...`
+        2. Wait for pods to start
+        3. Observe error logs
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual behavior
+      description: What actually happened (include logs or error messages).
+
+  - type: textarea
+    id: values_yaml
+    attributes:
+      label: values.yaml (optional)
+      description: Paste relevant parts of your `values.yaml` here or provide a Gist/URL.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Pod logs, events, or CrashLoopBackOff output.

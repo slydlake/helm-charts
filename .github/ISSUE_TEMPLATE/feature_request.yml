@@ -1,0 +1,54 @@
+name: Feature request
+about: Request a new feature or enhancement for a chart. Please start the issue title with [chartname]
+title: "[chartname] "
+labels: enhancement
+assignees:
+  - slydlake
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a feature! Please fill out the fields below so we can evaluate the request.
+        Important: The issue title should start with the chart name in square brackets, e.g. `[wordpress] Add configurable backup`.
+
+  - type: input
+    id: chart_name
+    attributes:
+      label: Chart name
+      description: The chart name (e.g. `wordpress`). Please provide the exact chart name.
+      placeholder: "wordpress"
+    validations:
+      required: true
+
+  - type: textarea
+    id: feature_description
+    attributes:
+      label: Feature description
+      description: Describe the requested feature and what it should do.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation and use-case
+      description: Why is this feature useful? Who benefits and in which scenarios?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any workarounds or alternative solutions you tried.
+
+  - type: textarea
+    id: values_yaml
+    attributes:
+      label: values.yaml (optional)
+      description: Paste relevant parts of your `values.yaml` here or provide a Gist/URL if applicable.
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Any extra context, links, or references.
