@@ -1385,6 +1385,73 @@ entries:
   - annotations:
       artifacthub.io/category: networking
       artifacthub.io/changes: |
+        - kind: fixed
+          description: "Service port now using .service.ports instead of hardcoded values"
+          url: https://github.com/slydlake/helm-charts/issues/15
+        - kind: fixed
+          description: "Ingress port formating"
+          url: https://github.com/slydlake/helm-charts/issues/11
+        - kind: changed
+          description: "WordPress Metrics Plugin SlyMetrics using now the offical WordPress Plugin repository"
+        - kind: fixed
+          description: "Plugin auto-update logic fixed"
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wordpress
+          image: docker.io/wordpress:6.8.2-php8.1-apache
+        - name: wordpress-cli
+          image: docker.io/wordpress:cli-2.12.0-php8.1
+        - name: metrics-apache
+          image: lusotycoon/apache-exporter:v1.0.10
+        - name: mariadb
+          image: docker.io/mariadb:12.0.2-noble
+        - name: memcached
+          image: docker.io/memcached:1.6.39
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
+        - name: Official WordPress Repository
+          url: https://github.com/docker-library/
+        - name: "SlyMetrics WordPress plugin for Prometheus Metrics"
+          url: https://github.com/slydlake/slymetrics
+        - name: Apache Metrics container
+          url: https://github.com/Lusitaniae/apache_exporter
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: 6.8.2
+    created: "2025-09-30T19:39:48.185802471Z"
+    dependencies:
+    - condition: memcached.enabled
+      name: memcached
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.1.3
+    - condition: mariadb.enabled
+      name: mariadb
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.2.7
+    description: Using the official WordPress image. This chart provides automation
+      for installation, user management, plugin installation, and metrics.
+    digest: 4ddc17e4a1cbfd43da204e168b10fcdb3a8503664e401659301f0fb5a6738837
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
+    keywords:
+    - wordpress
+    - blog
+    maintainers:
+    - name: slydlake
+    name: wordpress
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.2.8/wordpress-0.2.8.tgz
+    version: 0.2.8
+  - annotations:
+      artifacthub.io/category: networking
+      artifacthub.io/changes: |
         - kind: added
           description: "Added Ingress and extraRules support"
           url: https://github.com/slydlake/helm-charts/issues/11
@@ -1907,4 +1974,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-09-29T18:12:58.807311998Z"
+generated: "2025-09-30T19:39:48.185926973Z"
