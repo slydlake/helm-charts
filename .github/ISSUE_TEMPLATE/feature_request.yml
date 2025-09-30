@@ -1,5 +1,5 @@
 name: Feature request
-about: Request a new feature or enhancement for a chart. Please start the issue title with [chartname]
+description: Request a new feature or enhancement for a chart. Please start the issue title with [chartname]
 title: "[chartname] "
 labels: enhancement
 assignees:

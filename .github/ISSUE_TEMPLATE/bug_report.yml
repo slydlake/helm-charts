@@ -1,5 +1,5 @@
 name: Bug report
-about: Report a bug related to a chart. Please start the issue title with [chartname]
+description: Report a bug related to a chart. Please start the issue title with [chartname]
 title: "[chartname] "
 labels: bug
 assignees:
