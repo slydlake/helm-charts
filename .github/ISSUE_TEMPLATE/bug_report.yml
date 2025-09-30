@@ -1,5 +1,5 @@
-name: Bug report
-description: Report a bug related to a chart. Please start the issue title with [chartname]
+name: 🐞Bug report
+description: Report a bug related to a chart.
 title: "[chartname] "
 labels: bug
 assignees:
@@ -16,7 +16,7 @@ body:
     id: chart_name
     attributes:
       label: Chart name and version
-      description: The chart name (e.g. `wordpress`). Please provide the exact chart name and version.
+      description: The chart name (e.g. `wordpress 0.1.1`). Please provide the exact chart name and version.
       placeholder: "wordpress 0.1.1"
     validations:
       required: true
