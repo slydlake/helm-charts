@@ -12,8 +12,8 @@
     "timezone": "Europe/Berlin",
     "helm-values": {
         "managerFilePatterns": [
-            "/^charts/.*/values\\.ya?ml$/",
-            "/^charts/.*/samples/values\\.ya?ml$/"
+            "/charts/.*/values\\.ya?ml$/",
+            "/charts/.*/samples/values\\.ya?ml$/"
         ],
         "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?<prerelease>-[^@]*)?@(?<compatibility>.+)$",
         "extractVersion": "(?<version>[^@]+)@(?<sha>sha256:[a-f0-9]{64})",
@@ -21,7 +21,7 @@
     },
     "helm": {
         "managerFilePatterns": [
-            "/^charts/.*/Chart\\.ya?ml$/"
+            "/charts/.*/Chart\\.ya?ml$/"
         ]
     },
     "regexManagers": [
