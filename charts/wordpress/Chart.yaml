@@ -27,8 +27,8 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "memcached chart update"
-      url: https://github.com/slydlake/helm-charts/issues/19
+      description: "mariadb chart update"
+      url: https://github.com/slydlake/helm-charts/issues/17
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
