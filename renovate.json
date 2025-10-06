@@ -10,15 +10,18 @@
     "prHourlyLimit": 2,
     "prConcurrentLimit": 5,
     "timezone": "Europe/Berlin",
-    "helm-values": {
-        "fileMatch": [
-            "charts/**/values.yaml",
-            "charts/**/values.yml",
-            "charts/**/samples/values.yaml",
-            "charts/**/samples/values.yml"
-        ]
-    },
     "packageRules": [
+        {
+            "matchManagers": [
+                "helm-values"
+            ],
+            "fileMatch": [
+                "charts/**/values.yaml",
+                "charts/**/values.yml",
+                "charts/**/samples/values.yaml",
+                "charts/**/samples/values.yml"
+            ]
+        },
         {
             "matchManagers": [
                 "helm-values"
