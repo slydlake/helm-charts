@@ -26,16 +26,9 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "Service port now using .service.ports instead of hardcoded values"
-      url: https://github.com/slydlake/helm-charts/issues/15
-    - kind: fixed
-      description: "Ingress port formating"
-      url: https://github.com/slydlake/helm-charts/issues/11
     - kind: changed
-      description: "WordPress Metrics Plugin SlyMetrics using now the offical WordPress Plugin repository"
-    - kind: fixed
-      description: "Plugin auto-update logic fixed"
+      description: "memcached chart update"
+      url: https://github.com/slydlake/helm-charts/issues/19
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
