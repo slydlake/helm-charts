@@ -11,31 +11,18 @@
     "prConcurrentLimit": 5,
     "timezone": "Europe/Berlin",
     "helm-values": {
-        "managerFilePatterns": [
-            "/charts/.*/values\\.ya?ml$/",
-            "/charts/.*/samples/values\\.ya?ml$/"
-        ],
-        "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?<prerelease>-[^@]*)?@(?<compatibility>.+)$",
-        "extractVersion": "(?<version>[^@]+)@(?<sha>sha256:[a-f0-9]{64})",
-        "rangeStrategy": "replace"
-    },
-    "helm": {
-        "managerFilePatterns": [
-            "/charts/.*/Chart\\.ya?ml$/"
+        "fileMatch": [
+            "charts/**/values.yaml",
+            "charts/**/values.yml",
+            "charts/**/samples/values.yaml",
+            "charts/**/samples/values.yml"
         ]
     },
-    "regexManagers": [
-        {
-            "fileMatch": [
-                "(^|/)values\\.ya?ml$"
-            ],
-            "matchStrings": [
-                "(?ms)repository:\\s*(?<depName>[^\\n]+).*?tag:\\s*(?<currentValue>[^\\n]+)"
-            ],
-            "datasourceTemplate": "docker",
-            "depNameTemplate": "{{{depName}}}"
-        }
-    ],
+    "helm": {
+        "fileMatch": [
+            "charts/**/Chart.yaml"
+        ]
+    },
     "packageRules": [
         {
             "matchManagers": [
@@ -86,6 +73,22 @@
             "allowedVersions": "/^v[0-9]+\\.[0-9]+\\.[0-9]+$/",
             "automerge": false,
             "groupName": "apache-exporter updates (v-prefixed semver)"
+        },
+        {
+            "matchManagers": [
+                "helm"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch"
+            ],
+            "labels": [
+                "dependencies",
+                "renovate",
+                "helm-chart"
+            ],
+            "commitMessagePrefix": "[helm]",
+            "commitMessageAction": "chore(deps): update chart dependencies"
         }
     ]
 }
