@@ -25,7 +25,10 @@ annotations:
   artifacthub.io/maintainers: |
     - name: slydlake
       email: sly.dlake@gmail.com
-  artifacthub.io/changes: |
+  artifacthub.io/changes: |    
+    - kind: changed
+      description: "memcached chart update"
+      url: https://github.com/slydlake/helm-charts/issues/19
     - kind: changed
       description: "mariadb chart update"
       url: https://github.com/slydlake/helm-charts/issues/17
