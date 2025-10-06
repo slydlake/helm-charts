@@ -4,7 +4,7 @@
     ],
     "enabledManagers": [
         "helm-values",
-        "helm"
+        "helmv3"
     ],
     "pinDigests": true,
     "prHourlyLimit": 2,
@@ -18,7 +18,7 @@
             "charts/**/samples/values.yml"
         ]
     },
-    "helm": {
+    "helmv3": {
         "fileMatch": [
             "charts/**/Chart.yaml"
         ]
@@ -76,7 +76,7 @@
         },
         {
             "matchManagers": [
-                "helm"
+                "helmv3"
             ],
             "matchUpdateTypes": [
                 "minor",
