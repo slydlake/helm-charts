@@ -14,9 +14,9 @@
         "slydlake"
     ],
     "helm-values": {
-        "fileMatch": [
-            "(^|/)values\\.ya?ml$",
-            "samples/values\\.ya?ml$"
+        "managerFilePatterns": [
+            "/(^|/)values\\.ya?ml$/",
+            "/samples/values\\.ya?ml$/"
         ]
     },
     "packageRules": [
