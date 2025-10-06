@@ -2,8 +2,8 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.2.8
-appVersion: "6.8.2"
+version: 0.2.9
+appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
@@ -25,7 +25,10 @@ annotations:
   artifacthub.io/maintainers: |
     - name: slydlake
       email: sly.dlake@gmail.com
-  artifacthub.io/changes: |    
+  artifacthub.io/changes: |
+    - kind: changed
+      description: "wordpress bumped to 6.8.3-php8.1-apache"
+      url: https://github.com/slydlake/helm-charts/issues/16
     - kind: changed
       description: "memcached chart update"
       url: https://github.com/slydlake/helm-charts/issues/19
@@ -35,7 +38,7 @@ annotations:
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
-      image: docker.io/wordpress:6.8.2-php8.1-apache
+      image: docker.io/wordpress:6.8.3-php8.1-apache
     - name: wordpress-cli
       image: docker.io/wordpress:cli-2.12.0-php8.1
     - name: metrics-apache
