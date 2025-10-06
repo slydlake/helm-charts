@@ -7,9 +7,12 @@
         "helmv3"
     ],
     "pinDigests": true,
-    "prHourlyLimit": 2,
+    "prHourlyLimit": 5,
     "prConcurrentLimit": 5,
     "timezone": "Europe/Berlin",
+    "assignees": [
+        "slydlake"
+    ],
     "helm-values": {
         "fileMatch": [
             "(^|/)values\\.ya?ml$",
