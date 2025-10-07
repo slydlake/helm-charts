@@ -26,15 +26,15 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: changed
-      description: "wordpress bumped to 6.8.3-php8.1-apache"
-      url: https://github.com/slydlake/helm-charts/issues/16
-    - kind: changed
-      description: "memcached chart update"
-      url: https://github.com/slydlake/helm-charts/issues/19
-    - kind: changed
-      description: "mariadb chart update"
-      url: https://github.com/slydlake/helm-charts/issues/17
+    - kind: fixed
+      description: "extraEnvVars are now working in wodpress deployment (thanks to ScionOfDesign)"
+      url: https://github.com/slydlake/helm-charts/issues/21
+    - kind: fixed
+      description: "secret value database name (thanks to ScionOfDesign)"
+      url: https://github.com/slydlake/helm-charts/issues/21
+    - kind: fixed
+      description: "uses WORDPRESS_ env variables if defined in values.yaml (thanks to ScionOfDesign)"
+      url: https://github.com/slydlake/helm-charts/issues/21
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
