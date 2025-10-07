@@ -201,10 +201,10 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository | default "docker.io/wordpress" }}{{- if or .Values.image.tag .Chart.AppVersion -}}:{{ .Values.image.tag | default .Chart.AppVersion }}{{- end }}{{- if .Values.image.digest }}@{{ .Values.image.digest }}{{- end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          env:
           {{- if .Values.extraEnvVars }}
           {{- toYaml .Values.extraEnvVars | nindent 12 }}
           {{- end }}
-          env:
             - name: WP_HOME
               value: {{ .Values.wordpress.url | quote }}
             - name: WP_SITEURL
@@ -230,6 +230,15 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.externalDatabase.existingSecret }}
                   key: db.password
+          {{- else if and (not .Values.mariadb.enabled ) (not .Values.externalDatabase.existingSecret) }}
+            - name: WORDPRESS_DB_HOST
+              value: {{ .Values.externalDatabase.host | quote }}
+            - name: WORDPRESS_DB_NAME
+              value: {{ .Values.externalDatabase.database | quote }}
+            - name: WORDPRESS_DB_USER
+              value: {{ .Values.externalDatabase.username | quote }}
+            - name: WORDPRESS_DB_PASSWORD
+              value: {{ .Values.externalDatabase.password | quote }}
           {{- end }}
           {{- if .Values.wordpress.debug }}
             - name: WORDPRESS_DEBUG
