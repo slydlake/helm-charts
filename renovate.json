@@ -13,12 +13,6 @@
     "assignees": [
         "slydlake"
     ],
-    "helm-values": {
-        "managerFilePatterns": [
-            "/(^|/)values\\.ya?ml$/",
-            "/samples/values\\.ya?ml$/"
-        ]
-    },
     "packageRules": [
         {
             "matchManagers": [
