@@ -634,6 +634,14 @@ metrics:
       # see  https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/#basic-authentication-with-application-passwords
       # Name of the existing secret. Must contain the Bearer Token as a keys "wordpress.metrics.token"
       existingSecret: ""
+      ## @section Existing Secret Keys parameters
+      secretKeys:
+        ## @param secretKeys.userUsernameKey for the username key in existing secret
+        userUsernameKey: wordpress.username
+        ## @param secretKeys.userPasswordKey for the password key in existing secret
+        userPasswordKey: wordpress.password
+        ## @param secretKeys.userEmailKey for the email key in existing secret
+        userEmailKey: wordpress.email
       ## @param metrics.wordpress.serviceMonitor.token string Alternative authentication token
       # Alternative use this keys. If existingSecret is used, these are ignored
       # sample generation: echo $(openssl rand -hex 32)
@@ -818,9 +826,9 @@ externalDatabase:
   existingSecret: ""
   ## @section Existing Secret Keys parameters
   secretKeys:
-    ## @param secretKeys.userUsernameKey string Name the username key in existing secret
+    ## @param secretKeys.userUsernameKey for the username key in existing secret
     userUsernameKey: db.username
-    ## @param secretKeys.userPasswordKey string Name the password key in existing secret
+    ## @param secretKeys.userPasswordKey for the password key in existing secret
     userPasswordKey: db.password
 
 ## @section MariaDB parameters
