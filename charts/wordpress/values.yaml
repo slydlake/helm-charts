@@ -816,6 +816,12 @@ externalDatabase:
   # This secret must contain the following key: db.password and db.username
   # When this is set, the externalDatabase.password will be ignored
   existingSecret: ""
+  ## @section Existing Secret Keys parameters
+  secretKeys:
+    ## @param secretKeys.userUsernameKey string Name the username key in existing secret
+    userUsernameKey: db.username
+    ## @param secretKeys.userPasswordKey string Name the password key in existing secret
+    userPasswordKey: db.password
 
 ## @section MariaDB parameters
 ## use mariadb instead of external database

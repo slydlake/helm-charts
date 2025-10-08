@@ -1773,10 +1773,21 @@
         ],
         "properties": {
             "externalDatabase": {
-                "required": [
-                    "host",
-                    "database",
-                    "username"
+                "oneOf": [
+                    {
+                        "required": [
+                            "existingSecret",
+                            "host",
+                            "database"
+                        ]
+                    },
+                    {
+                        "required": [
+                            "host",
+                            "database",
+                            "username"
+                        ]
+                    }
                 ]
             }
         }
