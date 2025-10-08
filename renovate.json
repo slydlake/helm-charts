@@ -18,6 +18,18 @@
             "matchManagers": [
                 "helm-values"
             ],
+            "matchPackageNames": [
+                "linuxserver/wireguard",
+                "/^docker\\.io\\/linuxserver\\/wireguard$/"
+            ],
+            "versioning": "regex",
+            "regex": "^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$",
+            "description": "Handle linuxserver wireguard tags with -rX-lsY suffix"
+        },
+        {
+            "matchManagers": [
+                "helm-values"
+            ],
             "matchUpdateTypes": [
                 "minor",
                 "patch",
