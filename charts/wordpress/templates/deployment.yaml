@@ -175,17 +175,17 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ if .Values.wordpress.init.existingSecret }}{{ .Values.wordpress.init.existingSecret }}{{ else }}{{ include "wordpress.fullname" . }}-init{{ end }}
-                  key: {{ .Values.wordpress.init.secretKeys.userUsernameKey | default "db.wordpress.username" }}
+                  key: {{ .Values.wordpress.init.secretKeys.userUsernameKey | default "wordpress.username" }}
             - name: WP_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ if .Values.wordpress.init.existingSecret }}{{ .Values.wordpress.init.existingSecret }}{{ else }}{{ include "wordpress.fullname" . }}-init{{ end }}
-                  key: {{ .Values.wordpress.init.secretKeys.userPasswordKey | default "db.wordpress.password" }}
+                  key: {{ .Values.wordpress.init.secretKeys.userPasswordKey | default "wordpress.password" }}
             - name: WP_ADMIN_EMAIL
               valueFrom:
                 secretKeyRef:
                   name: {{ if .Values.wordpress.init.existingSecret }}{{ .Values.wordpress.init.existingSecret }}{{ else }}{{ include "wordpress.fullname" . }}-init{{ end }}
-                  key: {{ .Values.wordpress.init.secretKeys.userEmailKey | default "db.wordpress.email" }}
+                  key: {{ .Values.wordpress.init.secretKeys.userEmailKey | default "wordpress.email" }}
             {{- if .Values.wordpress.init.firstname }}
             - name: WP_ADMIN_FIRSTNAME
               value: {{ .Values.wordpress.init.firstname | quote }}
