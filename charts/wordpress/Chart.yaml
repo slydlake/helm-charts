@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.2.10
+version: 0.2.11
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,15 +26,15 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
+    - kind: changed
+      description: "Updates 'externalDatabase.existingSecret' and 'wordpress.init' to be able to use customizable keys (thanks to ScionOfDesign)"
+      url: https://github.com/slydlake/helm-charts/issues/23
     - kind: fixed
-      description: "extraEnvVars are now working in wodpress deployment (thanks to ScionOfDesign)"
-      url: https://github.com/slydlake/helm-charts/issues/21
+      description: "No longer requires that externalDatabase.username be defined if an external secret is specified (thanks to ScionOfDesign)"
+      url: https://github.com/slydlake/helm-charts/issues/23
     - kind: fixed
-      description: "secret value database name (thanks to ScionOfDesign)"
-      url: https://github.com/slydlake/helm-charts/issues/21
-    - kind: fixed
-      description: "uses WORDPRESS_ env variables if defined in values.yaml (thanks to ScionOfDesign)"
-      url: https://github.com/slydlake/helm-charts/issues/21
+      description: "Ensures that the host and database user are passed into the Wordpress container as environment variables when an external secret is used (thanks to ScionOfDesign)"
+      url: https://github.com/slydlake/helm-charts/issues/23
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress

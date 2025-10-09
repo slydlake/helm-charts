@@ -154,6 +154,14 @@ wordpress:
     # Existing secret for WordPress credentials. Must contain the keys: wordpress.username, wordpress.password and wordpress.email
     # if existingSecret is set, username, password and email will be ignored
     existingSecret: ""
+    ## @section Existing Secret Keys parameters
+    secretKeys:
+      ## @param wordpress.init.secretKeys.userUsernameKey for the username key in existing secret
+      userUsernameKey: wordpress.username
+      ## @param wordpress.init.secretKeys.userPasswordKey for the password key in existing secret
+      userPasswordKey: wordpress.password
+      ## @param wordpress.init.secretKeys.userEmailKey for the email key in existing secret
+      userEmailKey: wordpress.email
     ## @param wordpress.init.username string WordPress admin username
     # WordPress admin user
     username:
@@ -816,6 +824,12 @@ externalDatabase:
   # This secret must contain the following key: db.password and db.username
   # When this is set, the externalDatabase.password will be ignored
   existingSecret: ""
+  ## @section Existing Secret Keys parameters
+  secretKeys:
+    ## @param externalDatabase.secretKeys.userUsernameKey for the username key in existing secret
+    userUsernameKey: db.username
+    ## @param externalDatabase.secretKeys.userPasswordKey for the password key in existing secret
+    userPasswordKey: db.password
 
 ## @section MariaDB parameters
 ## use mariadb instead of external database

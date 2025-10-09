@@ -145,15 +145,28 @@ spec:
                 secretKeyRef:
                   name: {{ if .Values.mariadb.auth.existingSecret }}{{ .Values.mariadb.auth.existingSecret }}{{ else }}{{ include "wordpress.mariadb.fullname" . }}{{ end }}
                   key: {{ .Values.mariadb.auth.secretKeys.userPasswordKey | default "mariadb-password" }}
-            {{- else }}
+            {{- else if (not .Values.mariadb.enabled ) }}
             - name: WORDPRESS_DB_HOST
               value: {{ .Values.externalDatabase.host | quote }}
             - name: WORDPRESS_DB_NAME
               value: {{ .Values.externalDatabase.database | quote }}
+            {{- if .Values.externalDatabase.existingSecret }}
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecret }}
+                  key: {{ .Values.externalDatabase.secretKeys.userUsernameKey | default "db.username" }}
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecret }}
+                  key: {{ .Values.externalDatabase.secretKeys.userPasswordKey | default "db.password" }}
+            {{- else }}
             - name: WORDPRESS_DB_USER
               value: {{ .Values.externalDatabase.username | quote }}
             - name: WORDPRESS_DB_PASSWORD
               value: {{ .Values.externalDatabase.password | quote }}
+            {{- end }}
             {{- end }}
             {{- if .Values.wordpress.init.enabled }}
             - name: WP_TITLE
@@ -162,17 +175,17 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ if .Values.wordpress.init.existingSecret }}{{ .Values.wordpress.init.existingSecret }}{{ else }}{{ include "wordpress.fullname" . }}-init{{ end }}
-                  key: wordpress.username
+                  key: {{ .Values.wordpress.init.secretKeys.userUsernameKey | default "wordpress.username" }}
             - name: WP_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ if .Values.wordpress.init.existingSecret }}{{ .Values.wordpress.init.existingSecret }}{{ else }}{{ include "wordpress.fullname" . }}-init{{ end }}
-                  key: wordpress.password
+                  key: {{ .Values.wordpress.init.secretKeys.userPasswordKey | default "wordpress.password" }}
             - name: WP_ADMIN_EMAIL
               valueFrom:
                 secretKeyRef:
                   name: {{ if .Values.wordpress.init.existingSecret }}{{ .Values.wordpress.init.existingSecret }}{{ else }}{{ include "wordpress.fullname" . }}-init{{ end }}
-                  key: wordpress.email
+                  key: {{ .Values.wordpress.init.secretKeys.userEmailKey | default "wordpress.email" }}
             {{- if .Values.wordpress.init.firstname }}
             - name: WP_ADMIN_FIRSTNAME
               value: {{ .Values.wordpress.init.firstname | quote }}
@@ -219,26 +232,28 @@ spec:
                 secretKeyRef:
                   name: {{if .Values.mariadb.auth.existingSecret}} {{ .Values.mariadb.auth.existingSecret }} {{ else }} {{ include "wordpress.mariadb.fullname" . }} {{ end }}
                   key: {{ .Values.mariadb.auth.secretKeys.userPasswordKey }}
-          {{- else if and (not .Values.mariadb.enabled ) .Values.externalDatabase.existingSecret }}
-            - name: WORDPRESS_DB_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.externalDatabase.existingSecret }}
-                  key: db.username
-            - name: WORDPRESS_DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.externalDatabase.existingSecret }}
-                  key: db.password
-          {{- else if and (not .Values.mariadb.enabled ) (not .Values.externalDatabase.existingSecret) }}
+          {{- else if (not .Values.mariadb.enabled ) }}
             - name: WORDPRESS_DB_HOST
               value: {{ .Values.externalDatabase.host | quote }}
             - name: WORDPRESS_DB_NAME
               value: {{ .Values.externalDatabase.database | quote }}
+          {{- if .Values.externalDatabase.existingSecret }}
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecret }}
+                  key: {{ .Values.externalDatabase.secretKeys.userUsernameKey | default "db.username" }}
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalDatabase.existingSecret }}
+                  key: {{ .Values.externalDatabase.secretKeys.userPasswordKey | default "db.password" }}
+          {{- else }}
             - name: WORDPRESS_DB_USER
               value: {{ .Values.externalDatabase.username | quote }}
             - name: WORDPRESS_DB_PASSWORD
               value: {{ .Values.externalDatabase.password | quote }}
+          {{- end }}
           {{- end }}
           {{- if .Values.wordpress.debug }}
             - name: WORDPRESS_DEBUG

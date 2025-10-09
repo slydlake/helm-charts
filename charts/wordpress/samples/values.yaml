@@ -157,6 +157,15 @@ wordpress:
     # Existing secret for WordPress credentials. Must contain the keys: wordpress.username, wordpress.password and wordpress.email
     # if existingSecret is set, username, password and email will be ignored
     existingSecret: "wordpress-test-secret"
+    ## @section Existing Secret Keys parameters
+    secretKeys:
+      ## @param wordpress.init.secretKeys.userUsernameKey for the username key in existing secret
+      userUsernameKey: wordpress.username
+      ## @param wordpress.init.secretKeys.userPasswordKey for the password key in existing secret
+      userPasswordKey: wordpress.password
+      ## @param wordpress.init.secretKeys.userEmailKey for the email key in existing secret
+      userEmailKey: wordpress.email
+
     ## @param wordpress.init.username string WordPress admin username
     # WordPress admin user
     username:
@@ -624,8 +633,6 @@ metrics:
   ## @param wordpress object WordPress metrics configuration
   ## The metrics will exported with a WordPress plugin and provided with a serviceMonitor to Prometheus
   wordpress:
-    ## @param metrics.wordpress.fullnameOverride string Override the fullname of the wordpress metrics
-    fullnameOverride: ""
     ## @param metrics.wordpress.enabled boolean Specifies if wordpress metrics should be created
     enabled: true
     ## @param metrics.wordpress.installPlugin boolean Specifies whether the WordPress exporter plugin should be installed
@@ -661,8 +668,6 @@ metrics:
   ## @section Apache Metrics parameters
   ## This uses the Apache Exporter sidecar to expose metrics
   apache:
-    ## @param metrics.apache.fullnameOverride string Override the fullname of the apache metrics deployment
-    fullnameOverride: ""
     ## @param metrics.apache.enabled boolean Specifies if apache metrics should be created
     enabled: true
     ## @section Image parameters
@@ -828,15 +833,21 @@ externalDatabase:
   username:
   ## @param externalDatabase.password string External database password
   # External database password
-  password:
+  password: ""
   ## @param externalDatabase.database string External database name
   # External database name
   database: test
   ## @param externalDatabase.existingSecret string Name of existing Secret containing database credentials
   # Name of the existing Secret containing the database password
-  # This secret must contain the following key: db.username and db.password
+  # This secret must contain the following key: db.password and db.username
   # When this is set, the externalDatabase.password will be ignored
   existingSecret: "wordpress-test-secret"
+  ## @section Existing Secret Keys parameters
+  secretKeys:
+    ## @param externalDatabase.secretKeys.userUsernameKey for the username key in existing secret
+    userUsernameKey: db.username
+    ## @param externalDatabase.secretKeys.userPasswordKey for the password key in existing secret
+    userPasswordKey: db.password
 
 ## @section MariaDB parameters
 ## use mariadb instead of external database
@@ -878,13 +889,13 @@ mariadb:
     ## @param mariadb.auth.enabled boolean MariaDB authentication enabled or disabled
     enabled: true
     ## @param mariadb.auth.rootPassword string MariaDB root password
-    rootPassword:
+    rootPassword: ""
     ## @param mariadb.auth.database string MariaDB custom database
     database: "test"
     ## @param mariadb.auth.username string MariaDB custom user name
     username: "db"
     ## @param mariadb.auth.password string MariaDB custom user password
-    password:
+    password: ""
     ## @param mariadb.auth.existingSecret string Name of existing secret for MariaDB credentials
     existingSecret: "wordpress-test-secret"
     ## @param mariadb.auth.allowEmptyRootPassword string Allow empty root password
