@@ -156,11 +156,11 @@ wordpress:
     existingSecret: ""
     ## @section Existing Secret Keys parameters
     secretKeys:
-      ## @param init.secretKeys.userUsernameKey for the username key in existing secret
+      ## @param wordpress.init.secretKeys.userUsernameKey for the username key in existing secret
       userUsernameKey: wordpress.username
-      ## @param init.secretKeys.userPasswordKey for the password key in existing secret
+      ## @param wordpress.init.secretKeys.userPasswordKey for the password key in existing secret
       userPasswordKey: wordpress.password
-      ## @param init.secretKeys.userEmailKey for the email key in existing secret
+      ## @param wordpress.init.secretKeys.userEmailKey for the email key in existing secret
       userEmailKey: wordpress.email
     ## @param wordpress.init.username string WordPress admin username
     # WordPress admin user
