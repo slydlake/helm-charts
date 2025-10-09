@@ -26,7 +26,7 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: fixed
+    - kind: changed
       description: "Updates 'externalDatabase.existingSecret' and 'wordpress.init' to be able to use customizable keys (thanks to ScionOfDesign)"
       url: https://github.com/slydlake/helm-charts/issues/23
     - kind: fixed
