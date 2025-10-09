@@ -234,6 +234,27 @@
                             "description": "Existing secret for WordPress credentials",
                             "default": ""
                         },
+                        "secretKeys": {
+                            "type": "object",
+                            "description": "Key names for WordPress admin credentials within an existing secret",
+                            "properties": {
+                                "userUsernameKey": {
+                                    "type": "string",
+                                    "description": "Key name for the admin username",
+                                    "default": "wordpress.username"
+                                },
+                                "userPasswordKey": {
+                                    "type": "string",
+                                    "description": "Key name for the admin password",
+                                    "default": "wordpress.password"
+                                },
+                                "userEmailKey": {
+                                    "type": "string",
+                                    "description": "Key name for the admin email",
+                                    "default": "wordpress.email"
+                                }
+                            }
+                        },
                         "username": {
                             "type": "string",
                             "description": "WordPress admin username"
@@ -1361,6 +1382,22 @@
                     "type": "string",
                     "description": "Name of existing secret for database credentials",
                     "default": ""
+                },
+                "secretKeys": {
+                    "type": "object",
+                    "description": "Key names for database credentials within an existing secret",
+                    "properties": {
+                        "userUsernameKey": {
+                            "type": "string",
+                            "description": "Key name for the database username",
+                            "default": "db.username"
+                        },
+                        "userPasswordKey": {
+                            "type": "string",
+                            "description": "Key name for the database password",
+                            "default": "db.password"
+                        }
+                    }
                 }
             }
         },
