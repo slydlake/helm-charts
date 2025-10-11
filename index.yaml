@@ -1386,6 +1386,68 @@ entries:
       artifacthub.io/category: networking
       artifacthub.io/changes: |
         - kind: changed
+          description: "[helm] chore(deps): update chart dependencies mariadb Docker tag to v0.3.4"
+          links:
+            - name: Pull Request
+              url: https://github.com/slydlake/helm-charts/pull/25
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wordpress
+          image: docker.io/wordpress:6.8.3-php8.1-apache
+        - name: wordpress-cli
+          image: docker.io/wordpress:cli-2.12.0-php8.1
+        - name: metrics-apache
+          image: lusotycoon/apache-exporter:v1.0.10
+        - name: mariadb
+          image: docker.io/mariadb:12.0.2-noble
+        - name: memcached
+          image: docker.io/memcached:1.6.39
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
+        - name: Official WordPress Repository
+          url: https://github.com/docker-library/
+        - name: "SlyMetrics WordPress plugin for Prometheus Metrics"
+          url: https://github.com/slydlake/slymetrics
+        - name: Apache Metrics container
+          url: https://github.com/Lusitaniae/apache_exporter
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: 6.8.3
+    created: "2025-10-11T10:52:56.916882788Z"
+    dependencies:
+    - condition: memcached.enabled
+      name: memcached
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.2.1
+    - condition: mariadb.enabled
+      name: mariadb
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.3.4
+    description: Using the official WordPress image. This chart provides automation
+      for installation, user management, plugin installation, and metrics.
+    digest: 3a47d6516c0fdc4b6cf23efc982ac3e8f46ed1bb985ee735404af47beb2475d7
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
+    keywords:
+    - wordpress
+    - blog
+    maintainers:
+    - name: slydlake
+    name: wordpress
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.2.12/wordpress-0.2.12.tgz
+    version: 0.2.12
+  - annotations:
+      artifacthub.io/category: networking
+      artifacthub.io/changes: |
+        - kind: changed
           description: "Updates 'externalDatabase.existingSecret' and 'wordpress.init' to be able to use customizable keys (thanks to ScionOfDesign)"
           url: https://github.com/slydlake/helm-charts/issues/23
         - kind: fixed
@@ -2172,4 +2234,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-10-09T20:55:03.513366965Z"
+generated: "2025-10-11T10:52:56.91703405Z"
