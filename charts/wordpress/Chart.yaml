@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.2.11
+version: 0.2.12
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -27,14 +27,10 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "Updates 'externalDatabase.existingSecret' and 'wordpress.init' to be able to use customizable keys (thanks to ScionOfDesign)"
-      url: https://github.com/slydlake/helm-charts/issues/23
-    - kind: fixed
-      description: "No longer requires that externalDatabase.username be defined if an external secret is specified (thanks to ScionOfDesign)"
-      url: https://github.com/slydlake/helm-charts/issues/23
-    - kind: fixed
-      description: "Ensures that the host and database user are passed into the Wordpress container as environment variables when an external secret is used (thanks to ScionOfDesign)"
-      url: https://github.com/slydlake/helm-charts/issues/23
+      description: "[helm] chore(deps): update chart dependencies mariadb Docker tag to v0.3.4"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/25
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
@@ -55,7 +51,7 @@ dependencies:
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.3.3
+    version: 0.3.4
 keywords:
   - wordpress
   - blog
