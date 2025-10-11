@@ -69,25 +69,47 @@ for CHART_DIR in $CHANGED_CHARTS; do
     fi
   fi
   
-  # Create new changelog entry
-  # We need to insert it right after "artifacthub.io/changes: |"
+  # Create new changelog entry - replace old entries with new one
+  # We'll use a simple approach: find the changes section and replace everything until the next annotation
   TMP_FILE=$(mktemp)
   
-  awk -v dep="$DEPENDENCY_INFO" -v pr_url="$PR_URL" '
-    /artifacthub\.io\/changes: \|/ {
-      print
-      print "    - kind: changed"
-      print "      description: \"" dep "\""
-      print "      links:"
-      print "        - name: Pull Request"
-      print "          url: " pr_url
-      next
-    }
-    {print}
-  ' "$CHART_YAML" > "$TMP_FILE"
-  
+  python3 - "$CHART_YAML" "$DEPENDENCY_INFO" "$PR_URL" "$TMP_FILE" <<'PYTHON_SCRIPT'
+import sys
+import re
+
+chart_file = sys.argv[1]
+dependency_info = sys.argv[2]
+pr_url = sys.argv[3]
+tmp_file = sys.argv[4]
+
+# Read the entire file
+with open(chart_file, 'r') as f:
+    content = f.read()
+
+# Create the new changelog entry
+new_changelog = f"""  artifacthub.io/changes: |
+    - kind: changed
+      description: "{dependency_info}"
+      links:
+        - name: Pull Request
+          url: {pr_url}"""
+
+# Replace the artifacthub.io/changes section
+# Pattern: match from "artifacthub.io/changes:" until the next "artifacthub.io/" or end of annotations
+pattern = r'(  artifacthub\.io/changes: \|(?:\n    .*)*)'
+
+# Find and replace the changes section
+updated_content = re.sub(pattern, new_changelog, content)
+
+# Write to temporary file
+with open(tmp_file, 'w') as f:
+    f.write(updated_content)
+
+print(f"✅ Updated changelog in {chart_file}")
+PYTHON_SCRIPT
+
+  # Replace original file with updated content
   mv "$TMP_FILE" "$CHART_YAML"
-  rm -f "${CHART_YAML}.bak"
   
   echo "✅ Updated $CHART_YAML with version $NEW_VERSION"
 done
