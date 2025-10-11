@@ -1,69 +1,69 @@
 name: Update Chart Metadata on Renovate PRs
 
 on:
-    pull_request:
-        types: [opened, synchronize]
-        branches:
-            - main
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - main
 
 jobs:
-    update-chart-metadata:
-        # Only run on Renovate PRs
-        if: github.actor == 'renovate[bot]'
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            pull-requests: write
+  update-chart-metadata:
+    # Only run on Renovate PRs
+    if: github.actor == 'renovate[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
-        steps:
-            - name: Checkout PR branch
-              uses: actions/checkout@v4
-              with:
-                  ref: ${{ github.head_ref }}
-                  token: ${{ secrets.GITHUB_TOKEN }}
-                  fetch-depth: 0
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-            - name: Configure Git
-              run: |
-                  git config --global user.name 'github-actions[bot]'
-                  git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-            - name: Update Chart.yaml metadata
-              run: |
-                  bash .github/scripts/update-chart-metadata.sh \
-                    "${{ github.event.pull_request.title }}" \
-                    "${{ github.event.pull_request.html_url }}"
+      - name: Update Chart.yaml metadata
+        run: |
+          bash .github/scripts/update-chart-metadata.sh \
+            "${{ github.event.pull_request.title }}" \
+            "${{ github.event.pull_request.html_url }}"
 
-            - name: Commit and push changes
-              run: |
-                  if git diff --quiet; then
-                    echo "No changes to commit"
-                    exit 0
-                  fi
+      - name: Commit and push changes
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
 
-                  git add charts/*/Chart.yaml
-                  git commit -m "chore: update chart metadata [skip ci]"
-                  git push
+          git add charts/*/Chart.yaml
+          git commit -m "chore: update chart metadata"
+          git push
 
-            - name: Comment on PR
-              uses: actions/github-script@v7
-              with:
-                  script: |
-                      const changedFiles = await github.rest.pulls.listFiles({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        pull_number: context.issue.number
-                      });
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const changedFiles = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
 
-                      const chartYamls = changedFiles.data.filter(f => f.filename.includes('Chart.yaml'));
+            const chartYamls = changedFiles.data.filter(f => f.filename.includes('Chart.yaml'));
 
-                      if (chartYamls.length > 0) {
-                        const charts = chartYamls.map(f => f.filename.split('/')[1]).join(', ');
-                        
-                        await github.rest.issues.createComment({
-                          owner: context.repo.owner,
-                          repo: context.repo.repo,
-                          issue_number: context.issue.number,
-                          body: `🤖 Chart metadata automatically updated:\n- Charts: ${charts}\n- Version bumped (patch +1)\n- Change log entry added with PR link`
-                        });
-                      }
+            if (chartYamls.length > 0) {
+              const charts = chartYamls.map(f => f.filename.split('/')[1]).join(', ');
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `🤖 Chart metadata automatically updated:\n- Charts: ${charts}\n- Version bumped (patch +1)\n- Change log entry added with PR link`
+              });
+            }
