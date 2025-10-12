@@ -5,15 +5,13 @@ This Helm chart installs WordPress in a Kubernetes cluster with many advanced fe
 
 ## TL;DR
 
-Add the repository:
+Install with helm
 ```bash
-helm repo add slycharts https://slydlake.github.io/helm-charts
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress
 ```
 
-Install WordPress:
-```bash
-helm install my-wordpress slycharts/wordpress
-```
+> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown above.
+
 
 ## Default installation of WordPress Information
 

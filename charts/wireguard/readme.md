@@ -5,10 +5,13 @@
 
 ## TL;DR
 
-Add Repo
+Install with helm
 ```bash
 helm install wireguard oci://ghcr.io/slybase/charts/wireguard
 ```
+
+> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown above.
+
 
 ## Prerequisites
 You have to set a namespace with privileged security:
