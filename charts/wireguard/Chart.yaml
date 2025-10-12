@@ -2,7 +2,7 @@ apiVersion: v2
 name: wireguard
 description: "Using the offical linuxserver/wireguard image with almost any environment variables for K8S. Supporting server and client mode."
 type: application
-version: 0.1.17
+version: 0.1.18
 appVersion: 1.0.20250521-r0-ls88
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
 home: https://github.com/slydlake/helm-charts
@@ -22,8 +22,8 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: changed
-      description: "Pinned wireguard version to schema 1.0.20250521-r0-ls88"
+    - kind: fixed
+      description: "PUID and PGID provided now as string."
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wireguard

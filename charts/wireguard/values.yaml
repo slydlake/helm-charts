@@ -79,9 +79,9 @@ wireguard:
 
   # see for more information https://github.com/linuxserver/docker-wireguard?tab=readme-ov-file#user--group-identifiers
   # UserID, default 1000
-  PUID: 1000
+  PUID: "1000"
   # GroupID, default 1000
-  PGID: 1000
+  PGID: "1000"
 
   # extra environment variables to set in the wireguard container
   # E.g.
