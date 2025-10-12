@@ -1,12 +1,25 @@
-name: Release Charts
+name: Release Charts (DEPRECATED - Use OCI Registry)
 
+# DEPRECATED: This workflow is disabled. All releases now go to OCI registry only.
+# See: .github/workflows/oci-release.yaml
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch: # Only manual trigger, no automatic releases
+    inputs:
+      confirm:
+        description: "Are you sure? This workflow is deprecated. Use OCI registry instead."
+        required: true
+        default: "no"
+        type: choice
+        options:
+          - "no"
+          - "yes"
+  # push:  # DISABLED - was previously auto-triggering
+  #   branches:
+  #     - main
 
 jobs:
   release:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'yes'
     # depending on default permission settings for your org (contents being read-only or read-write for workloads), you will have to add permissions
     # see: https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token
     permissions:
@@ -14,6 +27,12 @@ jobs:
       id-token: write # Required for cosign keyless signing
     runs-on: ubuntu-latest
     steps:
+      - name: ⚠️ Deprecation Warning
+        run: |
+          echo "::warning::🚨 This workflow is DEPRECATED and will be removed soon!"
+          echo "::warning::📦 Please use OCI registry releases instead: oci://ghcr.io/slybase/charts"
+          echo "::warning::🔗 See .github/workflows/oci-release.yaml"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -23,14 +42,14 @@ jobs:
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-      
+
       - name: Install Helm
         uses: azure/setup-helm@v3
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.7.0
         with:
-          cosign-release: 'v2.4.1'
+          cosign-release: "v2.4.1"
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.7.0
@@ -43,7 +62,7 @@ jobs:
         run: |
           # Get all releases
           releases=$(gh release list --repo ${{ github.repository }} --limit 10 --json tagName)
-          
+
           # Process each release
           echo "$releases" | jq -r '.[].tagName' | while read tag; do
             echo "Processing release: $tag"
@@ -97,7 +116,7 @@ jobs:
               rm -f ./temp-signing/"$chart_file" ./temp-signing/"$bundle_file"
             done
           done
-          
+
           # Final cleanup
           rm -rf ./temp-signing
         env:
