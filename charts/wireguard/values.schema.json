@@ -424,13 +424,14 @@
     "podSecurityContext": {
       "type": "object",
       "title": "Pod Security Context",
-      "description": "SecurityContext at pod level (e.g. fsGroup)."
+      "description": "SecurityContext at pod level (e.g. fsGroup, sysctls). Supports all Kubernetes PodSecurityContext fields.",
+      "additionalProperties": true
     },
     "securityContext": {
       "type": "object",
       "title": "Container Security Context",
-      "description": "SecurityContext at container level (e.g. NET_ADMIN, SYS_MODULE, runAsUser, privileged).",
-      "additionalProperties": false,
+      "description": "SecurityContext at container level (e.g. NET_ADMIN, SYS_MODULE, runAsUser, privileged). Note: sysctls should technically be in podSecurityContext, but is also accepted here for compatibility.",
+      "additionalProperties": true,
       "properties": {
         "privileged": {
           "type": "boolean",
