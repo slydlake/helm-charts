@@ -27,6 +27,17 @@
         },
         {
             "matchManagers": [
+                "helmv3"
+            ],
+            "matchFileNames": [
+                "charts/wireguard/Chart.yaml"
+            ],
+            "extractVersion": "^(?<version>.+)$",
+            "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$",
+            "description": "Preserve full linuxserver wireguard version in Chart.yaml appVersion including -rX-lsY suffix"
+        },
+        {
+            "matchManagers": [
                 "helm-values"
             ],
             "matchUpdateTypes": [
