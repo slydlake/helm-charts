@@ -4,7 +4,8 @@
     ],
     "enabledManagers": [
         "helm-values",
-        "helmv3"
+        "helmv3",
+        "regex"
     ],
     "pinDigests": true,
     "prHourlyLimit": 5,
@@ -12,6 +13,19 @@
     "timezone": "Europe/Berlin",
     "assignees": [
         "slydlake"
+    ],
+    "regexManagers": [
+        {
+            "fileMatch": [
+                "^charts/wireguard/Chart\\.yaml$"
+            ],
+            "matchStrings": [
+                "appVersion:\\s+['\"]?(?<currentValue>\\d+\\.\\d+\\.\\d+(?:-r\\d+-ls\\d+)?)['\"]?"
+            ],
+            "datasourceTemplate": "docker",
+            "depNameTemplate": "linuxserver/wireguard",
+            "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$"
+        }
     ],
     "packageRules": [
         {
@@ -27,14 +41,14 @@
         },
         {
             "matchManagers": [
-                "helmv3"
+                "regex"
             ],
-            "matchFileNames": [
-                "charts/wireguard/Chart.yaml"
+            "matchPackageNames": [
+                "linuxserver/wireguard"
             ],
-            "extractVersion": "^(?<version>.+)$",
             "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$",
-            "description": "Preserve full linuxserver wireguard version in Chart.yaml appVersion including -rX-lsY suffix"
+            "groupName": "linuxserver/wireguard",
+            "description": "Handle linuxserver wireguard appVersion in Chart.yaml with full version including -rX-lsY suffix"
         },
         {
             "matchManagers": [
