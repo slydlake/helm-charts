@@ -851,6 +851,48 @@ entries:
       artifacthub.io/category: security
       artifacthub.io/changes: |
         - kind: changed
+          description: "chore(deps): update linuxserver/wireguard docker tag to v1.0.20250521-r0-ls89"
+          links:
+            - name: Pull Request
+              url: https://github.com/slydlake/helm-charts/pull/34
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wireguard
+          image: docker.io/linuxserver/wireguard:1.0.20250521-r0-ls88
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wireguard
+        - name: Offical WireGuard Repository
+          url: https://github.com/linuxserver/docker-wireguard
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: 1.0.20250521-r0-ls89
+    created: "2025-10-17T09:11:44.446734002Z"
+    description: Using the offical linuxserver/wireguard image with almost any environment
+      variables for K8S. Supporting server and client mode.
+    digest: ac43e8f71dac99f4e18b1007db3103370e755c96e256d6ba98b5231781460fb7
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - linuxserver
+    maintainers:
+    - name: slydlake
+    name: wireguard
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.21/wireguard-0.1.21.tgz
+    version: 0.1.21
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: changed
           description: "readme info about decrepation of helm chart releases, use OCI registry instead."
       artifacthub.io/containsSecurityUpdates: "false"
       artifacthub.io/images: |
@@ -2674,4 +2716,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-10-15T12:24:27.717969273Z"
+generated: "2025-10-17T09:11:44.446898009Z"
