@@ -2,7 +2,12 @@
 set -e
 
 # Script to update Chart.yaml metadata after Renovate updates
-# Updates: version (patch +1) and artifacthub.io/changes
+# Updates: 
+#   - version (patch +1)
+#   - artifacthub.io/changes
+#
+# Note: appVersion is managed by Renovate directly via regex manager
+#       to preserve full version tags (e.g., 1.0.20250521-r0-ls88)
 #
 # Usage:
 #   Auto-detect mode: ./update-chart-metadata.sh "PR Title" "PR URL"
@@ -50,24 +55,8 @@ for CHART_DIR in $CHANGED_CHARTS; do
   # Update version in Chart.yaml
   sed -i.bak "s/^version: .*/version: $NEW_VERSION/" "$CHART_YAML"
   
-  # Update appVersion based on main image tag
-  VALUES_YAML="$CHART_DIR/values.yaml"
-  
-  if [ -f "$VALUES_YAML" ]; then
-    # Extract the first image tag from values.yaml (main application image)
-    # This looks for the first occurrence of "tag:" under "image:" section
-    MAIN_IMAGE_TAG=$(grep -A 20 '^image:' "$VALUES_YAML" | grep '^\s*tag:' | head -1 | awk '{print $2}' | tr -d '"' | tr -d "'")
-    
-    if [ -n "$MAIN_IMAGE_TAG" ]; then
-      # Extract semantic version from tag (e.g., "6.8.3-php8.1-apache" -> "6.8.3")
-      APP_VERSION=$(echo "$MAIN_IMAGE_TAG" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+' || echo "$MAIN_IMAGE_TAG")
-      
-      echo "Updating appVersion to: $APP_VERSION (from image tag: $MAIN_IMAGE_TAG)"
-      sed -i.bak "s/^appVersion: .*/appVersion: \"$APP_VERSION\"/" "$CHART_YAML"
-    else
-      echo "⚠️  Could not extract main image tag from $VALUES_YAML"
-    fi
-  fi
+  # Note: appVersion is now managed by Renovate directly via regex manager
+  # This ensures the full version tags (e.g., 1.0.20250521-r0-ls88) are preserved
   
   # Create new changelog entry - replace old entries with new one
   # We'll use a simple approach: find the changes section and replace everything until the next annotation

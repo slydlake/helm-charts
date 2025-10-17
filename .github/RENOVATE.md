@@ -17,6 +17,26 @@ What to expect:
 - Review PRs to ensure tag+digest are correct before merging.
 - `linuxserver/wireguard` updates will include both the image tag in `values.yaml` and the `appVersion` in `Chart.yaml` in a single grouped PR.
 
+## Testing Locally
+
+You can validate the Renovate configuration locally before pushing:
+
+```bash
+# Quick validation (no GitHub token needed)
+.github/scripts/test-renovate.sh
+
+# Test appVersion regex extraction
+.github/scripts/test-appversion-regex.sh
+
+# Full dry-run (requires GitHub token)
+export GITHUB_TOKEN=your_token
+.github/scripts/test-renovate-full.sh
+```
+
+See `.github/scripts/README.md` for more details.
+
+---
+
 If a values file uses an unusual layout, open a PR to adjust `renovate.json`'s `regexManagers` so Renovate can parse it.
 
 Generated to document the current Renovate setup.

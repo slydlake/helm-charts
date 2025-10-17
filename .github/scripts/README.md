@@ -2,7 +2,22 @@
 
 This directory contains utility and validation scripts for the repository.
 
-## Renovate Testing Scripts
+## 🤖 Used by GitHub Actions
+
+### `update-chart-metadata.sh`
+
+**Used by:** `.github/workflows/renovate-chart-update.yml`
+
+**What it does:**
+- ✅ Bumps Chart version (patch +1)
+- ✅ Updates `artifacthub.io/changes` annotation with PR link
+- ❌ Does NOT update appVersion (handled by Renovate directly)
+
+**Workflow:** Renovate PR → renovate-chart-update.yml → update-chart-metadata.sh → Chart version bump + changelog
+
+---
+
+## 🧪 Renovate Testing Scripts
 
 ### `test-renovate.sh`
 
@@ -63,19 +78,7 @@ export GITHUB_TOKEN=ghp_your_token_here
 
 ---
 
-## Chart Management Scripts
-
-### `bump_chart_version.sh`
-
-Automatically bumps the chart version.
-
-### `update-chart-metadata.sh`
-
-Updates chart metadata files.
-
----
-
-## Running Scripts
+## 🏃 Running Scripts
 
 All scripts should be run from the **repository root**:
 
