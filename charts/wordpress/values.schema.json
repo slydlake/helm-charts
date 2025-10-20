@@ -1825,21 +1825,9 @@
         ],
         "properties": {
             "externalDatabase": {
-                "oneOf": [
-                    {
-                        "required": [
-                            "existingSecret",
-                            "host",
-                            "database"
-                        ]
-                    },
-                    {
-                        "required": [
-                            "host",
-                            "database",
-                            "username"
-                        ]
-                    }
+                "required": [
+                    "host",
+                    "database"
                 ]
             }
         }
