@@ -165,16 +165,15 @@ wordpress:
       userPasswordKey: wordpress.password
       ## @param wordpress.init.secretKeys.userEmailKey for the email key in existing secret
       userEmailKey: wordpress.email
-
     ## @param wordpress.init.username string WordPress admin username
     # WordPress admin user
-    username:
+    username: ""
     ## @param wordpress.init.password string WordPress admin password
     # WordPress admin password
-    password:
+    password: ""
     ## @param wordpress.init.email string WordPress admin email
     # WordPress admin email
-    email:
+    email: ""
     ## @param wordpress.init.firstname string WordPress admin first name
     # WordPress admin first name
     firstname: John
@@ -309,7 +308,7 @@ apache:
   #           ErrorLog ${APACHE_LOG_DIR}/error.log
   #           CustomLog ${APACHE_LOG_DIR}/access.log combined
   #   </VirtualHost>
-  customDefaultSiteConfig:
+  customDefaultSiteConfig: ""
 
   ## @param apache.customDefaultSiteConfigMap string Name of existing ConfigMap containing default site config
   ## Must contain the key "000-default.conf"
@@ -320,7 +319,7 @@ apache:
   ## this is the file apache2/ports.conf
   # customPortsConfig: |-
   #   Listen 80
-  customPortsConfig:
+  customPortsConfig: ""
 
   ## @param apache.customPortsConfigMap string Name of existing ConfigMap containing ports config
   ## Must contain the key "ports.conf"
@@ -332,7 +331,7 @@ apache:
   #   upload_max_filesize = 64M
   #   post_max_size = 64M
   #   memory_limit = 256M
-  customPhpConfig:
+  customPhpConfig: ""
 
   ## @param apache.customPhpConfigMap string Name of existing ConfigMap containing PHP config
   ## Must contain the key "custom.ini"
@@ -776,7 +775,7 @@ metrics:
         metrics:
       ## @param metrics.apache.service.clusterIP string Static cluster IP
       # This sets the ClusterIP
-      clusterIP:
+      clusterIP: ""
       ## @param metrics.apache.service.annotations object Additional annotations for service
       # Sets additional annotations to the service
       annotations: {}
@@ -830,7 +829,7 @@ externalDatabase:
   port: 3306
   ## @param externalDatabase.username string External database user
   # External database user
-  username:
+  username: ""
   ## @param externalDatabase.password string External database password
   # External database password
   password: ""

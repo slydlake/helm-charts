@@ -164,22 +164,22 @@ wordpress:
       userEmailKey: wordpress.email
     ## @param wordpress.init.username string WordPress admin username
     # WordPress admin user
-    username:
+    username: ""
     ## @param wordpress.init.password string WordPress admin password
     # WordPress admin password
-    password:
+    password: ""
     ## @param wordpress.init.email string WordPress admin email
     # WordPress admin email
-    email:
+    email: ""
     ## @param wordpress.init.firstname string WordPress admin first name
     # WordPress admin first name
-    firstname:
+    firstname: ""
     ## @param wordpress.init.lastname string WordPress admin last name
     # WordPress admin last name
-    lastname:
+    lastname: ""
     ## @param wordpress.init.title string WordPress blog title
     # WordPress blog title
-    title:
+    title: ""
     ## @param wordpress.init.debug boolean Enable debug mode in Job "setter"
     debug: false
 
@@ -241,11 +241,11 @@ wordpress:
   tablePrefix: wp_
   ## @param wordpress.language string WordPress language (e.g. de_DE)
   # set language (e.g. de_DE). Default is en_US. If you need to change the language, you can set it here.
-  language:
+  language: ""
   ## @param wordpress.url string WordPress URL
   # WordPress URL. This will be use for the internal variables WP_HOME and WP_SITEURL
   # in Wordpress in the Admin UI it is called Site Address (URL) and WordPress Address (URL)
-  url:
+  url: ""
 
   ## @param wordpress.configExtra string Custom values for wp-config.php
   # custom values for wp-config.php see: https://developer.wordpress.org/advanced-administration/wordpress/wp-config/
@@ -254,7 +254,7 @@ wordpress:
   #   define('WP_MAX_MEMORY_LIMIT', '512M');
   #   define('FORCE_SSL_ADMIN', false);
   #   define('WP_CACHE', true);
-  configExtra:
+  configExtra: ""
 
   ## @param wordpress.htaccess string Custom .htaccess file
   ## if metrics.apache.createConfig is true, the modrewrite of server-status will be added automatically before all other rules
@@ -267,7 +267,7 @@ wordpress:
   #   order allow,deny
   #   deny from all
   #   </Files>
-  htaccess:
+  htaccess: ""
 
   ## @param wordpress.htaccessConfigMap string Name of existing ConfigMap containing .htaccess file
   # Must contain the key "htaccess"
@@ -291,7 +291,7 @@ apache:
   #           ErrorLog ${APACHE_LOG_DIR}/error.log
   #           CustomLog ${APACHE_LOG_DIR}/access.log combined
   #   </VirtualHost>
-  customDefaultSiteConfig:
+  customDefaultSiteConfig: ""
 
   ## @param apache.customDefaultSiteConfigMap string Name of existing ConfigMap containing default site config
   ## Must contain the key "000-default.conf"
@@ -302,7 +302,7 @@ apache:
   ## this is the file apache2/ports.conf
   # customPortsConfig: |-
   #   Listen 80
-  customPortsConfig:
+  customPortsConfig: ""
 
   ## @param apache.customPortsConfigMap string Name of existing ConfigMap containing ports config
   ## Must contain the key "ports.conf"
@@ -314,7 +314,7 @@ apache:
   #   upload_max_filesize = 64M
   #   post_max_size = 64M
   #   memory_limit = 256M
-  customPhpConfig:
+  customPhpConfig: ""
 
   ## @param apache.customPhpConfigMap string Name of existing ConfigMap containing PHP config
   ## Must contain the key "custom.ini"
@@ -758,7 +758,7 @@ metrics:
         metrics:
       ## @param metrics.apache.service.clusterIP string Static cluster IP
       # This sets the ClusterIP
-      clusterIP:
+      clusterIP: ""
       ## @param metrics.apache.service.annotations object Additional annotations for service
       # Sets additional annotations to the service
       annotations: {}
@@ -806,13 +806,13 @@ metrics:
 externalDatabase:
   ## @param externalDatabase.host string External database host
   # External database host
-  host:
+  host: ""
   ## @param externalDatabase.port integer External database port
   # External database port
   port: 3306
   ## @param externalDatabase.username string External database user
   # External database user
-  username:
+  username: ""
   ## @param externalDatabase.password string External database password
   # External database password
   password: ""
