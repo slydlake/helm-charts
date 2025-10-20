@@ -661,15 +661,24 @@
                     "type": "object",
                     "properties": {
                         "http": {
-                            "type": "integer"
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
                         },
                         "https": {
-                            "type": "integer"
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
                         }
                     }
                 },
                 "clusterIP": {
-                    "type": "string",
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
                     "description": "Static cluster IP"
                 },
                 "annotations": {
@@ -960,7 +969,10 @@
             "default": {}
         },
         "revisionHistoryLimit": {
-            "type": "integer",
+            "type": [
+                "integer",
+                "null"
+            ],
             "description": "Maximum number of revisions maintained in revision history"
         },
         "podDisruptionBudget": {
@@ -1230,7 +1242,10 @@
                                     "type": "object",
                                     "properties": {
                                         "metrics": {
-                                            "type": "integer"
+                                            "type": [
+                                                "integer",
+                                                "null"
+                                            ]
                                         }
                                     }
                                 },

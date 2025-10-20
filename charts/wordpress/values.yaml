@@ -216,7 +216,7 @@ wordpress:
   #     version: "1.1.0"
   #     activate: true
   #     autoupdate: true
-  plugins:
+  plugins: []
   ## @param wordpress.users array WordPress users to create
   ## @param wordpress.users[].name string mandatory Name of the user
   ## @param wordpress.users[].email string mandatory Email of the user
@@ -234,7 +234,7 @@ wordpress:
   #     lastname: "Doe"
   #     role: "administrator"
   #     sendEmail: true
-  users:
+  users: []
 
   ## @param wordpress.tablePrefix string Prefix for WordPress database tables
   # prefix for wordpress database tables
@@ -425,7 +425,7 @@ service:
     http: 80
     https: 443
   ## @param service.nodePorts object NodePorts configuration
-  # This sets the NodePorts
+  # This sets the NodePorts. NOTE: choose port between 30000-32767
   nodePorts:
     http:
     https:
