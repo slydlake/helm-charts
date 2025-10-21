@@ -262,16 +262,31 @@ wordpress:
 
   ## @param wordpress.configExtra string Custom values for wp-config.php
   # custom values for wp-config.php see: https://developer.wordpress.org/advanced-administration/wordpress/wp-config/
+  ## NOTE: WP_HOME and WP_SITEURL will be added automatically based on wordpress.url
   # configExtra: |-
   #   define('WP_MEMORY_LIMIT', '256M');
   #   define('WP_MAX_MEMORY_LIMIT', '512M');
   #   define('FORCE_SSL_ADMIN', false);
   #   define('WP_CACHE', true);
-  configExtra: |-
-    define('WP_MEMORY_LIMIT', '256M');
-    define('WP_MAX_MEMORY_LIMIT', '512M');
-    define('FORCE_SSL_ADMIN', false);
-    define('WP_CACHE', true);
+  configExtra: ""
+
+  ## section wordpress.configExtraConfigMap object ConfigMap for extra wp-config.php values
+  ## If you set this, the wordpress.configExtra will be ignored
+  ## NOTE: You have to set WP_HOME and WP_SITEURL yourself in the ConfigMap
+  configExtraConfigMap:
+    ## @param wordpress.configExtraConfigMap.name string Name of existing ConfigMap
+    name: ""
+    ## @param wordpress.configExtraConfigMap.key string Key in ConfigMap containing extra wp-config.php values
+    key: "wordpress.configExtra"
+
+  ## section wordpress.configExtraSecret object Secret for extra wp-config.php values
+  ## If you set this, the wordpress.configExtra and wordpress.configExtraConfigMap will be ignored
+  ## NOTE: You have to set WP_HOME and WP_SITEURL yourself in the Secret
+  configExtraSecret:
+    ## @param wordpress.configExtraSecret.name string Name of existing Secret
+    name: "wordpress-test-secret"
+    ## @param wordpress.configExtraSecret.key string Key in Secret containing extra wp-config.php values
+    key: "wordpress.configExtra"
 
   ## @param wordpress.htaccess string Custom .htaccess file
   ## if metrics.apache.createConfig is true, the modrewrite of server-status will be added automatically before all other rules
@@ -284,7 +299,7 @@ wordpress:
   #   order allow,deny
   #   deny from all
   #   </Files>
-  htaccess:
+  htaccess: ""
 
   ## @param wordpress.htaccessConfigMap string Name of existing ConfigMap containing .htaccess file
   # Must contain the key "htaccess"
@@ -439,8 +454,8 @@ service:
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   # internal container ports, default by 80 and 443
   ports:
-    http: 8080
-    https: 8443
+    http: 80
+    https: 443
   ## @param service.nodePorts object NodePorts configuration
   # This sets the NodePorts
   nodePorts:

@@ -402,6 +402,38 @@
                     "type": "string",
                     "description": "Custom values for wp-config.php"
                 },
+                "configExtraConfigMap": {
+                    "type": "object",
+                    "description": "ConfigMap for extra wp-config.php values",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of existing ConfigMap",
+                            "default": ""
+                        },
+                        "key": {
+                            "type": "string",
+                            "description": "Key in ConfigMap containing extra wp-config.php values",
+                            "default": "wordpress.configExtra"
+                        }
+                    }
+                },
+                "configExtraSecret": {
+                    "type": "object",
+                    "description": "Secret for extra wp-config.php values",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of existing Secret",
+                            "default": ""
+                        },
+                        "key": {
+                            "type": "string",
+                            "description": "Key in Secret containing extra wp-config.php values",
+                            "default": "wordpress.configExtra"
+                        }
+                    }
+                },
                 "htaccess": {
                     "type": "string",
                     "description": "Custom .htaccess content"
