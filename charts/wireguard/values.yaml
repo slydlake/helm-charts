@@ -4,7 +4,7 @@ image:
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "1.0.20250521-r0-ls89"
+  tag: "1.0.20250521-r0-ls90"
   # digest of the image
   digest: "sha256:d4cd526f313701d3e3fde732743b8fccbb00ddcb1c6b6043bab6b9bf14b76686"
 
