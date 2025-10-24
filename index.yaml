@@ -851,6 +851,48 @@ entries:
       artifacthub.io/category: security
       artifacthub.io/changes: |
         - kind: changed
+          description: "chore(deps): update linuxserver/wireguard docker tag to v1.0.20250521-r0-ls90"
+          links:
+            - name: Pull Request
+              url: https://github.com/slydlake/helm-charts/pull/37
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wireguard
+          image: docker.io/linuxserver/wireguard:1.0.20250521-r0-ls88
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wireguard
+        - name: Offical WireGuard Repository
+          url: https://github.com/linuxserver/docker-wireguard
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: 1.0.20250521-r0-ls90
+    created: "2025-10-24T22:42:03.139118694Z"
+    description: Using the offical linuxserver/wireguard image with almost any environment
+      variables for K8S. Supporting server and client mode.
+    digest: 5569d5d16075bae257ced8028b32a4c944901a9eb34dba993cefc23c29658f4c
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
+    keywords:
+    - wireguard
+    - vpn
+    - linuxserver
+    maintainers:
+    - name: slydlake
+    name: wireguard
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.22/wireguard-0.1.22.tgz
+    version: 0.1.22
+  - annotations:
+      artifacthub.io/category: security
+      artifacthub.io/changes: |
+        - kind: changed
           description: "chore(deps): update linuxserver/wireguard docker tag to v1.0.20250521-r0-ls89"
           links:
             - name: Pull Request
@@ -1619,6 +1661,68 @@ entries:
     - https://github.com/slydlake/helm-charts/releases/download/wireguard-0.1.0/wireguard-0.1.0.tgz
     version: 0.1.0
   wordpress:
+  - annotations:
+      artifacthub.io/category: networking
+      artifacthub.io/changes: |
+        - kind: changed
+          description: "[helm] chore(deps): update chart dependencies mariadb Docker tag to v0.5.2"
+          links:
+            - name: Pull Request
+              url: https://github.com/slydlake/helm-charts/pull/35
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wordpress
+          image: docker.io/wordpress:6.8.3-php8.1-apache
+        - name: wordpress-cli
+          image: docker.io/wordpress:cli-2.12.0-php8.1
+        - name: metrics-apache
+          image: lusotycoon/apache-exporter:v1.0.10
+        - name: mariadb
+          image: docker.io/mariadb:12.0.2-noble
+        - name: memcached
+          image: docker.io/memcached:1.6.39
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
+        - name: Official WordPress Repository
+          url: https://github.com/docker-library/
+        - name: "SlyMetrics WordPress plugin for Prometheus Metrics"
+          url: https://github.com/slydlake/slymetrics
+        - name: Apache Metrics container
+          url: https://github.com/Lusitaniae/apache_exporter
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: 6.8.3
+    created: "2025-10-24T22:42:03.370252259Z"
+    dependencies:
+    - condition: memcached.enabled
+      name: memcached
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.3.4
+    - condition: mariadb.enabled
+      name: mariadb
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.5.4
+    description: Using the official WordPress image. This chart provides automation
+      for installation, user management, plugin installation, and metrics.
+    digest: 6749173107bdd90a2af2b519b1d0a9ac8ee7d25c4a46c4f72e52600c64d5933b
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
+    keywords:
+    - wordpress
+    - blog
+    maintainers:
+    - name: slydlake
+    name: wordpress
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.3.2/wordpress-0.3.2.tgz
+    version: 0.3.2
   - annotations:
       artifacthub.io/category: networking
       artifacthub.io/changes: |
@@ -2716,4 +2820,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-10-17T09:11:44.446898009Z"
+generated: "2025-10-24T22:42:03.370534505Z"
