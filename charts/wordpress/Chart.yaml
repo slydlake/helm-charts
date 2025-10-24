@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.3.0
+version: 0.3.1
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,8 +26,11 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: added
-      description: "chore(feat): added configExtraConfigMap and configExtraSecret support for wp-config.php customization"
+    - kind: changed
+      description: "[helm] chore(deps): update chart dependencies memcached Docker tag to v0.3.2"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/36
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
@@ -44,7 +47,7 @@ dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.3.1
+    version: 0.3.4
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
