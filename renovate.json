@@ -34,7 +34,7 @@
                 "^charts/wordpress/Chart\\.yaml$"
             ],
             "matchStrings": [
-                "digest:\\s+\\\"(?<currentValue>sha256:[a-fA-F0-9]{64})\\\""
+                "(?s)repository:\\s*lusotycoon/apache-exporter[\\s\\S]*?digest:\\s*\\\"(?<currentValue>sha256:[a-fA-F0-9]{64})\\\""
             ],
             "datasourceTemplate": "docker",
             "depNameTemplate": "docker.io/lusotycoon/apache-exporter",
