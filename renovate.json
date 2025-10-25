@@ -26,6 +26,20 @@
             "depNameTemplate": "linuxserver/wireguard",
             "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$",
             "extractVersionTemplate": "^(?<version>.+)$"
+        },
+        {
+            "fileMatch": [
+                "^charts/wordpress/values\\.yaml$",
+                "^charts/wordpress/samples/values\\.yaml$",
+                "^charts/wordpress/Chart\\.yaml$"
+            ],
+            "matchStrings": [
+                "digest:\\s+\\\"(?<currentValue>sha256:[a-fA-F0-9]{64})\\\""
+            ],
+            "datasourceTemplate": "docker",
+            "depNameTemplate": "docker.io/lusotycoon/apache-exporter",
+            "versioningTemplate": "digest",
+            "extractVersionTemplate": "^(?<version>.+)$"
         }
     ],
     "packageRules": [
