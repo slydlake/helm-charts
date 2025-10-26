@@ -29,29 +29,13 @@
         },
         {
             "fileMatch": [
-                "^charts/wordpress/values\\.yaml$",
-                "^charts/wordpress/samples/values\\.yaml$",
-                "^charts/wordpress/Chart\\.yaml$"
+                "^charts/.*/Chart\\.yaml$"
             ],
             "matchStrings": [
-                "(?s)repository:\\s*lusotycoon/apache-exporter[\\s\\S]*?digest:\\s*\"?(?<currentValue>sha256:[a-fA-F0-9]{64})\"?"
+                "- name: [^\\n]+\\s+image: docker\\.io/(?<depName>[^:]+):(?<currentValue>[^\\s]+)"
             ],
             "datasourceTemplate": "docker",
-            "depNameTemplate": "docker.io/lusotycoon/apache-exporter",
-            "versioningTemplate": "digest",
-            "extractVersionTemplate": "^(?<version>.+)$"
-        },
-        {
-            "fileMatch": [
-                "^charts/wordpress/Chart\\.yaml$"
-            ],
-            "matchStrings": [
-                "image:\\s*lusotycoon/apache-exporter:v(?<currentValue>\\d+\\.\\d+\\.\\d+)"
-            ],
-            "datasourceTemplate": "docker",
-            "depNameTemplate": "docker.io/lusotycoon/apache-exporter",
-            "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
-            "extractVersionTemplate": "^(?<version>.+)$"
+            "versioningTemplate": "docker"
         }
     ],
     "packageRules": [
@@ -80,6 +64,7 @@
             "matchPackageNames": [
                 "/^docker\\.io\\/.+/"
             ],
+            "versioning": "docker",
             "labels": [
                 "dependencies",
                 "renovate"
@@ -91,32 +76,13 @@
             "matchManagers": [
                 "helm-values"
             ],
-            "matchUpdateTypes": [
-                "minor",
-                "patch",
-                "digest"
-            ],
+            "versioning": "docker",
             "labels": [
                 "dependencies",
                 "renovate"
             ],
             "commitMessagePrefix": "[{{{ packageName }}}]",
-            "commitMessageAction": "chore(deps): update",
-            "matchPackageNames": [
-                "!/^docker\\.io\\/.+/"
-            ]
-        },
-        {
-            "matchManagers": [
-                "helm-values"
-            ],
-            "matchPackageNames": [
-                "lusotycoon/apache-exporter",
-                "/^docker\\.io\\/lusotycoon\\/apache-exporter$/"
-            ],
-            "allowedVersions": "/^v[0-9]+\\.[0-9]+\\.[0-9]+$/",
-            "automerge": false,
-            "groupName": "apache-exporter updates (v-prefixed semver)"
+            "commitMessageAction": "chore(deps): update"
         },
         {
             "matchManagers": [
