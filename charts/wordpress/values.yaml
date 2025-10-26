@@ -697,7 +697,7 @@ metrics:
       # This sets the pull policy for images.
       pullPolicy: IfNotPresent
       ## @param metrics.apache.image.tag string Overrides the image tag
-      tag: "v1.0.10@sha256:d95764ed557a9e6cb7550ab66e80a35e227a485aac10ef190343230f4832f035"
+      tag: "v1.0.11@sha256:efe95823087760a4e1b0cec245848389f11ec97c48ebbb49df6c49a240656acb"
 
       ## @param metrics.apache.livenessProbe.enabled boolean Enable liveness probe
       ## @param metrics.apache.livenessProbe.initialDelaySeconds integer Initial delay seconds for liveness probe
