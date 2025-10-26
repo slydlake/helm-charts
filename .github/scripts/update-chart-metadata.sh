@@ -48,9 +48,29 @@ for CHART_DIR in $CHANGED_CHARTS; do
   NEW_VERSION=$(echo "$CURRENT_VERSION" | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
   echo "New version: $NEW_VERSION"
   
-  # Extract dependency info from PR title
-  # e.g., "Update dependency wordpress to v6.8.3" -> "wordpress to v6.8.3"
-  DEPENDENCY_INFO=$(echo "$PR_TITLE" | sed 's/Update dependency //' | sed 's/Update //')
+  # Extract all dependency changes from git diff
+  # Find all changed tag values in values.yaml
+  VALUES_YAML="$CHART_DIR/values.yaml"
+  DEPENDENCY_CHANGES=""
+  
+  if [ -f "$VALUES_YAML" ]; then
+    # Use git diff to find changed tag lines
+    # Look for lines with "tag:" that have changes
+    DEPENDENCY_CHANGES=$(git diff origin/main...HEAD -- "$VALUES_YAML" | grep -A1 -B1 "^+.*tag:" | grep -E "^[+-].*tag:" | sed 's/^[+-] *tag: //' | sed 's/"//g' | sort -u)
+    
+    if [ -z "$DEPENDENCY_CHANGES" ]; then
+      # Fallback to PR title if no specific changes found
+      DEPENDENCY_INFO=$(echo "$PR_TITLE" | sed 's/Update dependency //' | sed 's/Update //')
+      DEPENDENCY_CHANGES="$DEPENDENCY_INFO"
+    fi
+  else
+    # Fallback
+    DEPENDENCY_INFO=$(echo "$PR_TITLE" | sed 's/Update dependency //' | sed 's/Update //')
+    DEPENDENCY_CHANGES="$DEPENDENCY_INFO"
+  fi
+  
+  echo "Dependency changes for $CHART_DIR:"
+  echo "$DEPENDENCY_CHANGES"
   
   # Update version in Chart.yaml
   sed -i.bak "s/^version: .*/version: $NEW_VERSION/" "$CHART_YAML"
@@ -62,12 +82,12 @@ for CHART_DIR in $CHANGED_CHARTS; do
   # We'll use a simple approach: find the changes section and replace everything until the next annotation
   TMP_FILE=$(mktemp)
   
-  python3 - "$CHART_YAML" "$DEPENDENCY_INFO" "$PR_URL" "$TMP_FILE" <<'PYTHON_SCRIPT'
+  python3 - "$CHART_YAML" "$DEPENDENCY_CHANGES" "$PR_URL" "$TMP_FILE" <<'PYTHON_SCRIPT'
 import sys
 import re
 
 chart_file = sys.argv[1]
-dependency_info = sys.argv[2]
+dependency_changes = sys.argv[2]
 pr_url = sys.argv[3]
 tmp_file = sys.argv[4]
 
@@ -75,13 +95,21 @@ tmp_file = sys.argv[4]
 with open(chart_file, 'r') as f:
     content = f.read()
 
-# Create the new changelog entry
-new_changelog = f"""  artifacthub.io/changes: |
-    - kind: changed
-      description: "{dependency_info}"
+# Split dependency changes into list
+changes_list = [change.strip() for change in dependency_changes.split('\n') if change.strip()]
+
+# Create changelog entries
+changelog_entries = []
+for change in changes_list:
+    if change:
+        changelog_entries.append(f"""    - kind: changed
+      description: "Update {change}"
       links:
         - name: Pull Request
-          url: {pr_url}"""
+          url: {pr_url}""")
+
+new_changelog = f"""  artifacthub.io/changes: |
+{chr(10).join(changelog_entries)}"""
 
 # Replace the artifacthub.io/changes section
 # Pattern: match from "artifacthub.io/changes:" until the next "artifacthub.io/" or end of annotations
@@ -94,7 +122,7 @@ updated_content = re.sub(pattern, new_changelog, content)
 with open(tmp_file, 'w') as f:
     f.write(updated_content)
 
-print(f"✅ Updated changelog in {chart_file}")
+print(f"✅ Updated changelog in {chart_file} with {len(changes_list)} changes")
 PYTHON_SCRIPT
 
   # Replace original file with updated content
