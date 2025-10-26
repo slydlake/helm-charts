@@ -74,6 +74,7 @@
             "matchPackageNames": [
                 "/^docker\\.io\\/.+/"
             ],
+            "groupName": "{{{ parentDir }}} dependencies",
             "labels": [
                 "dependencies",
                 "renovate"
@@ -87,6 +88,7 @@
                 "regex"
             ],
             "versioning": "docker",
+            "groupName": "{{{ parentDir }}} dependencies",
             "labels": [
                 "dependencies",
                 "renovate"
