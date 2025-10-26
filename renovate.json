@@ -74,7 +74,7 @@
             "matchPackageNames": [
                 "/^docker\\.io\\/.+/"
             ],
-            "groupName": "{{{ (parentDir | split \"/\")[0] }}}/{{{ (parentDir | split \"/\")[1] }}} dependencies",
+            "groupName": "charts/{{{ replace \"charts/\" \"\" parentDir }}} dependencies",
             "labels": [
                 "dependencies",
                 "renovate"
@@ -88,7 +88,7 @@
                 "regex"
             ],
             "versioning": "docker",
-            "groupName": "{{{ (parentDir | split \"/\")[0] }}}/{{{ (parentDir | split \"/\")[1] }}} dependencies",
+            "groupName": "charts/{{{ replace \"charts/\" \"\" parentDir }}} dependencies",
             "labels": [
                 "dependencies",
                 "renovate"
