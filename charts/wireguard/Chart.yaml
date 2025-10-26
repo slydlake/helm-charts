@@ -30,7 +30,7 @@ annotations:
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wireguard
-      image: docker.io/linuxserver/wireguard:1.0.20250521-r0-ls88
+      image: docker.io/linuxserver/wireguard:1.0.20250521-r0-ls90
 keywords:
   - wireguard
   - vpn
