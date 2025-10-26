@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.4.0
+version: 0.4.1
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -27,11 +27,10 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "refactor: updated liveness, readiness, and startup probe timings for better stability"
-    - kind: changed
-      description: "fix: pod restart when updating configmaps via checksums"
-    - kind: changed
-      description: "refactor: removed .digest values from image definitions for CI pipeline compatibility. Use image tags with digests instead."
+      description: "[docker.io/lusotycoon/apache-exporter] chore(deps): update docker.io/lusotycoon/apache-exporter:v1.0.10 Docker digest to 4e1b209"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/40
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
