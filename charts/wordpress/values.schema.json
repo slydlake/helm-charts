@@ -29,10 +29,6 @@
                     "type": "string",
                     "description": "Overrides the image tag whose default is the chart appVersion",
                     "default": "latest"
-                },
-                "digest": {
-                    "type": "string",
-                    "description": "Image digest"
                 }
             },
             "required": [
@@ -207,10 +203,6 @@
                                     "type": "string",
                                     "description": "WordPress CLI image tag",
                                     "default": "cli-2.12.0-php8.1"
-                                },
-                                "digest": {
-                                    "type": "string",
-                                    "description": "WordPress CLI image digest"
                                 },
                                 "pullPolicy": {
                                     "type": "string",
@@ -1115,10 +1107,6 @@
                                     "type": "string",
                                     "description": "Apache exporter image tag",
                                     "default": "v1.0.10"
-                                },
-                                "digest": {
-                                    "type": "string",
-                                    "description": "Image digest"
                                 }
                             }
                         },
@@ -1494,10 +1482,6 @@
                             "description": "MariaDB image tag",
                             "default": "12.0.2-noble"
                         },
-                        "digest": {
-                            "type": "string",
-                            "description": "MariaDB image digest"
-                        },
                         "pullPolicy": {
                             "type": "string",
                             "enum": [
@@ -1745,10 +1729,6 @@
                             "type": "string",
                             "description": "Memcached image tag",
                             "default": "1.6.39"
-                        },
-                        "digest": {
-                            "type": "string",
-                            "description": "Memcached image digest"
                         },
                         "pullPolicy": {
                             "type": "string",

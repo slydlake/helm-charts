@@ -27,11 +27,79 @@ spec:
   {{- end }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
-        # checksum/wpconfigmap: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- if .Values.podAnnotations }}
+{{- toYaml .Values.podAnnotations | nindent 6 }}
+        {{- end }}
+        {{- if .Values.extraEnvVarsCM }}
+          {{- $name := .Values.extraEnvVarsCM }}
+          {{- $cm := lookup "v1" "ConfigMap" .Release.Namespace $name }}
+          {{- if $cm }}
+        checksum/extraEnvVarsCM: {{ toJson $cm.data | sha256sum }}
+          {{- else }}
+        checksum/extraEnvVarsCM: {{ $name | sha256sum }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.wordpress.configExtraConfigMap.name }}
+          {{- $name := .Values.wordpress.configExtraConfigMap.name }}
+          {{- $cm := lookup "v1" "ConfigMap" .Release.Namespace $name }}
+          {{- if $cm }}
+        checksum/wordpress-configExtraConfigMap: {{ toJson $cm.data | sha256sum }}
+          {{- else }}
+        checksum/wordpress-configExtraConfigMap: {{ $name | sha256sum }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.wordpress.configExtraSecret.name }}
+          {{- $name := .Values.wordpress.configExtraSecret.name }}
+          {{- $secret := lookup "v1" "Secret" .Release.Namespace $name }}
+          {{- if $secret }}
+        checksum/wordpress-configExtraSecret: {{ toJson $secret.data | sha256sum }}
+          {{- else }}
+        checksum/wordpress-configExtraSecret: {{ $name | sha256sum }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.wordpress.htaccessConfigMap }}
+          {{- $name := .Values.wordpress.htaccessConfigMap }}
+          {{- $cm := lookup "v1" "ConfigMap" .Release.Namespace $name }}
+          {{- if $cm }}
+        checksum/wordpress-htaccessConfigMap: {{ toJson $cm.data | sha256sum }}
+          {{- else }}
+        checksum/wordpress-htaccessConfigMap: {{ $name | sha256sum }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.apache.customDefaultSiteConfigMap }}
+          {{- $name := .Values.apache.customDefaultSiteConfigMap }}
+          {{- $cm := lookup "v1" "ConfigMap" .Release.Namespace $name }}
+          {{- if $cm }}
+        checksum/apache-customDefaultSiteConfigMap: {{ toJson $cm.data | sha256sum }}
+          {{- else }}
+        checksum/apache-customDefaultSiteConfigMap: {{ $name | sha256sum }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.apache.customPortsConfigMap }}
+          {{- $name := .Values.apache.customPortsConfigMap }}
+          {{- $cm := lookup "v1" "ConfigMap" .Release.Namespace $name }}
+          {{- if $cm }}
+        checksum/apache-customPortsConfigMap: {{ toJson $cm.data | sha256sum }}
+          {{- else }}
+        checksum/apache-customPortsConfigMap: {{ $name | sha256sum }}
+          {{- end }}
+        {{- end }}
+
+        {{- if .Values.apache.customPhpConfigMap }}
+          {{- $name := .Values.apache.customPhpConfigMap }}
+          {{- $cm := lookup "v1" "ConfigMap" .Release.Namespace $name }}
+          {{- if $cm }}
+        checksum/apache-customPhpConfigMap: {{ toJson $cm.data | sha256sum }}
+          {{- else }}
+        checksum/apache-customPhpConfigMap: {{ $name | sha256sum }}
+          {{- end }}
+        {{- end }}
       labels:
         {{- include "wordpress.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}

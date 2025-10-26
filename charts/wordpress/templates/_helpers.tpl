@@ -34,7 +34,6 @@ Create chart name and version as used by the chart label.
 Common labels
 */}}
 {{- define "wordpress.labels" -}}
-# English comment: return common labels, quote values to keep YAML safe
 helm.sh/chart: "{{ include "wordpress.chart" . }}"
 {{ include "wordpress.selectorLabels" . }}
 {{- if .Chart.AppVersion }}

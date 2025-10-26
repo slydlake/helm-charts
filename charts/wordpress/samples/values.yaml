@@ -17,9 +17,7 @@ image:
   repository: docker.io/wordpress
   ## @param image.tag string Overrides the image tag whose default is the chart appVersion
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "6.8.3-php8.1-apache"
-  ## @param image.digest string Image digest
-  digest: "sha256:a0c99ea1e7ebabb0c903b4da78603ef74cc2a4fa25bb9e349fc8a343c0148702"
+  tag: "6.8.3-php8.1-apache@sha256:901d42f6ecb66c37a0eb98fea754d8c4c4660e22ea3e93e509b67a90777f2fe6"
   ## @param image.pullPolicy string Image pull policy
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
@@ -146,8 +144,6 @@ wordpress:
       repository: docker.io/wordpress
       ## @param wordpress.init.image.tag string Image tag for init container
       tag: "cli-2.12.0-php8.1"
-      ## @param wordpress.init.image.digest string Image digest for init container
-      digest: "sha256:ceeb2701e2da0758fa3286d7b5da39a586542503983fa4b2cc9fa81fada52f3e"
       ## @param wordpress.init.image.pullPolicy string Image pull policy for init container
       pullPolicy: IfNotPresent
 
@@ -536,9 +532,9 @@ resources: {}
   ## @param livenessProbe.successThreshold integer Success threshold for liveness probe
 livenessProbe:
   enabled: true
-  initialDelaySeconds: 5
+  initialDelaySeconds: 10
   periodSeconds: 10
-  timeoutSeconds: 1
+  timeoutSeconds: 5
   failureThreshold: 3
   successThreshold: 1
 
@@ -550,7 +546,7 @@ livenessProbe:
   ## @param readinessProbe.successThreshold integer Success threshold for readiness probe
 readinessProbe:
   enabled: true
-  initialDelaySeconds: 30
+  initialDelaySeconds: 60
   periodSeconds: 15
   timeoutSeconds: 5
   failureThreshold: 10
@@ -564,7 +560,7 @@ readinessProbe:
   ## @param startupProbe.successThreshold integer Success threshold for startup probe
 startupProbe:
   enabled: true
-  initialDelaySeconds: 60
+  initialDelaySeconds: 90
   periodSeconds: 30
   timeoutSeconds: 5
   failureThreshold: 20
@@ -709,14 +705,12 @@ metrics:
     # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
     image:
       ## @param metrics.apache.image.repository string WordPress container image repository
-      repository: lusotycoon/apache-exporter
+      repository: docker.io/lusotycoon/apache-exporter
       ## @param metrics.apache.image.pullPolicy string Image pull policy
       # This sets the pull policy for images.
       pullPolicy: IfNotPresent
       ## @param metrics.apache.image.tag string Overrides the image tag
-      tag: "v1.0.10"
-      ## @param metrics.apache.image.digest string Image digest
-      digest: "sha256:d95764ed557a9e6cb7550ab66e80a35e227a485aac10ef190343230f4832f035"
+      tag: "v1.0.10@sha256:d95764ed557a9e6cb7550ab66e80a35e227a485aac10ef190343230f4832f035"
 
       ## @param metrics.apache.livenessProbe.enabled boolean Enable liveness probe
       ## @param metrics.apache.livenessProbe.initialDelaySeconds integer Initial delay seconds for liveness probe
@@ -892,9 +886,7 @@ mariadb:
     ## @param mariadb.image.repository string MariaDB image repository
     repository: mariadb
     ## @param mariadb.image.tag string MariaDB image tag
-    tag: "12.0.2-noble"
-    ## @param mariadb.image.digest string MariaDB image digest
-    digest: "sha256:8a061ef9813cf960f94a262930a32b190c3fbe5c8d3ab58456ef1df4b90fd5dc"
+    tag: "12.0.2-noble@sha256:659a15e38f4ccb2bfa2c7cf824a8a5955fdc5f63cfd01537bc25c9e0ff716605"
     ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
     imagePullPolicy: IfNotPresent
 
@@ -1000,9 +992,7 @@ memcached:
     ## @param memcached.image.repository string Memcached image repository
     repository: memcached
     ## @param memcached.image.tag string Memcached image tag
-    tag: "1.6.39"
-    ## @param memcached.image.digest string Memcached image digest
-    digest: "sha256:68c1185d50600b472705b5a700037f4b8bab28f04a188bdf3a79d38e24dbfb95"
+    tag: "1.6.39@sha256:b6b0f9d84ba802afe974dac29900d1d8e69407264af9de5a166fd838099ef3c9"
     ## @param memcached.image.pullPolicy string Memcached image pull policy
     pullPolicy: IfNotPresent
 
