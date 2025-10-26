@@ -83,7 +83,8 @@
         },
         {
             "matchManagers": [
-                "helm-values"
+                "helm-values",
+                "regex"
             ],
             "versioning": "docker",
             "labels": [
