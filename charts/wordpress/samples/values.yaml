@@ -886,7 +886,7 @@ mariadb:
     ## @param mariadb.image.repository string MariaDB image repository
     repository: mariadb
     ## @param mariadb.image.tag string MariaDB image tag
-    tag: "12.0.2-noble@sha256:659a15e38f4ccb2bfa2c7cf824a8a5955fdc5f63cfd01537bc25c9e0ff716605"
+    tag: "12.0.2-noble@sha256:5b6a1eac15b85b981a61afb89aea2a22bf76b5f58809d05f0bcc13ab6ec44cb8"
     ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
     imagePullPolicy: IfNotPresent
 
