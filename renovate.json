@@ -36,6 +36,16 @@
             ],
             "datasourceTemplate": "docker",
             "versioningTemplate": "docker"
+        },
+        {
+            "fileMatch": [
+                "^charts/.*/values\\.yaml$"
+            ],
+            "matchStrings": [
+                "registry:\\s+(?<registry>[^\\n]+)\\s+repository:\\s+(?<depName>[^\\n]+)\\s+tag:\\s+['\"]?(?<currentValue>[^@\\s]+)"
+            ],
+            "datasourceTemplate": "docker",
+            "versioningTemplate": "docker"
         }
     ],
     "packageRules": [
