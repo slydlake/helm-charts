@@ -7,7 +7,7 @@
         "helmv3",
         "regex"
     ],
-    "pinDigests": true,
+    "pinDigests": false,
     "prHourlyLimit": 5,
     "prConcurrentLimit": 5,
     "timezone": "Europe/Berlin",
@@ -93,6 +93,18 @@
             ],
             "commitMessagePrefix": "[{{{ packageName }}}]",
             "commitMessageAction": "chore(deps): update"
+        },
+        {
+            "matchUpdateTypes": [
+                "digest"
+            ],
+            "pinDigests": true,
+            "labels": [
+                "dependencies",
+                "renovate"
+            ],
+            "commitMessagePrefix": "[{{{ packageName }}}]",
+            "commitMessageAction": "chore(deps): update digest"
         },
         {
             "matchManagers": [
