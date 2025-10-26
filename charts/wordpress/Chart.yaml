@@ -38,7 +38,7 @@ annotations:
     - name: wordpress-cli
       image: docker.io/wordpress:cli-2.12.0-php8.1
     - name: metrics-apache
-      image: docker.io/lusotycoon/apache-exporter:v1.0.10
+      image: docker.io/lusotycoon/apache-exporter:v1.0.11
     - name: mariadb
       image: docker.io/mariadb:12.0.2-noble
     - name: memcached
