@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.4.2
+version: 0.4.3
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -27,10 +27,10 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "[docker.io/wordpress] chore(deps): update docker.io/wordpress:6.8.3-php8.1-apache Docker digest to 75f79f9"
+      description: "[docker.io/mariadb] chore(deps): update docker.io/mariadb:12.0.2-noble Docker digest to 5b6a1ea"
       links:
         - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/43
+          url: https://github.com/slydlake/helm-charts/pull/41
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
