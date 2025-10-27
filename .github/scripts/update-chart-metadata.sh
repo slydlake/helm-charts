@@ -71,9 +71,23 @@ for CHART_DIR in $CHANGED_CHARTS; do
         if [ -n "$PR_BODY" ]; then
           # Extract lines starting with | and containing package info
           TABLE_LINES=$(echo "$PR_BODY" | grep '^|' | grep -v 'Package.*Update.*Change' | grep -v '---' | tail -n +2)  # Skip header and separator
-          echo "TABLE_LINES: $TABLE_LINES"
+          echo "TABLE_LINES from body: $TABLE_LINES"
           if [ -n "$TABLE_LINES" ]; then
             DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
+          fi
+        fi
+        
+        # If still no changes, try the first comment
+        if [ -z "$DEPENDENCY_CHANGES" ]; then
+          echo "Trying to parse first PR comment for updates..."
+          FIRST_COMMENT=$(gh pr view "$PR_NUMBER" --json comments --jq '.comments[0].body' 2>/dev/null || echo "")
+          echo "FIRST_COMMENT: $FIRST_COMMENT"
+          if [ -n "$FIRST_COMMENT" ]; then
+            TABLE_LINES=$(echo "$FIRST_COMMENT" | grep '^|' | grep -v 'Package.*Update.*Change' | grep -v '---' | tail -n +2)
+            echo "TABLE_LINES from comment: $TABLE_LINES"
+            if [ -n "$TABLE_LINES" ]; then
+              DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
+            fi
           fi
         fi
       fi
