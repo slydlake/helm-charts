@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Set GH_TOKEN for gh CLI if GITHUB_TOKEN is available
+if [ -n "$GITHUB_TOKEN" ]; then
+  export GH_TOKEN=$GITHUB_TOKEN
+fi
+
 # Script to update Chart.yaml metadata after Renovate updates
 # Updates: 
 #   - version (patch +1)
