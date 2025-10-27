@@ -1,4 +1,4 @@
-# WireGuard - Server and Client for K8s
+# WireGuard - Server and Client for Kubernetes
 
 ## Introduction
 [WireGuard®](https://github.com/linuxserver/docker-wireguard) is an extremely simple yet fast and modern VPN that utilizes state-of-the-art cryptography.
@@ -7,7 +7,7 @@
 
 ## TL;DR
 
-You can find different sample yaml (server, client, client with full wg0.conf configuration) in the github repo in the subfolder "samples".
+You can find different sample YAML files (server, client, client with full wg0.conf configuration) in the GitHub repo in the subfolder "samples".
 
 > **Note:** You have to enable the server or client mode in the values wireguard.server.enable = true or wireguard.client.enable = true. By default it is false.
 
@@ -16,7 +16,7 @@ You can find different sample yaml (server, client, client with full wg0.conf co
 apiVersion: v1
 kind: Namespace
 metadata:
-  name:  wireguard
+  name: wireguard
   labels:
     pod-security.kubernetes.io/enforce: privileged
 ```
@@ -33,20 +33,21 @@ wireguard:
 ```
 
 
-Install with helm
+Install with Helm:
 ```bash
 kubectl apply -f ./samples/namespace.yaml
 helm install wireguard oci://ghcr.io/slybase/charts/wireguard --values ./samples/server.values.yaml -n wireguard
 ```
 
 ## Prerequisites
-You have to set a namespace with privileged security (see sample namespace.yaml) or you can create this with:
+
+You have to set a namespace with privileged security (see sample namespace.yaml) or you can create it with:
 ```bash
 kubectl create namespace wireguard && kubectl label namespace wireguard pod-security.kubernetes.io/enforce=privileged --overwrite
 ```
 
 ## Server mode
-Sample see in tl;dr.
+Sample see in TL;DR.
 
 ### Bonus
 Output the created peer configurations. Just replace the "namespace" and "releasename" with your values.
@@ -88,7 +89,7 @@ wireguard:
       endpoint: "vpn.example.com:51820"
 ```
 
-Install with helm
+Install with Helm:
 ```bash
 kubectl apply -f ./samples/namespace.yaml
 kubectl apply -f ./samples/client.secret.yaml
@@ -99,16 +100,16 @@ helm install wireguard-client oci://ghcr.io/slybase/charts/wireguard --values ./
 ## Start up with your wg0.conf
 You can set your own wg0.conf file as a secret. If you do this, this will ignore the default values wireguard.server.config or wireguard.client.config.
 
-In this example we set up a wg0.conf for a client, but of course this could also done for a server.
+In this example we set up a wg0.conf for a client, but of course this could also be done for a server.
 
 ```yaml
 # ./samples/clientFullConfig.secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name:  wg-config
+  name: wg-config
   namespace: wireguard
-type: opaque
+type: Opaque
 stringData:
   wg0.conf: |-
     [Interface]
@@ -127,7 +128,7 @@ wireguard:
 ```
 
 
-Apply it it the cluster:
+Install with Helm:
 ```bash
 kubectl apply -f ./samples/namespace.yaml
 kubectl apply -f ./samples/clientFullConfig.secret.yaml

@@ -2,7 +2,7 @@ apiVersion: v2
 name: wg-easy
 description: Using the offical wg-easy/wg-easy image with almost any environment variables for K8s. Supporting Init Mode.
 type: application
-version: 0.2.0
+version: 0.2.1
 appVersion: 15.1.0
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
 home: https://github.com/slydlake/helm-charts
@@ -23,7 +23,7 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "refactor: removed .digest values from image definitions for CI pipeline compatibility. Use image tags with digests instead."
+      description: "Provided better samples for the first start. Readme help a lot more for first installation."
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wg-easy

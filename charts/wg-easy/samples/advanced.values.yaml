@@ -1,0 +1,13 @@
+config:
+  init:
+    existingSecret: "wg-secret"
+    host: "vpn.example.com"
+serviceMonitor:
+  create: true
+  existingSecret: "wg-metrics"
+  existingSecretKey: "token"
+service:
+  ui:
+    nodePort: 30201
+  wireguard:
+    nodePort: 30200

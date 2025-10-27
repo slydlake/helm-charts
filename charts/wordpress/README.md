@@ -7,7 +7,7 @@ This Helm chart installs WordPress in a Kubernetes cluster with many advanced fe
 
 ## TL;DR
 
-You can find different sample yaml (external database, integrated mariaDB and andvanced configuration) in the github repo in the subfolder "samples".
+You can find different sample YAML files (external database, integrated MariaDB and advanced configuration) in the GitHub repo in the subfolder "samples".
 
 > **Note:** No theme will be installed. You have to log in to /wp-admin to install a theme.
 
@@ -38,7 +38,7 @@ mariadb:
     existingSecret: "wordpress-test-secret"
 ```
 
-Install with helm
+Install with Helm:
 ```bash
 kubectl apply -f ./samples/mariaDB.secrets.yaml
 helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/mariaDB.values.yaml
@@ -50,7 +50,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Init Container**: Automatic initial installation of WordPress with predefined admin credentials.
 - **Configuration**: Set admin username, password, email, first name, last name, and blog title.
 - **Debug Mode**: Enable debugging for the installation.
-- **Permalinks**: Configure permalink structures (e.g., postName, dayAndName).
+- **Permalinks**: Configure permalink structures (e.g., post name, day and name).
 
 ### User Management
 - **Automatic User Generation**: Create additional users with roles (Administrator, Editor, etc.).
@@ -71,9 +71,9 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 
 ### Metrics and Monitoring
 - **WordPress Metrics**: Automatically install a WordPress Plugin for Prometheus metrics.
-  - See details on GitHub Repo of (SlyMetrics Plugin from slydalke)[https://github.com/slydlake/slymetrics] 
+  - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics] 
 - **Apache Metrics**: Sidecar container for Apache metrics.
-  - See details on GitHub Repo of (apache exporter from Lusitaniaes)[https://github.com/Lusitaniae/apache_exporter]
+  - See details on GitHub Repo of (apache exporter from Lusitaniae)[https://github.com/Lusitaniae/apache_exporter]
 - **Grafana Dashboard**: Integrate with Grafana for metrics visualization.
 
 
@@ -96,7 +96,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 ### Mandatory parameters
 - `wordpress.url`: Is needed to set wp-config with correct settings
 - `storage`: Set your storage settings for WordPress
-- By default `mariadb.enabled` is true. you have to set `mariadb.auth` and `mariadb.persistence`. Alternatively, it is also possible to use an external database.
+- By default `mariadb.enabled` is true. You have to set `mariadb.auth` and `mariadb.persistence`. Alternatively, it is also possible to use an external database.
 
 ### Recommended parameters
 - `wordpress.init`: Admin credentials and blog setup
@@ -115,10 +115,10 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 ## Installation
 
 ### Basic Installation
-See in tl;dr
+See in TL;DR
 
 ### With External Database
-Find the externalDB.secrets.yaml and externalDB.values.yaml in the github repo in the subfolder "samples".
+Find the externalDB.secrets.yaml and externalDB.values.yaml in the GitHub repo in the subfolder "samples".
 
 ```bash
 kubectl apply -f ./samples/externalDB.secrets.yaml
@@ -126,10 +126,10 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 ```
 
 ### Advanced installation
-Find the advanced.secrets.yaml, advanced.configmap.yaml and advanced.values.yaml in the github repo in the subfolder "samples".
+Find the advanced.secrets.yaml, advanced.configmap.yaml and advanced.values.yaml in the GitHub repo in the subfolder "samples".
 
 This includes:
-* Inital setup of WordPress
+* Initial setup of WordPress
 * Plugin Installation
 * Additional WordPress user
 * Additional configuration files
