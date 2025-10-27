@@ -4,19 +4,21 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "charts/**"
   workflow_dispatch:
     inputs:
       chart:
-        description: 'Chart to test (wg-easy, wireguard, wordpress)'
+        description: "Chart to test (wg-easy, wireguard, wordpress)"
         required: true
-        default: 'wg-easy'
+        default: "wg-easy"
         type: choice
         options:
-        - wg-easy
-        - wireguard
-        - wordpress
+          - wg-easy
+          - wireguard
+          - wordpress
       force:
-        description: 'Force push even if version exists'
+        description: "Force push even if version exists"
         required: false
         default: false
         type: boolean
@@ -31,11 +33,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
+
     strategy:
       matrix:
         chart: ${{ github.event_name == 'workflow_dispatch' && fromJson(format('["{0}"]', github.event.inputs.chart)) || fromJson('["wg-easy", "wireguard", "wordpress"]') }}
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,7 +63,7 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.7.0
         with:
-          cosign-release: 'v2.4.1'
+          cosign-release: "v2.4.1"
 
       - name: Generate GitHub App Token (with fallback)
         id: app-token
@@ -78,7 +80,7 @@ jobs:
           echo "GitHub Actor: ${{ github.actor }}"
           echo "Event: ${{ github.event_name }}"
           echo "Target registry: ghcr.io/slybase/charts"
-          
+
           # Prioritize Personal Access Token over GitHub App
           if [ -n "${{ secrets.SLYBASE_GHCR_TOKEN }}" ]; then
             echo "Using Personal Access Token (preferred for package creation)"
@@ -90,7 +92,7 @@ jobs:
             echo "❌ No authentication token available!"
             exit 1
           fi
-          
+
           echo "=== Test token access ==="
           # Test if the token can access SlyBase org
           if curl -s -f -H "Authorization: Bearer $token" \
@@ -112,20 +114,20 @@ jobs:
         id: chart-changes
         run: |
           chart_dir="charts/${{ matrix.chart }}"
-          
+
           if [ ! -d "$chart_dir" ]; then
             echo "Chart directory $chart_dir does not exist"
             echo "skip=true" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           # Get the current chart version
           chart_version=$(helm show chart "$chart_dir" | grep '^version:' | cut -d' ' -f2)
           chart_name="${{ matrix.chart }}"
-          
+
           echo "chart_version=$chart_version" >> $GITHUB_OUTPUT
           echo "chart_name=$chart_name" >> $GITHUB_OUTPUT
-          
+
           # Check if this version already exists in the registry
           if helm pull "oci://ghcr.io/slybase/charts/$chart_name" --version "$chart_version" 2>/dev/null; then
             echo "Chart $chart_name:$chart_version already exists in registry"
@@ -141,15 +143,15 @@ jobs:
           chart_dir="charts/${{ matrix.chart }}"
           chart_name="${{ steps.chart-changes.outputs.chart_name }}"
           chart_version="${{ steps.chart-changes.outputs.chart_version }}"
-          
+
           echo "Packaging chart $chart_name version $chart_version"
-          
+
           # Package the chart
           helm package "$chart_dir" --destination ./packages
-          
+
           echo "Pushing to OCI registry: oci://ghcr.io/slybase/charts"
           echo "Chart file: ./packages/${chart_name}-${chart_version}.tgz"
-          
+
           # Push to OCI registry and capture the digest
           set -x  # Enable debug output
           push_output=$(helm push "./packages/${chart_name}-${chart_version}.tgz" "oci://ghcr.io/slybase/charts" 2>&1) || {
@@ -159,23 +161,23 @@ jobs:
             exit 1
           }
           set +x  # Disable debug output
-          
+
           echo "Push successful!"
           echo "$push_output"
-          
+
           # Extract digest from the push output
           digest=$(echo "$push_output" | grep -o 'sha256:[a-f0-9]\{64\}' | head -1)
-          
+
           if [ -z "$digest" ]; then
             echo "Failed to extract digest from push output"
             echo "Full push output was:"
             echo "$push_output"
             exit 1
           fi
-          
+
           echo "Chart pushed with digest: $digest"
           echo "chart_digest=$digest" >> $GITHUB_OUTPUT
-          
+
           # Save chart reference for signing
           chart_ref="ghcr.io/slybase/charts/${chart_name}@${digest}"
           echo "chart_ref=$chart_ref" >> $GITHUB_OUTPUT
@@ -185,26 +187,26 @@ jobs:
         if: steps.chart-changes.outputs.skip == 'false' && steps.push.outputs.chart_ref != ''
         run: |
           chart_ref="${{ steps.push.outputs.chart_ref }}"
-          
+
           echo "Signing chart: $chart_ref"
-          
+
           # Sign the chart using keyless signing
           cosign sign --yes "$chart_ref"
-          
+
           echo "Chart signed successfully"
 
       - name: Verify chart signature
         if: steps.chart-changes.outputs.skip == 'false' && steps.push.outputs.chart_ref != ''
         run: |
           chart_ref="${{ steps.push.outputs.chart_ref }}"
-          
+
           echo "Verifying signature for: $chart_ref"
-          
+
           # Verify the signature
           cosign verify "$chart_ref" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/oci-release.yaml@refs/heads/main"
-          
+
           echo "Signature verification successful"
 
       - name: Output chart information
@@ -213,7 +215,7 @@ jobs:
           chart_name="${{ steps.chart-changes.outputs.chart_name }}"
           chart_version="${{ steps.chart-changes.outputs.chart_version }}"
           chart_ref="${{ steps.push.outputs.chart_ref }}"
-          
+
           echo "📦 Chart: $chart_name"
           echo "🏷️  Version: $chart_version"
           echo "📍 Reference: $chart_ref"
@@ -229,9 +231,9 @@ jobs:
         if: steps.chart-changes.outputs.skip == 'false'
         run: |
           chart_name="${{ steps.chart-changes.outputs.chart_name }}"
-          
+
           echo "Uploading ArtifactHub metadata for chart: $chart_name"
-          
+
           # Check if chart-specific artifacthub-repo.yml exists
           if [ -f "charts/$chart_name/artifacthub-repo.yml" ]; then
             echo "Found chart-specific metadata file: charts/$chart_name/artifacthub-repo.yml"
@@ -240,12 +242,12 @@ jobs:
             echo "No chart-specific metadata found, using global metadata"
             metadata_file="artifacthub-repo.yml"
           fi
-          
+
           echo "Pushing metadata to: ghcr.io/slybase/charts/$chart_name:artifacthub.io"
-          
+
           oras push \
             "ghcr.io/slybase/charts/$chart_name:artifacthub.io" \
             --config /dev/null:application/vnd.cncf.artifacthub.config.v1+yaml \
             "$metadata_file:application/vnd.cncf.artifacthub.repository-metadata.layer.v1.yaml"
-          
+
           echo "✅ ArtifactHub metadata uploaded successfully for $chart_name"
