@@ -39,10 +39,10 @@
         },
         {
             "fileMatch": [
-                "^charts/.*/values\\.yaml$"
+                "^charts/.*/.*values\\.yaml$"
             ],
             "matchStrings": [
-                "registry:\\s+(?<registry>[^\\n]+)\\s+repository:\\s+(?<depName>[^\\n]+)\\s+tag:\\s+['\"]?(?<currentValue>[^@\\s]+)"
+                "registry:\\s+(?<registry>[^\\n]+)\\s+repository:\\s+(?<depName>[^\\n]+)\\s+tag:\\s+['\"]?(?<currentValue>[^\\s]+)"
             ],
             "datasourceTemplate": "docker",
             "versioningTemplate": "docker"
