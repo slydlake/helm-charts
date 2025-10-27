@@ -53,9 +53,38 @@ for CHART_DIR in $CHANGED_CHARTS; do
   DEPENDENCY_CHANGES=$(git log --oneline origin/main..HEAD | grep "chore(deps): update" | grep " to " | sed 's/.*chore(deps): update //' | sed 's/ to / /')
   
   if [ -z "$DEPENDENCY_CHANGES" ]; then
-    # Fallback to PR title if no commits found
-    DEPENDENCY_INFO=$(echo "$PR_TITLE" | sed 's/Update dependency //' | sed 's/Update //')
-    DEPENDENCY_CHANGES="$DEPENDENCY_INFO"
+    # Try to get from PR commits using gh CLI
+    PR_NUMBER=$(echo "$PR_URL" | sed 's|.*/pull/||')
+    if command -v gh >/dev/null 2>&1; then
+      echo "Trying to fetch PR commits with gh..."
+      PR_COMMITS=$(gh pr view "$PR_NUMBER" --json commits --jq '.commits[].message' 2>/dev/null || echo "")
+      if [ -n "$PR_COMMITS" ]; then
+        DEPENDENCY_CHANGES=$(echo "$PR_COMMITS" | grep "chore(deps): update" | grep " to " | sed 's/.*chore(deps): update //' | sed 's/ to / /')
+      fi
+      
+      # If still no changes, try parsing PR body for the update table
+      if [ -z "$DEPENDENCY_CHANGES" ]; then
+        echo "Trying to parse PR body for updates..."
+        PR_BODY=$(gh pr view "$PR_NUMBER" --json body --jq '.body' 2>/dev/null || echo "")
+        if [ -n "$PR_BODY" ]; then
+          # Extract lines starting with | and containing package info
+          TABLE_LINES=$(echo "$PR_BODY" | grep '^|' | grep -v 'Package.*Update.*Change' | grep -v '---' | tail -n +2)  # Skip header and separator
+          if [ -n "$TABLE_LINES" ]; then
+            DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
+          fi
+        fi
+      fi
+    fi
+  fi
+  
+  if [ -z "$DEPENDENCY_CHANGES" ]; then
+    # Fallback to PR title parsing (basic)
+    DEPENDENCY_INFO=$(echo "$PR_TITLE" | sed 's/.*chore(deps): update //' | sed 's/ to / /' | sed 's/.*\[//' | sed 's/\].*//')
+    if [ -n "$DEPENDENCY_INFO" ]; then
+      DEPENDENCY_CHANGES="$DEPENDENCY_INFO"
+    else
+      DEPENDENCY_CHANGES="dependencies"
+    fi
   fi
   
   echo "Dependency changes for $CHART_DIR:"
