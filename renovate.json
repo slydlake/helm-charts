@@ -79,7 +79,7 @@
                 "dependencies",
                 "renovate"
             ],
-            "commitMessagePrefix": "[{{{ replace \"docker.io/\" \"\" packageName }}}]",
+            "commitMessagePrefix": "{{{ groupName }}}",
             "commitMessageAction": "chore(deps): update"
         },
         {
@@ -93,7 +93,7 @@
                 "dependencies",
                 "renovate"
             ],
-            "commitMessagePrefix": "[{{{ packageName }}}]",
+            "commitMessagePrefix": "{{{ groupName }}}",
             "commitMessageAction": "chore(deps): update"
         },
         {
