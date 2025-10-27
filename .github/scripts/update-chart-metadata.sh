@@ -50,7 +50,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
   
   # Extract all dependency changes from commit messages
   # Renovate commits have format: "chore(deps): update <name> to <version>"
-  DEPENDENCY_CHANGES=$(git log --oneline origin/main..HEAD | grep "chore(deps): update" | sed 's/.*chore(deps): update //' | sed 's/ to / /')
+  DEPENDENCY_CHANGES=$(git log --oneline origin/main..HEAD | grep "chore(deps): update" | grep " to " | sed 's/.*chore(deps): update //' | sed 's/ to / /')
   
   if [ -z "$DEPENDENCY_CHANGES" ]; then
     # Fallback to PR title if no commits found
