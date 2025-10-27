@@ -3,6 +3,8 @@
 ## Introduction
 This Helm chart installs WordPress in a Kubernetes cluster with many advanced features. It is based on the official WordPress image and provides automation for installation, user management, plugin installation, and metrics for prometheus (WordPress and Apache).
 
+> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown below.
+
 ## TL;DR
 
 You can find different sample yaml (external database, integrated mariaDB and andvanced configuration) in the github repo in the subfolder "samples".
@@ -41,9 +43,6 @@ Install with helm
 kubectl apply -f ./samples/mariaDB.secrets.yaml
 helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/mariaDB.values.yaml
 ```
-
-> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown above.
-
 
 ## Features
 

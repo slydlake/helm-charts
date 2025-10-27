@@ -3,6 +3,8 @@
 ## Introduction
 [WireGuard®](https://github.com/linuxserver/docker-wireguard) is an extremely simple yet fast and modern VPN that utilizes state-of-the-art cryptography.
 
+> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown below.
+
 ## TL;DR
 
 You can find different sample yaml (server, client, client with full wg0.conf configuration) in the github repo in the subfolder "samples".
@@ -34,11 +36,8 @@ wireguard:
 Install with helm
 ```bash
 kubectl apply -f ./samples/namespace.yaml
-helm install wireguard oci://ghcr.io/slybase/charts/wireguard --values ./samples/server.values.yaml
+helm install wireguard oci://ghcr.io/slybase/charts/wireguard --values ./samples/server.values.yaml -n wireguard
 ```
-
-> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown above.
-
 
 ## Prerequisites
 You have to set a namespace with privileged security (see sample namespace.yaml) or you can create this with:
@@ -93,7 +92,7 @@ Install with helm
 ```bash
 kubectl apply -f ./samples/namespace.yaml
 kubectl apply -f ./samples/client.secret.yaml
-helm install wireguard-client oci://ghcr.io/slybase/charts/wireguard --values ./samples/client.values.yaml
+helm install wireguard-client oci://ghcr.io/slybase/charts/wireguard --values ./samples/client.values.yaml -n wireguard
 ```
 
 
@@ -132,5 +131,5 @@ Apply it it the cluster:
 ```bash
 kubectl apply -f ./samples/namespace.yaml
 kubectl apply -f ./samples/clientFullConfig.secret.yaml
-helm install wireguard-client oci://ghcr.io/slybase/charts/wireguard --values ./samples/clientFullConfig.values.yaml
+helm install wireguard-client oci://ghcr.io/slybase/charts/wireguard --values ./samples/clientFullConfig.values.yaml -n wireguard
 ```
