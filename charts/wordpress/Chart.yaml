@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.4.2
+version: 0.4.3
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -27,10 +27,20 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "[docker.io/wordpress] chore(deps): update docker.io/wordpress:6.8.3-php8.1-apache Docker digest to 75f79f9"
+      description: "Update docker.io/mariadb to 5b6a1ea"
       links:
         - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/43
+          url: https://github.com/slydlake/helm-charts/pull/53
+    - kind: changed
+      description: "Update docker.io/memcached to edbe8e8"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/53
+    - kind: changed
+      description: "Update lusotycoon/apache-exporter to v1.0.11"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/53
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
@@ -38,7 +48,7 @@ annotations:
     - name: wordpress-cli
       image: docker.io/wordpress:cli-2.12.0-php8.1
     - name: metrics-apache
-      image: docker.io/lusotycoon/apache-exporter:v1.0.10
+      image: docker.io/lusotycoon/apache-exporter:v1.0.11
     - name: mariadb
       image: docker.io/mariadb:12.0.2-noble
     - name: memcached
