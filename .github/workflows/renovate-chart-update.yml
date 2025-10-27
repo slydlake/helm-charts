@@ -29,6 +29,8 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Update Chart.yaml metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           bash .github/scripts/update-chart-metadata.sh \
             "${{ github.event.pull_request.title }}" \
