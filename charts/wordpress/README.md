@@ -5,17 +5,45 @@ This Helm chart installs WordPress in a Kubernetes cluster with many advanced fe
 
 ## TL;DR
 
+You can find different sample yaml (external database, integrated mariaDB and andvanced configuration) in the github repo in the subfolder "samples".
+
+> **Note:** No theme will be installed. You have to log in to /wp-admin to install a theme.
+
+
+### Installation with integrated MariaDB chart
+
+```yaml
+# ./samples/mariaDB.secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: wordpress-test-secret
+stringData:
+  mariadb-root-password: S3cureDBP@ss
+  mariadb-password: Sup3rS3cureP@ss
+type: Opaque
+
+```
+
+```yaml
+# ./samples/mariaDB.values.yaml
+wordpress:
+  url: "https://example.com"
+mariadb:
+  auth:
+    database: "wordpress_db"
+    username: "wordpress_db_user"
+    existingSecret: "wordpress-test-secret"
+```
+
 Install with helm
 ```bash
-helm install wordpress oci://ghcr.io/slybase/charts/wordpress
+kubectl apply -f ./samples/mariaDB.secrets.yaml
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/mariaDB.values.yaml
 ```
 
 > **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown above.
 
-
-## Default installation of WordPress Information
-
-By default this chart does not install any WordPress themes or preconfigure plugins for the frontend. After the chart is deployed you must log in to the WordPress admin (wp-admin) and set up the first theme and any desired plugins.
 
 ## Features
 
@@ -88,24 +116,37 @@ By default this chart does not install any WordPress themes or preconfigure plug
 ## Installation
 
 ### Basic Installation
-```bash
-helm install my-wordpress slycharts/wordpress
-```
+See in tl;dr
 
 ### With External Database
+Find the externalDB.secrets.yaml and externalDB.values.yaml in the github repo in the subfolder "samples".
+
 ```bash
-helm install my-wordpress slycharts/wordpress \
-  --set externalDatabase.host=your-db-host \
-  --set externalDatabase.username=your-user \
-  --set externalDatabase.password=your-password \
-  --set externalDatabase.database=your-db
+kubectl apply -f ./samples/externalDB.secrets.yaml
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/externalDB.values.yaml
 ```
 
-### With Metrics
+### Advanced installation
+Find the advanced.secrets.yaml, advanced.configmap.yaml and advanced.values.yaml in the github repo in the subfolder "samples".
+
+This includes:
+* Inital setup of WordPress
+* Plugin Installation
+* Additional WordPress user
+* Additional configuration files
+  * .htaccess
+  * wp-config.php settings
+  * apache custom.ini
+* Permanent Nodeport
+* Prometheus metrics
+  * For WordPress
+  * For Apache
+* Memcached pod 
+
 ```bash
-helm install my-wordpress slycharts/wordpress \
-  --set metrics.wordpress.enabled=true \
-  --set metrics.apache.enabled=true
+kubectl apply -f ./samples/advanced.secrets.yaml
+kubectl apply -f ./samples/advanced.configmap.yaml
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/advanced.values.yaml
 ```
 
 ## Support
