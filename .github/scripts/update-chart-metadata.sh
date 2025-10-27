@@ -55,9 +55,10 @@ for CHART_DIR in $CHANGED_CHARTS; do
   if [ -z "$DEPENDENCY_CHANGES" ]; then
     # Try to get from PR commits using gh CLI
     PR_NUMBER=$(echo "$PR_URL" | sed 's|.*/pull/||')
+    echo "PR_NUMBER: $PR_NUMBER"
     if command -v gh >/dev/null 2>&1; then
       echo "Trying to fetch PR commits with gh..."
-      PR_COMMITS=$(gh pr view "$PR_NUMBER" --json commits --jq '.commits[].message' 2>/dev/null || echo "")
+      PR_COMMITS=$(gh pr view "$PR_NUMBER" --json commits --jq '.commits[].message' || echo "")
       echo "PR_COMMITS: $PR_COMMITS"
       if [ -n "$PR_COMMITS" ]; then
         DEPENDENCY_CHANGES=$(echo "$PR_COMMITS" | grep "chore(deps): update" | grep " to " | sed 's/.*chore(deps): update //' | sed 's/ to / /')
@@ -66,7 +67,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
       # If still no changes, try parsing PR body for the update table
       if [ -z "$DEPENDENCY_CHANGES" ]; then
         echo "Trying to parse PR body for updates..."
-        PR_BODY=$(gh pr view "$PR_NUMBER" --json body --jq '.body' 2>/dev/null || echo "")
+        PR_BODY=$(gh pr view "$PR_NUMBER" --json body --jq '.body' || echo "")
         echo "PR_BODY: $PR_BODY"
         if [ -n "$PR_BODY" ]; then
           # Extract lines starting with | and containing package info
@@ -80,7 +81,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
         # If still no changes, try the first comment
         if [ -z "$DEPENDENCY_CHANGES" ]; then
           echo "Trying to parse first PR comment for updates..."
-          FIRST_COMMENT=$(gh pr view "$PR_NUMBER" --json comments --jq '.comments[0].body' 2>/dev/null || echo "")
+          FIRST_COMMENT=$(gh pr view "$PR_NUMBER" --json comments --jq '.comments[0].body' || echo "")
           echo "FIRST_COMMENT: $FIRST_COMMENT"
           if [ -n "$FIRST_COMMENT" ]; then
             TABLE_LINES=$(echo "$FIRST_COMMENT" | grep '^|' | grep -v 'Package.*Update.*Change' | grep -v '---' | tail -n +2)
@@ -97,13 +98,8 @@ for CHART_DIR in $CHANGED_CHARTS; do
   fi
   
   if [ -z "$DEPENDENCY_CHANGES" ]; then
-    # Fallback to PR title parsing (basic)
-    DEPENDENCY_INFO=$(echo "$PR_TITLE" | sed 's/.*chore(deps): update //' | sed 's/ to / /' | sed 's/.*\[//' | sed 's/\].*//' | sed 's/ dependencies$//')
-    if [ -n "$DEPENDENCY_INFO" ]; then
-      DEPENDENCY_CHANGES="$DEPENDENCY_INFO"
-    else
-      DEPENDENCY_CHANGES="dependencies"
-    fi
+    # Fallback
+    DEPENDENCY_CHANGES="Update dependencies"
   fi
   
   echo "Dependency changes for $CHART_DIR:"
