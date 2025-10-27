@@ -48,23 +48,12 @@ for CHART_DIR in $CHANGED_CHARTS; do
   NEW_VERSION=$(echo "$CURRENT_VERSION" | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
   echo "New version: $NEW_VERSION"
   
-  # Extract all dependency changes from git diff
-  # Find all changed tag values in values.yaml
-  VALUES_YAML="$CHART_DIR/values.yaml"
-  DEPENDENCY_CHANGES=""
+  # Extract all dependency changes from commit messages
+  # Renovate commits have format: "chore(deps): update <name> to <version>"
+  DEPENDENCY_CHANGES=$(git log --oneline origin/main..HEAD | grep "chore(deps): update" | sed 's/.*chore(deps): update //' | sed 's/ to / /')
   
-  if [ -f "$VALUES_YAML" ]; then
-    # Use git diff to find changed tag lines
-    # Look for lines with "tag:" that have changes
-    DEPENDENCY_CHANGES=$(git diff origin/main...HEAD -- "$VALUES_YAML" | grep -A1 -B1 "^+.*tag:" | grep -E "^[+-].*tag:" | sed 's/^[+-] *tag: //' | sed 's/"//g' | sort -u)
-    
-    if [ -z "$DEPENDENCY_CHANGES" ]; then
-      # Fallback to PR title if no specific changes found
-      DEPENDENCY_INFO=$(echo "$PR_TITLE" | sed 's/Update dependency //' | sed 's/Update //')
-      DEPENDENCY_CHANGES="$DEPENDENCY_INFO"
-    fi
-  else
-    # Fallback
+  if [ -z "$DEPENDENCY_CHANGES" ]; then
+    # Fallback to PR title if no commits found
     DEPENDENCY_INFO=$(echo "$PR_TITLE" | sed 's/Update dependency //' | sed 's/Update //')
     DEPENDENCY_CHANGES="$DEPENDENCY_INFO"
   fi
@@ -102,8 +91,17 @@ changes_list = [change.strip() for change in dependency_changes.split('\n') if c
 changelog_entries = []
 for change in changes_list:
     if change:
+        # change is like "apache-exporter v1.0.11"
+        parts = change.split()
+        if len(parts) >= 2:
+            name = parts[0]
+            version = ' '.join(parts[1:])
+            description = f"Update {name} to {version}"
+        else:
+            description = f"Update {change}"
+        
         changelog_entries.append(f"""    - kind: changed
-      description: "Update {change}"
+      description: "{description}"
       links:
         - name: Pull Request
           url: {pr_url}""")
