@@ -5,7 +5,7 @@
     "enabledManagers": [
         "helm-values",
         "helmv3",
-        "regex"
+        "custom.regex"
     ],
     "pinDigests": true,
     "prHourlyLimit": 5,
@@ -14,8 +14,9 @@
     "assignees": [
         "slydlake"
     ],
-    "regexManagers": [
+    "customManagers": [
         {
+            "customType": "regex",
             "fileMatch": [
                 "^charts/wireguard/Chart\\.yaml$"
             ],
@@ -28,6 +29,7 @@
             "extractVersionTemplate": "^(?<version>.+)$"
         },
         {
+            "customType": "regex",
             "fileMatch": [
                 "^charts/.*/Chart\\.yaml$"
             ],
@@ -38,6 +40,7 @@
             "versioningTemplate": "docker"
         },
         {
+            "customType": "regex",
             "fileMatch": [
                 "^charts/.*/.*values\\.yaml$"
             ],
@@ -52,7 +55,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "regex"
+                "custom.regex"
             ],
             "matchPackageNames": [
                 "linuxserver/wireguard",
@@ -85,7 +88,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "regex"
+                "custom.regex"
             ],
             "versioning": "docker",
             "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}} dependencies",
@@ -104,13 +107,14 @@
                 "minor",
                 "patch"
             ],
+            "groupName": "charts/{{{ replace \"charts/\" \"\" parentDir }}} dependencies",
             "labels": [
                 "dependencies",
                 "renovate",
                 "helm-chart"
             ],
-            "commitMessagePrefix": "[helm]",
-            "commitMessageAction": "chore(deps): update chart dependencies"
+            "commitMessagePrefix": "{{{ groupName }}}",
+            "commitMessageAction": "chore(deps): update"
         }
     ]
 }
