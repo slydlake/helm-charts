@@ -1,0 +1,8 @@
+wordpress:
+  url: "https://example.com"
+externalDatabase:
+  host: "db-server"
+  database: "wordpress_db"
+  existingSecret: "wordpress-test-secret"
+mariadb:
+  enabled: false

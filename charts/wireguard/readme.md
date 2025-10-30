@@ -1,64 +1,70 @@
-# WireGuard - Server and Client for K8s
+# WireGuard - Server and Client for Kubernetes
 
 ## Introduction
 [WireGuard®](https://github.com/linuxserver/docker-wireguard) is an extremely simple yet fast and modern VPN that utilizes state-of-the-art cryptography.
 
+> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown below.
+
 ## TL;DR
 
-Install with helm
-```bash
-helm install wireguard oci://ghcr.io/slybase/charts/wireguard
-```
+You can find different sample YAML files (server, client, client with full wg0.conf configuration) in the GitHub repo in the subfolder "samples".
 
-> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown above.
+> **Note:** You have to enable the server or client mode in the values wireguard.server.enable = true or wireguard.client.enable = true. By default it is false.
 
-
-## Prerequisites
-You have to set a namespace with privileged security:
 ```yaml
-#namespace.yaml
+# ./samples/namespace.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
-  name:  wireguard
+  name: wireguard
   labels:
     pod-security.kubernetes.io/enforce: privileged
 ```
-Or you can create this with:
+
+```yaml
+# ./samples/server.values.yaml
+wireguard:
+  timezone: "Europe/Berlin"
+  server:
+    enabled: true
+    config:
+      address: vpn.example.com
+      peers: "macbook1,iphone1"
+```
+
+
+Install with Helm:
+```bash
+kubectl apply -f ./samples/namespace.yaml
+helm install wireguard oci://ghcr.io/slybase/charts/wireguard --values ./samples/server.values.yaml -n wireguard
+```
+
+## Prerequisites
+
+You have to set a namespace with privileged security (see sample namespace.yaml) or you can create it with:
 ```bash
 kubectl create namespace wireguard && kubectl label namespace wireguard pod-security.kubernetes.io/enforce=privileged --overwrite
 ```
-You can set your own wg0.conf file as a secret. If you do this, this will ignore the wireguard.server.config or wireguard.client.config in the default values.
-
-```yaml
-#wireguard-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name:  wg-config
-  namespace: wireguard
-type: opaque
-stringData:
-  wg0.conf: |-
-    [Interface]
-    .....
-```
-Apply it it the cluster:
-```bash
-kubectl apply -f ./wireguard-secret.yaml
-```
 
 ## Server mode
-The server mode could be used with default values. You just have to enable it.
+Sample see in TL;DR.
+
+### Bonus
+Output the created peer configurations. Just replace the "namespace" and "releasename" with your values.
 ```bash
-helm install server slydlake/wireguard -n wireguard --set wireguard.server.enabled=true
+export namespace=wireguard
+export releasename=server
+
+export POD=$(kubectl -n $namespace get pods -l "app.kubernetes.io/name=wireguard,app.kubernetes.io/instance=$releasename" -o jsonpath='{.items[0].metadata.name}')
+
+kubectl -n $namespace exec "$POD" -- sh -c 'for peer in "$@"; do echo -e "\n\n--- Peer ${peer} ---"; cat "/config/peer_${peer}/peer_${peer}.conf"; done' sh $(kubectl -n $namespace get pod "$POD" -o jsonpath="{.spec.containers[0].env[?(@.name=='PEERS')].value}" | jq -r -R 'split(",")[]')
 ```
 
 ## Client mode
 In the client mode, you have to set a few settings. The important one is to create a secret that includes privatekey, publickey and presharedkey as a key. You get this information from the WireGuard server peer conf.
 You can find a sample of the secret file (in both variants) in the repo.
 ```yaml
-# secret.client.test.yaml
+# ./samples/client.secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -70,19 +76,61 @@ stringData:
   publickey: ...
   presharedkey: ...
 ```
-After you apply the secret to your cluster, you can install the client like this (replace the values with yours):
+
+```yaml
+# ./samples/client.values.yaml
+wireguard:
+  timezone: "Europe/Berlin"
+  client:
+    enabled: true
+    config:
+      existingSecret: "client-secret"
+      persistentKeepalive: 25
+      endpoint: "vpn.example.com:51820"
+```
+
+Install with Helm:
 ```bash
-helm install client slydlake/wireguard -n wireguard --set wireguard.client.enabled=true,wireguard.client.config.existingSecret=client-secret,wireguard.client.config.address="10.13.13.2/24",wireguard.client.config.endpoint="vpn.example.com:51820"
+kubectl apply -f ./samples/namespace.yaml
+kubectl apply -f ./samples/client.secret.yaml
+helm install wireguard-client oci://ghcr.io/slybase/charts/wireguard --values ./samples/client.values.yaml -n wireguard
 ```
 
 
-## Bonus
-Output the created peer configurations. Just replace the "namespace" and "releasename" with your values.
+## Start up with your wg0.conf
+You can set your own wg0.conf file as a secret. If you do this, this will ignore the default values wireguard.server.config or wireguard.client.config.
+
+In this example we set up a wg0.conf for a client, but of course this could also be done for a server.
+
+```yaml
+# ./samples/clientFullConfig.secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: wg-config
+  namespace: wireguard
+type: Opaque
+stringData:
+  wg0.conf: |-
+    [Interface]
+    .....
+```
+```yaml
+# ./samples/clientFullConfig.values.yaml
+wireguard:
+  timezone: "Europe/Berlin"
+  existingSecret: "wg-config"
+  client:
+    enabled: true
+    config:
+      persistentKeepalive: 25
+      endpoint: "vpn.example.com:51820"
+```
+
+
+Install with Helm:
 ```bash
-export namespace=wireguard
-export releasename=server
-
-export POD=$(kubectl -n $namespace get pods -l "app.kubernetes.io/name=wireguard,app.kubernetes.io/instance=$releasename" -o jsonpath='{.items[0].metadata.name}')
-
-kubectl -n $namespace exec "$POD" -- sh -c 'for peer in "$@"; do echo -e "\n\n--- Peer ${peer} ---"; cat "/config/peer_${peer}/peer_${peer}.conf"; done' sh $(kubectl -n $namespace get pod "$POD" -o jsonpath="{.spec.containers[0].env[?(@.name=='PEERS')].value}" | jq -r -R 'split(",")[]')
+kubectl apply -f ./samples/namespace.yaml
+kubectl apply -f ./samples/clientFullConfig.secret.yaml
+helm install wireguard-client oci://ghcr.io/slybase/charts/wireguard --values ./samples/clientFullConfig.values.yaml -n wireguard
 ```

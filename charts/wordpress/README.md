@@ -3,19 +3,46 @@
 ## Introduction
 This Helm chart installs WordPress in a Kubernetes cluster with many advanced features. It is based on the official WordPress image and provides automation for installation, user management, plugin installation, and metrics for prometheus (WordPress and Apache).
 
+> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown below.
+
 ## TL;DR
 
-Install with helm
-```bash
-helm install wordpress oci://ghcr.io/slybase/charts/wordpress
+You can find different sample YAML files (external database, integrated MariaDB and advanced configuration) in the GitHub repo in the subfolder "samples".
+
+> **Note:** No theme will be installed. You have to log in to /wp-admin to install a theme.
+
+
+### Installation with integrated MariaDB chart
+
+```yaml
+# ./samples/mariaDB.secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: wordpress-test-secret
+stringData:
+  mariadb-root-password: S3cureDBP@ss
+  mariadb-password: Sup3rS3cureP@ss
+type: Opaque
+
 ```
 
-> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown above.
+```yaml
+# ./samples/mariaDB.values.yaml
+wordpress:
+  url: "https://example.com"
+mariadb:
+  auth:
+    database: "wordpress_db"
+    username: "wordpress_db_user"
+    existingSecret: "wordpress-test-secret"
+```
 
-
-## Default installation of WordPress Information
-
-By default this chart does not install any WordPress themes or preconfigure plugins for the frontend. After the chart is deployed you must log in to the WordPress admin (wp-admin) and set up the first theme and any desired plugins.
+Install with Helm:
+```bash
+kubectl apply -f ./samples/mariaDB.secrets.yaml
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/mariaDB.values.yaml
+```
 
 ## Features
 
@@ -23,7 +50,7 @@ By default this chart does not install any WordPress themes or preconfigure plug
 - **Init Container**: Automatic initial installation of WordPress with predefined admin credentials.
 - **Configuration**: Set admin username, password, email, first name, last name, and blog title.
 - **Debug Mode**: Enable debugging for the installation.
-- **Permalinks**: Configure permalink structures (e.g., postName, dayAndName).
+- **Permalinks**: Configure permalink structures (e.g., post name, day and name).
 
 ### User Management
 - **Automatic User Generation**: Create additional users with roles (Administrator, Editor, etc.).
@@ -44,9 +71,9 @@ By default this chart does not install any WordPress themes or preconfigure plug
 
 ### Metrics and Monitoring
 - **WordPress Metrics**: Automatically install a WordPress Plugin for Prometheus metrics.
-  - See details on GitHub Repo of (SlyMetrics Plugin from slydalke)[https://github.com/slydlake/slymetrics] 
+  - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics] 
 - **Apache Metrics**: Sidecar container for Apache metrics.
-  - See details on GitHub Repo of (apache exporter from Lusitaniaes)[https://github.com/Lusitaniae/apache_exporter]
+  - See details on GitHub Repo of (apache exporter from Lusitaniae)[https://github.com/Lusitaniae/apache_exporter]
 - **Grafana Dashboard**: Integrate with Grafana for metrics visualization.
 
 
@@ -69,7 +96,7 @@ By default this chart does not install any WordPress themes or preconfigure plug
 ### Mandatory parameters
 - `wordpress.url`: Is needed to set wp-config with correct settings
 - `storage`: Set your storage settings for WordPress
-- By default `mariadb.enabled` is true. you have to set `mariadb.auth` and `mariadb.persistence`. Alternatively, it is also possible to use an external database.
+- By default `mariadb.enabled` is true. You have to set `mariadb.auth` and `mariadb.persistence`. Alternatively, it is also possible to use an external database.
 
 ### Recommended parameters
 - `wordpress.init`: Admin credentials and blog setup
@@ -88,24 +115,37 @@ By default this chart does not install any WordPress themes or preconfigure plug
 ## Installation
 
 ### Basic Installation
-```bash
-helm install my-wordpress slycharts/wordpress
-```
+See in TL;DR
 
 ### With External Database
+Find the externalDB.secrets.yaml and externalDB.values.yaml in the GitHub repo in the subfolder "samples".
+
 ```bash
-helm install my-wordpress slycharts/wordpress \
-  --set externalDatabase.host=your-db-host \
-  --set externalDatabase.username=your-user \
-  --set externalDatabase.password=your-password \
-  --set externalDatabase.database=your-db
+kubectl apply -f ./samples/externalDB.secrets.yaml
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/externalDB.values.yaml
 ```
 
-### With Metrics
+### Advanced installation
+Find the advanced.secrets.yaml, advanced.configmap.yaml and advanced.values.yaml in the GitHub repo in the subfolder "samples".
+
+This includes:
+* Initial setup of WordPress
+* Plugin Installation
+* Additional WordPress user
+* Additional configuration files
+  * .htaccess
+  * wp-config.php settings
+  * apache custom.ini
+* Permanent Nodeport
+* Prometheus metrics
+  * For WordPress
+  * For Apache
+* Memcached pod 
+
 ```bash
-helm install my-wordpress slycharts/wordpress \
-  --set metrics.wordpress.enabled=true \
-  --set metrics.apache.enabled=true
+kubectl apply -f ./samples/advanced.secrets.yaml
+kubectl apply -f ./samples/advanced.configmap.yaml
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/advanced.values.yaml
 ```
 
 ## Support

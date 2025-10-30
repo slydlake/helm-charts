@@ -1,0 +1,8 @@
+config:
+  init:
+    enabled: false
+service:
+  ui:
+    nodePort: 30201
+  wireguard:
+    nodePort: 30200
