@@ -140,14 +140,21 @@ changes_list = [change.strip() for change in dependency_changes.split('\n') if c
 changelog_entries = []
 for change in changes_list:
     if change:
-        # change is like "apache-exporter v1.0.11"
         parts = change.split()
         if len(parts) >= 2:
-            name = parts[0]
-            version = ' '.join(parts[1:])
+            version = parts[-1]
+            name_part = ' '.join(parts[:-1])
+            # Entferne Markdown-Links und nimm den ersten Wort-Teil als Name
+            name = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', name_part).split()[0]
             description = f"Update {name} to {version}"
         else:
             description = f"Update {change}"
+        
+        changelog_entries.append(f"""    - kind: changed
+      description: "{description}"
+      links:
+        - name: Pull Request
+          url: {pr_url}""")
         
         changelog_entries.append(f"""    - kind: changed
       description: "{description}"
