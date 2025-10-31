@@ -155,12 +155,6 @@ for change in changes_list:
       links:
         - name: Pull Request
           url: {pr_url}""")
-        
-        changelog_entries.append(f"""    - kind: changed
-      description: "{description}"
-      links:
-        - name: Pull Request
-          url: {pr_url}""")
 
 new_changelog = f"""  artifacthub.io/changes: |
 {chr(10).join(changelog_entries)}"""
