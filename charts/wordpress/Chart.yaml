@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.4.5
+version: 0.4.6
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -27,7 +27,15 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "Provided better samples for the first start. Readme help a lot more for first installation."
+      description: "Update mariadb to 0.6.0"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/59
+    - kind: changed
+      description: "Update memcached to 0.4.0"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/59
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wordpress
@@ -44,11 +52,11 @@ dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.3.4
+    version: 0.4.0
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.5.4
+    version: 0.6.0
 keywords:
   - wordpress
   - blog
