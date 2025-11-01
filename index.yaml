@@ -1824,6 +1824,73 @@ entries:
       artifacthub.io/category: networking
       artifacthub.io/changes: |
         - kind: changed
+          description: "Update mariadb to 0.6.0"
+          links:
+            - name: Pull Request
+              url: https://github.com/slydlake/helm-charts/pull/59
+        - kind: changed
+          description: "Update memcached to 0.4.0"
+          links:
+            - name: Pull Request
+              url: https://github.com/slydlake/helm-charts/pull/59
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: wordpress
+          image: docker.io/wordpress:6.8.3-php8.1-apache
+        - name: wordpress-cli
+          image: docker.io/wordpress:cli-2.12.0-php8.1
+        - name: metrics-apache
+          image: docker.io/lusotycoon/apache-exporter:v1.0.11
+        - name: mariadb
+          image: docker.io/mariadb:12.0.2-noble
+        - name: memcached
+          image: docker.io/memcached:1.6.39
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
+        - name: Official WordPress Repository
+          url: https://github.com/docker-library/
+        - name: "SlyMetrics WordPress plugin for Prometheus Metrics"
+          url: https://github.com/slydlake/slymetrics
+        - name: Apache Metrics container
+          url: https://github.com/Lusitaniae/apache_exporter
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: 6.8.3
+    created: "2025-11-01T11:19:12.721371507Z"
+    dependencies:
+    - condition: memcached.enabled
+      name: memcached
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.4.0
+    - condition: mariadb.enabled
+      name: mariadb
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.6.0
+    description: Using the official WordPress image. This chart provides automation
+      for installation, user management, plugin installation, and metrics.
+    digest: 6c1aca11590606ed07bd68a4f6d3c5b67cf6333f35a2681e4b6de240b965804d
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
+    keywords:
+    - wordpress
+    - blog
+    maintainers:
+    - name: slydlake
+    name: wordpress
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.4.6/wordpress-0.4.6.tgz
+    version: 0.4.6
+  - annotations:
+      artifacthub.io/category: networking
+      artifacthub.io/changes: |
+        - kind: changed
           description: "Provided better samples for the first start. Readme help a lot more for first installation."
       artifacthub.io/containsSecurityUpdates: "false"
       artifacthub.io/images: |
@@ -3169,4 +3236,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-10-30T11:31:02.083047369Z"
+generated: "2025-11-01T11:19:12.721543407Z"
