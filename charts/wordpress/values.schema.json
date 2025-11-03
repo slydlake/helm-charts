@@ -328,6 +328,35 @@
                     "description": "WordPress plugins to install",
                     "default": []
                 },
+                "themes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Name|zip|URL: Name of the theme"
+                            },
+                            "version": {
+                                "type": "string",
+                                "description": "Version of the theme"
+                            },
+                            "activate": {
+                                "type": "boolean",
+                                "description": "Activate the theme after install"
+                            },
+                            "autoupdate": {
+                                "type": "boolean",
+                                "description": "Enable auto-updates for the theme"
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ]
+                    },
+                    "description": "WordPress themes to install",
+                    "default": []
+                },
                 "users": {
                     "type": "array",
                     "items": {
@@ -522,7 +551,7 @@
                     "type": "string",
                     "enum": [
                         "keep",
-                        "delete"
+                        ""
                     ],
                     "description": "Resource policy for the PVC",
                     "default": "keep"

@@ -278,35 +278,194 @@ data:
     # Handle WordPress plugins if specified
     {{- if .Values.wordpress.plugins }}
     echo "Installing custom plugins..."
+    
+    # Prepare arrays for batch operations
+    PLUGINS_TO_INSTALL=()
+    PLUGINS_TO_ACTIVATE=()
+    PLUGINS_TO_AUTOUPDATE=()
+    
     {{- range .Values.wordpress.plugins }}
     PLUGIN_NAME="{{ .name }}"
     PLUGIN_VERSION="{{ .version }}"
     PLUGIN_ACTIVATE="{{ .activate }}"
     PLUGIN_AUTOUPDATE="{{ .autoupdate }}"
 
-    # Check if plugin is installed
+    # Check if plugin needs installation
     if ! run wp plugin is-installed "${PLUGIN_NAME}"; then
-      # Install the plugin
       if [ -n "${PLUGIN_VERSION}" ]; then
-        wp plugin install "${PLUGIN_NAME}" --version="${PLUGIN_VERSION}" --force
+        PLUGINS_TO_INSTALL+=("${PLUGIN_NAME}:${PLUGIN_VERSION}")
       else
-        wp plugin install "${PLUGIN_NAME}" --force
+        PLUGINS_TO_INSTALL+=("${PLUGIN_NAME}")
       fi
     fi
 
-    # Activate if requested and not active
-    if [ "${PLUGIN_ACTIVATE}" = "true" ] && ! run wp plugin is-active "${PLUGIN_NAME}"; then
-      run wp plugin activate "${PLUGIN_NAME}"
+    # Track plugins to activate
+    if [ "${PLUGIN_ACTIVATE}" = "true" ]; then
+      PLUGINS_TO_ACTIVATE+=("${PLUGIN_NAME}")
     fi
 
-    # Enable auto-updates if requested and not enabled
-    AUTO_UPDATE_STATUS=$(wp plugin auto-updates status "${PLUGIN_NAME}" --field=status 2>/dev/null)
-    if [ "${PLUGIN_AUTOUPDATE}" = "true" ] && [ "$AUTO_UPDATE_STATUS" = "disabled" ]; then
-      run wp plugin auto-updates enable "${PLUGIN_NAME}"
+    # Track plugins for auto-update
+    if [ "${PLUGIN_AUTOUPDATE}" = "true" ]; then
+      PLUGINS_TO_AUTOUPDATE+=("${PLUGIN_NAME}")
     fi
     {{- end }}
+
+    # Batch install plugins
+    if [ ${#PLUGINS_TO_INSTALL[@]} -gt 0 ]; then
+      echo "Installing ${#PLUGINS_TO_INSTALL[@]} plugin(s)..."
+      
+      # Separate plugins with and without versions
+      PLUGINS_NO_VERSION=()
+      PLUGINS_WITH_VERSION=()
+      
+      for plugin_spec in "${PLUGINS_TO_INSTALL[@]}"; do
+        if [[ "$plugin_spec" == *":"* ]]; then
+          PLUGINS_WITH_VERSION+=("$plugin_spec")
+        else
+          PLUGINS_NO_VERSION+=("$plugin_spec")
+        fi
+      done
+      
+      # Install all plugins without version in one batch
+      if [ ${#PLUGINS_NO_VERSION[@]} -gt 0 ]; then
+        wp plugin install "${PLUGINS_NO_VERSION[@]}" --force
+      fi
+      
+      # Install versioned plugins individually (wp-cli limitation)
+      for plugin_spec in "${PLUGINS_WITH_VERSION[@]}"; do
+        PLUGIN_NAME="${plugin_spec%%:*}"
+        PLUGIN_VERSION="${plugin_spec##*:}"
+        wp plugin install "${PLUGIN_NAME}" --version="${PLUGIN_VERSION}" --force
+      done
+    fi
+
+    # Batch activate plugins
+    if [ ${#PLUGINS_TO_ACTIVATE[@]} -gt 0 ]; then
+      PLUGINS_NEED_ACTIVATION=()
+      for plugin in "${PLUGINS_TO_ACTIVATE[@]}"; do
+        if ! run wp plugin is-active "$plugin"; then
+          PLUGINS_NEED_ACTIVATION+=("$plugin")
+        fi
+      done
+      
+      if [ ${#PLUGINS_NEED_ACTIVATION[@]} -gt 0 ]; then
+        echo "Activating ${#PLUGINS_NEED_ACTIVATION[@]} plugin(s)..."
+        run wp plugin activate "${PLUGINS_NEED_ACTIVATION[@]}"
+      fi
+    fi
+
+    # Batch enable auto-updates
+    if [ ${#PLUGINS_TO_AUTOUPDATE[@]} -gt 0 ]; then
+      PLUGINS_NEED_AUTOUPDATE=()
+      for plugin in "${PLUGINS_TO_AUTOUPDATE[@]}"; do
+        AUTO_UPDATE_STATUS=$(wp plugin auto-updates status "$plugin" --field=status 2>/dev/null)
+        if [ "$AUTO_UPDATE_STATUS" = "disabled" ]; then
+          PLUGINS_NEED_AUTOUPDATE+=("$plugin")
+        fi
+      done
+      
+      if [ ${#PLUGINS_NEED_AUTOUPDATE[@]} -gt 0 ]; then
+        echo "Enabling auto-updates for ${#PLUGINS_NEED_AUTOUPDATE[@]} plugin(s)..."
+        run wp plugin auto-updates enable "${PLUGINS_NEED_AUTOUPDATE[@]}"
+      fi
+    fi
     {{- else }}
     echo "No custom plugins specified."
+    {{- end }}
+
+    # Handle WordPress themes if specified
+    {{- if .Values.wordpress.themes }}
+    echo "Installing custom themes..."
+    
+    # Helper function to extract theme slug from name/URL
+    get_theme_slug() {
+      local theme_name="$1"
+      if [[ "$theme_name" == *".zip" ]]; then
+        basename "$theme_name" .zip
+      else
+        echo "$theme_name"
+      fi
+    }
+    
+    # Prepare arrays for batch operations
+    THEMES_TO_INSTALL=()
+    THEME_TO_ACTIVATE=""
+    THEMES_TO_AUTOUPDATE=()
+    
+    {{- range .Values.wordpress.themes }}
+    THEME_NAME="{{ .name }}"
+    THEME_VERSION="{{ .version }}"
+    THEME_ACTIVATE="{{ .activate }}"
+    THEME_AUTOUPDATE="{{ .autoupdate }}"
+    
+    THEME_SLUG=$(get_theme_slug "${THEME_NAME}")
+
+    # Check if theme needs installation
+    if ! run wp theme is-installed "${THEME_SLUG}"; then
+      if [ -n "${THEME_VERSION}" ]; then
+        THEMES_TO_INSTALL+=("${THEME_NAME}:${THEME_VERSION}")
+      else
+        THEMES_TO_INSTALL+=("${THEME_NAME}")
+      fi
+    fi
+
+    # Only one theme can be active at a time - use last one marked for activation
+    if [ "${THEME_ACTIVATE}" = "true" ]; then
+      THEME_TO_ACTIVATE="${THEME_SLUG}"
+    fi
+
+    # Track themes for auto-update (use slug)
+    if [ "${THEME_AUTOUPDATE}" = "true" ]; then
+      THEMES_TO_AUTOUPDATE+=("${THEME_SLUG}")
+    fi
+    {{- end }}
+
+    # Batch install themes
+    if [ ${#THEMES_TO_INSTALL[@]} -gt 0 ]; then
+      echo "Installing ${#THEMES_TO_INSTALL[@]} theme(s)..."
+      for theme_spec in "${THEMES_TO_INSTALL[@]}"; do
+        # Check if it's a URL or a versioned theme
+        # URLs start with http:// or https://, so : doesn't mean version here
+        if [[ "$theme_spec" == http://* ]] || [[ "$theme_spec" == https://* ]]; then
+          # It's a URL - install as-is
+          wp theme install "$theme_spec" --force
+        elif [[ "$theme_spec" == *":"* ]]; then
+          # Has version specified (not a URL)
+          THEME_NAME="${theme_spec%%:*}"
+          THEME_VERSION="${theme_spec##*:}"
+          wp theme install "${THEME_NAME}" --version="${THEME_VERSION}" --force
+        else
+          # No version, not a URL - install directly
+          wp theme install "$theme_spec" --force
+        fi
+      done
+    fi
+
+    # Activate theme (only one can be active)
+    if [ -n "$THEME_TO_ACTIVATE" ]; then
+      if ! run wp theme is-active "$THEME_TO_ACTIVATE"; then
+        echo "Activating theme: $THEME_TO_ACTIVATE"
+        run wp theme activate "$THEME_TO_ACTIVATE"
+      fi
+    fi
+
+    # Batch enable auto-updates
+    if [ ${#THEMES_TO_AUTOUPDATE[@]} -gt 0 ]; then
+      THEMES_NEED_AUTOUPDATE=()
+      for theme in "${THEMES_TO_AUTOUPDATE[@]}"; do
+        AUTO_UPDATE_STATUS=$(wp theme auto-updates status "$theme" --field=status 2>/dev/null)
+        if [ "$AUTO_UPDATE_STATUS" = "disabled" ]; then
+          THEMES_NEED_AUTOUPDATE+=("$theme")
+        fi
+      done
+      
+      if [ ${#THEMES_NEED_AUTOUPDATE[@]} -gt 0 ]; then
+        echo "Enabling auto-updates for ${#THEMES_NEED_AUTOUPDATE[@]} theme(s)..."
+        run wp theme auto-updates enable "${THEMES_NEED_AUTOUPDATE[@]}"
+      fi
+    fi
+    {{- else }}
+    echo "No custom themes specified."
     {{- end }}
 
     # Deactivate maintenance mode

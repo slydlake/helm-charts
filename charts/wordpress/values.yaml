@@ -213,6 +213,22 @@ wordpress:
   #     activate: true
   #     autoupdate: true
   plugins: []
+
+  ## @param wordpress.themes array WordPress themes to install
+  ## @param wordpress.themes[].name string Name|zip|URL: Name of the theme (e.g. twentytwentyfour), local zip file or remote URL
+  ## e.g. you want to install the theme Astra: go to the theme page and take a look at the url
+  ## e.g. https://wordpress.org/themes/astra/ then is the name of the theme "astra"
+  ## @param wordpress.themes[].version string Version of the theme (e.g. 1.0.0)
+  ## If not set, the latest version will be installed
+  ## @param wordpress.themes[].activate boolean Activate the theme after install
+  ## @param wordpress.themes[].autoupdate boolean Enable auto-updates for the theme
+  # themes:
+  #   - name: "astra"
+  #     version: "4.0.0"
+  #     activate: true
+  #     autoupdate: true
+  themes: []
+
   ## @param wordpress.users array WordPress users to create
   ## @param wordpress.users[].name string mandatory Name of the user
   ## @param wordpress.users[].email string mandatory Email of the user
@@ -361,7 +377,7 @@ storage:
   # selector to add to the PVC
   selector: {}
   ## @param storage.resourcePolicy string Resource policy of PVC
-  # resource policy of the PVC
+  # resource policy of the PVC (set to "keep" to prevent deletion on uninstall)
   resourcePolicy: keep
 
 ## @section Service Account parameters

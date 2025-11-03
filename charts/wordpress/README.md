@@ -9,7 +9,7 @@ This Helm chart installs WordPress in a Kubernetes cluster with many advanced fe
 
 You can find different sample YAML files (external database, integrated MariaDB and advanced configuration) in the GitHub repo in the subfolder "samples".
 
-> **Note:** No theme will be installed. You have to log in to /wp-admin to install a theme.
+> **Note:** No default site is set as "Home", so you will see no landing page. You have to log in to /wp-admin to install a theme.
 
 
 ### Installation with integrated MariaDB chart
@@ -64,6 +64,12 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Versioning**: Specify plugin versions.
 - **Activation and Auto-Updates**: Activate plugins after installation and enable auto-updates.
 
+### Theme Installation
+- **Automatic Installation**: Install themes from WordPress.org, local ZIPs, or URLs.
+- **Versioning**: Specify theme versions.
+- **Activation and Auto-Updates**: Activate themes after installation and enable auto-updates.
+- **Custom Themes**: Support for custom theme ZIPs via direct URLs.
+
 ### Database
 - **External Database**: Use an external MariaDB/MySQL database.
 - **Embedded MariaDB**: Enable the integrated MariaDB chart for local database.
@@ -104,6 +110,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 
 ### Additional parameters
 - `wordpress.plugins`: List of plugins to install
+- `wordpress.themes`: List of themes to install
 - `wordpress.users`: Additional users
 - `wordpress.language`: Language (e.g., de_DE)
 - `wordpress.permalinks.structure`: Set the wordpress post structure
@@ -131,6 +138,7 @@ Find the advanced.secrets.yaml, advanced.configmap.yaml and advanced.values.yaml
 This includes:
 * Initial setup of WordPress
 * Plugin Installation
+* Theme Installation
 * Additional WordPress user
 * Additional configuration files
   * .htaccess

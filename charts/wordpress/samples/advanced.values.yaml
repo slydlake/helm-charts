@@ -5,8 +5,34 @@ wordpress:
     firstname: "John"
     lastname: "Doe"
     title: "John Does's Blog"
+  language: "de_DE"
   plugins:
     - name: "two-factor"
+      activate: true
+      autoupdate: true
+    - name: "blocksy-companion"
+      activate: true
+      autoupdate: true
+    - name: "generateblocks"
+      activate: true
+      autoupdate: true
+    - name: "cache-enabler"
+      activate: true
+      autoupdate: true
+    - name: "autoptimize"
+      activate: true
+      autoupdate: true
+    - name: "stackable-ultimate-gutenberg-blocks"
+      activate: true
+      autoupdate: true
+    - name: "manage-notification-emails"
+      activate: true
+      autoupdate: true
+  themes:
+    - name: "blocksy"
+      activate: false
+      autoupdate: true
+    - name: "https://creativethemes.com/downloads/blocksy-child.zip"
       activate: true
       autoupdate: true
   users:
@@ -24,6 +50,8 @@ wordpress:
 service:
   nodePorts:
     http: 30111
+storage:
+  resourcePolicy: "" # Delete PVC on helm uninstall
 apache:
   customPhpConfigMap: "wordpress-custom-config"
 metrics:
