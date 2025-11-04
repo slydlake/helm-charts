@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.5.1
+version: 0.5.2
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -27,20 +27,7 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "Update docker.io/memcached to 050de63"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/61
-    - kind: changed
-      description: "Update docker.io/wordpress to 23efd69"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/61
-    - kind: changed
-      description: "Update memcached to 0.5.2"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/61
+      description: "Optimize init script performance: batch plugin/theme checks and installations for many plugins/themes."
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.8.3-php8.1-apache
