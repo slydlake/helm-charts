@@ -49,7 +49,7 @@
                     "title": "Secret name",
                     "type": "string",
                     "description": "Secrets for pulling images from private repositories. See https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/"
-                }
+                  }
                 },
                 "required": []
             },
