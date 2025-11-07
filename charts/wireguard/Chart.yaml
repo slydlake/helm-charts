@@ -2,7 +2,7 @@ apiVersion: v2
 name: wireguard
 description: "Using the offical linuxserver/wireguard image with almost any environment variables for K8S. Supporting server and client mode."
 type: application
-version: 0.2.2
+version: 0.2.3
 appVersion: 1.0.20250521-r0-ls90
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
 home: https://github.com/slydlake/helm-charts
@@ -22,6 +22,11 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
+    - kind: fixed
+      description: "Fixed 'imagePullSecrets' schema to expect array of objects instead of strings (thanks @ScionOfDesign)"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/64
     - kind: changed
       description: "Provided better samples for the first start. Readme help a lot more for first installation."
   artifacthub.io/containsSecurityUpdates: false

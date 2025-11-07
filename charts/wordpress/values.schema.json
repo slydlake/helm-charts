@@ -38,11 +38,21 @@
             ]
         },
         "imagePullSecrets": {
+            "title": "Image Pull Secrets",
             "type": "array",
+            "description": "List of existing Kubernetes secrets used to pull images from private registries.",
             "items": {
-                "type": "string"
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                "name": {
+                    "title": "Secret name",
+                    "type": "string",
+                    "description": "Secrets for pulling images from private repositories. See https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/"
+                }
+                },
+                "required": []
             },
-            "description": "Secrets for pulling images from private repository",
             "default": []
         },
         "nameOverride": {
