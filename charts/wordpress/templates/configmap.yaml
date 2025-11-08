@@ -57,34 +57,15 @@ data:
     </IfModule>
 
     # BEGIN WordPress
-    # Die Anweisungen (Zeilen) zwischen „BEGIN WordPress“ und „END WordPress“ sind
-    # dynamisch generiert und sollten nur über WordPress-Filter geändert werden.
-    # Alle Änderungen an den Anweisungen zwischen diesen Markierungen werden überschrieben.
-    <IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-    RewriteBase /
-    RewriteRule ^index\.php$ - [L]
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule . /index.php [L]
-    </IfModule>
-
+    # The directives (lines) between "BEGIN WordPress" and "END WordPress" are
+    # dynamically generated and will be automatically injected by the init container.
+    # Any changes to the directives between these markers will be overwritten.
     # END WordPress
     {{ else }}
     # BEGIN WordPress
-    # Die Anweisungen (Zeilen) zwischen „BEGIN WordPress“ und „END WordPress“ sind
-    # dynamisch generiert und sollten nur über WordPress-Filter geändert werden.
-    # Alle Änderungen an den Anweisungen zwischen diesen Markierungen werden überschrieben.
-    <IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-    RewriteBase /
-    RewriteRule ^index\.php$ - [L]
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule . /index.php [L]
-    </IfModule>
+    # The directives (lines) between "BEGIN WordPress" and "END WordPress" are
+    # dynamically generated and will be automatically injected by the init container.
+    # Any changes to the directives between these markers will be overwritten.
     # END WordPress
     {{- end }}
   {{- end }}
@@ -133,6 +114,104 @@ data:
         echo "WordPress already present in /tmp/wordpress - skipping copy"
     fi
     echo "Base script completed!"
+  htaccess-setup.sh: |
+    #!/bin/sh
+    # Script to setup .htaccess on persistent volume
+    # This runs in the base init container
+    
+    echo "Starting .htaccess setup..."
+    
+    # Check if .htaccess already exists on persistent volume
+    if [ ! -f /tmp/wordpress/.htaccess ]; then
+      echo ".htaccess not found on persistent volume, creating from ConfigMap..."
+      
+      # Copy and make injection script executable
+      cp /tmp/scripts/htaccess-inject.sh /tmp/htaccess-inject.sh
+      chmod +x /tmp/htaccess-inject.sh
+      
+      # Copy .htaccess from ConfigMap and inject WordPress rules
+      /tmp/htaccess-inject.sh \
+        /tmp/configfiles/.htaccess \
+        /tmp/wordpress/.htaccess \
+        /tmp/scripts/wordpress-rewrite-rules.txt
+      
+      # Set correct ownership and permissions
+      chown www-data:www-data /tmp/wordpress/.htaccess
+      chmod 664 /tmp/wordpress/.htaccess
+      echo "WordPress rewrite rules successfully injected and written to persistent volume!"
+    else
+      echo ".htaccess already exists on persistent volume."
+      
+      # Check if WordPress block exists but is empty (only comments between markers)
+      if grep -q "# BEGIN WordPress" /tmp/wordpress/.htaccess; then
+        # Extract content between BEGIN and END WordPress (excluding the markers themselves)
+        WP_BLOCK_CONTENT=$(awk '/# BEGIN WordPress/,/# END WordPress/{if (!/# BEGIN WordPress/ && !/# END WordPress/) print}' /tmp/wordpress/.htaccess | grep -v "^#" | grep -v "^[[:space:]]*$")
+        
+        if [ -z "$WP_BLOCK_CONTENT" ]; then
+          echo "WordPress block exists but is empty, injecting default rules..."
+          
+          # Copy and make injection script executable
+          cp /tmp/scripts/htaccess-inject.sh /tmp/htaccess-inject.sh
+          chmod +x /tmp/htaccess-inject.sh
+          
+          # Inject WordPress rewrite rules into existing .htaccess
+          /tmp/htaccess-inject.sh \
+            /tmp/wordpress/.htaccess \
+            /tmp/htaccess-temp \
+            /tmp/scripts/wordpress-rewrite-rules.txt
+          
+          mv /tmp/htaccess-temp /tmp/wordpress/.htaccess
+          chown www-data:www-data /tmp/wordpress/.htaccess
+          chmod 664 /tmp/wordpress/.htaccess
+          echo "WordPress rewrite rules successfully injected into existing .htaccess!"
+        else
+          echo "WordPress block already has content, preserving existing configuration."
+        fi
+      else
+        echo "No WordPress block found, preserving existing .htaccess as-is."
+      fi
+    fi
+    
+    echo ".htaccess setup completed!"
+  wordpress-rewrite-rules.txt: |
+    <IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteBase /
+    RewriteRule ^index\.php$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.php [L]
+    </IfModule>
+  htaccess-inject.sh: |
+    #!/bin/sh
+    # Script to inject WordPress rewrite rules into .htaccess
+    # Usage: htaccess-inject.sh <source-htaccess> <output-htaccess> <rules-file>
+    
+    SOURCE_FILE="$1"
+    OUTPUT_FILE="$2"
+    RULES_FILE="$3"
+    
+    awk -v rules_file="$RULES_FILE" '
+    BEGIN { 
+        in_wp=0
+        wp_done=0
+        # Read rules from file
+        while ((getline line < rules_file) > 0) {
+            rules = rules line "\n"
+        }
+        close(rules_file)
+    }
+    /# BEGIN WordPress/ { 
+        print
+        printf "%s", rules
+        in_wp=1
+        wp_done=1
+        next
+    }
+    /# END WordPress/ { in_wp=0 }
+    !in_wp || !wp_done { print }
+    ' "$SOURCE_FILE" > "$OUTPUT_FILE"
   init.sh: |
     #!/bin/bash
     echo "Starting init script..."

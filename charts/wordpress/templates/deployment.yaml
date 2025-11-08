@@ -145,10 +145,10 @@ spec:
             chmod +x /tmp/base.sh
             /tmp/base.sh
             
-            # copy .htaccess with correct ownership
-            cp /tmp/configfiles/.htaccess /tmp/htaccess/.htaccess
-            chown www-data:www-data /tmp/htaccess/.htaccess
-            chmod 664 /tmp/htaccess/.htaccess
+            # copy and run htaccess-setup.sh
+            cp /tmp/scripts/htaccess-setup.sh /tmp/htaccess-setup.sh
+            chmod +x /tmp/htaccess-setup.sh
+            /tmp/htaccess-setup.sh
           volumeMounts:
             - name: tmp
               mountPath: /tmp
@@ -157,10 +157,17 @@ spec:
             - name: {{ include "wordpress.fullname" . }}-init
               mountPath: /tmp/base.sh.readonly
               subPath: base.sh
+            - name: {{ include "wordpress.fullname" . }}-init
+              mountPath: /tmp/scripts/htaccess-setup.sh
+              subPath: htaccess-setup.sh
+            - name: {{ include "wordpress.fullname" . }}-init
+              mountPath: /tmp/scripts/htaccess-inject.sh
+              subPath: htaccess-inject.sh
+            - name: {{ include "wordpress.fullname" . }}-init
+              mountPath: /tmp/scripts/wordpress-rewrite-rules.txt
+              subPath: wordpress-rewrite-rules.txt
             - name: {{ include "wordpress.fullname" . }}-configfiles
               mountPath: /tmp/configfiles
-            - name: htaccess-volume
-              mountPath: /tmp/htaccess
         - name: {{ .Chart.Name }}-init
           image: "{{ .Values.wordpress.init.image.repository | default .Values.wordpress.init.repository | default "docker.io/wordpress" }}{{- if .Values.wordpress.init.image.tag  -}}:{{ .Values.wordpress.init.image.tag | default "cli" }}{{- end }}"
           {{- with .Values.containerSecurityContext }}
@@ -445,10 +452,6 @@ spec:
             - name: {{ include "wordpress.fullname" . }}-configfiles
               mountPath: /usr/local/etc/php/conf.d/custom.ini
               subPath: custom.ini
-            - name: htaccess-volume
-              mountPath: /var/www/html/.htaccess
-              subPath: .htaccess
-              readOnly: false
         {{- if .Values.metrics.apache.enabled}}
         - name: metrics-apache
           image: "{{ .Values.metrics.apache.image.repository | default "lusotycoon/apache-exporter" }}{{- if .Values.metrics.apache.image.tag -}}:{{ .Values.metrics.apache.image.tag | default "latest" }}{{- end }}"
@@ -521,8 +524,6 @@ spec:
         emptyDir: {}
       - name: run
         emptyDir: {}
-      - name: htaccess-volume
-        emptyDir: {}
       - name: {{ include "wordpress.fullname" . }}-configfiles
         projected:
           defaultMode: 0664
@@ -582,6 +583,12 @@ spec:
               path: base.sh
             - key: init.sh
               path: init.sh
+            - key: htaccess-setup.sh
+              path: htaccess-setup.sh
+            - key: htaccess-inject.sh
+              path: htaccess-inject.sh
+            - key: wordpress-rewrite-rules.txt
+              path: wordpress-rewrite-rules.txt
       {{- if .Values.externalDatabase.existingSecret }}
       - name: {{ .Values.externalDatabase.existingSecret }}
         secret:
