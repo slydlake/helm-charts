@@ -280,6 +280,10 @@ data:
         ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
       fi
 
+      # Flush rewrite rules to ensure metrics endpoints are registered
+      echo "Flushing rewrite rules for metrics plugin..."
+      run wp rewrite flush
+
       # Enable auto-updates if disabled (using cached list)
       if ! echo "$AUTOUPDATE_ENABLED" | grep -q "^${WORDPRESS_METRICS}$"; then
         run wp plugin auto-updates enable ${WORDPRESS_METRICS}

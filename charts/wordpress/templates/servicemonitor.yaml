@@ -27,22 +27,16 @@ spec:
       app.kubernetes.io/name: {{ include "wordpress.name" . }}
   {{- end }}
   endpoints:
-  - port: http
-    {{ if .Values.metrics.wordpress.serviceMonitor.interval }}
-    interval: {{ .Values.metrics.wordpress.serviceMonitor.interval }}
-    {{ end }}
-    path: {{ coalesce .Values.metrics.wordpress.serviceMonitor.metricsPath .Values.metrics.wordpress.serviceMonitor.path "/slymetrics/metrics" | quote }}
+  {{- range .Values.metrics.wordpress.serviceMonitor.ports }}
+  - port: {{ . }}
+    {{- if $.Values.metrics.wordpress.serviceMonitor.interval }}
+    interval: {{ $.Values.metrics.wordpress.serviceMonitor.interval }}
+    {{- end }}
+    path: {{ coalesce $.Values.metrics.wordpress.serviceMonitor.metricsPath $.Values.metrics.wordpress.serviceMonitor.path "/slymetrics/metrics" | quote }}
     bearerTokenSecret:
-      name: {{ if .Values.metrics.wordpress.serviceMonitor.existingSecret }}{{ .Values.metrics.wordpress.serviceMonitor.existingSecret }}{{ else }}{{ include "metrics.wordpress.fullname" . }}{{ end }}
-      key: wordpress.metrics.token
-  - port: https
-    {{ if .Values.metrics.wordpress.serviceMonitor.interval }}
-    interval: {{ .Values.metrics.wordpress.serviceMonitor.interval }}
-    {{ end }}
-    path: {{ coalesce .Values.metrics.wordpress.serviceMonitor.metricsPath .Values.metrics.wordpress.serviceMonitor.path "/slymetrics/metrics" | quote }}
-    bearerTokenSecret:
-      name: {{ if .Values.metrics.wordpress.serviceMonitor.existingSecret }}{{ .Values.metrics.wordpress.serviceMonitor.existingSecret }}{{ else }}{{ include "metrics.wordpress.fullname" . }}{{ end }}
-      key: wordpress.metrics.token
+      name: {{ if $.Values.metrics.wordpress.serviceMonitor.existingSecret }}{{ $.Values.metrics.wordpress.serviceMonitor.existingSecret }}{{ else }}{{ include "metrics.wordpress.fullname" $ }}{{ end }}
+      key: {{ $.Values.metrics.wordpress.serviceMonitor.secretKey }}
+  {{- end }}
 {{- end }}
 
 {{- if and .Values.metrics.apache.enabled .Values.metrics.apache.serviceMonitor.enabled }}

@@ -665,6 +665,13 @@ metrics:
       interval: 30s
       ## @param metrics.wordpress.serviceMonitor.namespace Namespace for the ServiceMonitor Resource (defaults to the Release Namespace)
       namespace: ""
+      ## @param metrics.wordpress.serviceMonitor.ports array Ports to scrape metrics from
+      ## e.g.
+      # ports:
+      #   - http
+      #   - https
+      ports:
+        - http
       ## @param metrics.wordpress.serviceMonitor.metricsPath string Path to scrape metrics from
       metricsPath: /slymetrics/metrics
       ## @param metrics.wordpress.serviceMonitor.existingSecret string Name of existing secret containing Bearer Token
@@ -673,6 +680,8 @@ metrics:
       # see  https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/#basic-authentication-with-application-passwords
       # Name of the existing secret. Must contain the Bearer Token as a keys "wordpress.metrics.token"
       existingSecret: ""
+      ## @param metrics.wordpress.serviceMonitor.secretKey string Key in existing secret containing Bearer Token
+      secretKey: "wordpress.metrics.token"
       ## @param metrics.wordpress.serviceMonitor.token string Alternative authentication token
       # Alternative use this keys. If existingSecret is used, these are ignored
       # sample generation: echo $(openssl rand -hex 32)

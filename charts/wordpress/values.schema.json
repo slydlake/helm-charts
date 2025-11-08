@@ -45,11 +45,11 @@
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
-                "name": {
-                    "title": "Secret name",
-                    "type": "string",
-                    "description": "Secrets for pulling images from private repositories. See https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/"
-                  }
+                    "name": {
+                        "title": "Secret name",
+                        "type": "string",
+                        "description": "Secrets for pulling images from private repositories. See https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/"
+                    }
                 },
                 "required": []
             },
@@ -1093,6 +1093,26 @@
                                     "type": "string",
                                     "description": "Existing secret for metrics authentication",
                                     "default": ""
+                                },
+                                "secretKey": {
+                                    "type": "string",
+                                    "description": "Key in existing secret containing Bearer Token",
+                                    "default": "wordpress.metrics.token"
+                                },
+                                "token": {
+                                    "type": "string",
+                                    "description": "Alternative authentication token",
+                                    "default": ""
+                                },
+                                "ports": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "description": "Ports to scrape metrics from",
+                                    "default": [
+                                        "http"
+                                    ]
                                 },
                                 "labels": {
                                     "type": "object",

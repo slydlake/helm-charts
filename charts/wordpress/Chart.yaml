@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.5.6
+version: 0.6.0
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,21 +26,10 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "Fixed 'imagePullSecrets' schema to expect array of objects instead of strings (thanks @ScionOfDesign)"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/64
+    - kind: added
+      description: "Add configurable ports and secretKey to WordPress ServiceMonitor for flexible metrics scraping on HTTP/HTTPS endpoints. By default only HTTP port is scraped."
     - kind: changed
-      description: "Update docker.io/wordpress to 67ec86e"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/63
-    - kind: changed
-      description: "Update memcached to 0.5.3"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/63
+      description: "When using WordPress metrics plugin, in init container always rewrite flush"
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.8.3-php8.1-apache
