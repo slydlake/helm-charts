@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.5.4
+version: 0.5.6
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,6 +26,11 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
+    - kind: fixed
+      description: "Fixed 'imagePullSecrets' schema to expect array of objects instead of strings (thanks @ScionOfDesign)"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/64
     - kind: changed
       description: "Update docker.io/wordpress to 67ec86e"
       links:
