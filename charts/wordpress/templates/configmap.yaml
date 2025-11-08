@@ -162,15 +162,6 @@ data:
       echo "Database not ready yet, waiting 15 seconds..."
       sleep 15
     done
-    
-    # wait to get ready
-    # sleep 20
-    # Activate maintenance mode during setup
-    if ! run wp maintenance-mode is-active --url="${WP_URL}"; then
-      run wp maintenance-mode activate --force --url="${WP_URL}"
-    else
-      run wp maintenance-mode status --url="${WP_URL}"
-    fi
 
     # set up WordPress
     if [ "${WP_INIT}" = "true" ]; then
@@ -533,10 +524,5 @@ data:
     {{- else }}
     echo "No custom themes specified."
     {{- end }}
-
-    # Deactivate maintenance mode
-    if run wp maintenance-mode is-active; then
-      wp maintenance-mode deactivate
-    fi
 
     echo "Init script completed!"
