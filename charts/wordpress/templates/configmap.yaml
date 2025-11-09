@@ -121,13 +121,13 @@ data:
     
     echo "Starting .htaccess setup..."
     
+    # Copy and make injection script executable once
+    cp /tmp/scripts/htaccess-inject.sh /tmp/htaccess-inject.sh
+    chmod +x /tmp/htaccess-inject.sh
+    
     # Check if .htaccess already exists on persistent volume
     if [ ! -f /tmp/wordpress/.htaccess ]; then
       echo ".htaccess not found on persistent volume, creating from ConfigMap..."
-      
-      # Copy and make injection script executable
-      cp /tmp/scripts/htaccess-inject.sh /tmp/htaccess-inject.sh
-      chmod +x /tmp/htaccess-inject.sh
       
       # Copy .htaccess from ConfigMap and inject WordPress rules
       /tmp/htaccess-inject.sh \
@@ -142,33 +142,38 @@ data:
     else
       echo ".htaccess already exists on persistent volume."
       
-      # Check if WordPress block exists but is empty (only comments between markers)
+      # Extract WordPress block content from existing file (if it exists)
       if grep -q "# BEGIN WordPress" /tmp/wordpress/.htaccess; then
-        # Extract content between BEGIN and END WordPress (excluding the markers themselves)
-        WP_BLOCK_CONTENT=$(awk '/# BEGIN WordPress/,/# END WordPress/{if (!/# BEGIN WordPress/ && !/# END WordPress/) print}' /tmp/wordpress/.htaccess | grep -v "^#" | grep -v "^[[:space:]]*$")
+        echo "Extracting WordPress block content from existing .htaccess..."
         
-        if [ -z "$WP_BLOCK_CONTENT" ]; then
-          echo "WordPress block exists but is empty, injecting default rules..."
-          
-          # Copy and make injection script executable
-          cp /tmp/scripts/htaccess-inject.sh /tmp/htaccess-inject.sh
-          chmod +x /tmp/htaccess-inject.sh
-          
-          # Inject WordPress rewrite rules into existing .htaccess
-          /tmp/htaccess-inject.sh \
-            /tmp/wordpress/.htaccess \
-            /tmp/htaccess-temp \
-            /tmp/scripts/wordpress-rewrite-rules.txt
-          
-          mv /tmp/htaccess-temp /tmp/wordpress/.htaccess
-          chown www-data:www-data /tmp/wordpress/.htaccess
-          chmod 664 /tmp/wordpress/.htaccess
-          echo "WordPress rewrite rules successfully injected into existing .htaccess!"
-        else
-          echo "WordPress block already has content, preserving existing configuration."
-        fi
+        # Extract ONLY the content between markers (excluding the markers themselves)
+        awk '/# BEGIN WordPress/,/# END WordPress/{if (!/# BEGIN WordPress/ && !/# END WordPress/) print}' /tmp/wordpress/.htaccess > /tmp/wp-block-content.txt
+        
+        # Start with fresh ConfigMap .htaccess and inject the existing WordPress block content
+        /tmp/htaccess-inject.sh \
+          /tmp/configfiles/.htaccess \
+          /tmp/htaccess-new \
+          /tmp/wp-block-content.txt
+        
+        # Replace old .htaccess with updated one
+        mv /tmp/htaccess-new /tmp/wordpress/.htaccess
+        chown www-data:www-data /tmp/wordpress/.htaccess
+        chmod 664 /tmp/wordpress/.htaccess
+        echo "ConfigMap .htaccess updated with existing WordPress block content!"
       else
-        echo "No WordPress block found, preserving existing .htaccess as-is."
+        echo "No WordPress block found in existing .htaccess."
+        
+        # Inject default WordPress rules into fresh ConfigMap .htaccess
+        /tmp/htaccess-inject.sh \
+          /tmp/configfiles/.htaccess \
+          /tmp/htaccess-new \
+          /tmp/scripts/wordpress-rewrite-rules.txt
+        
+        # Replace old .htaccess with updated one
+        mv /tmp/htaccess-new /tmp/wordpress/.htaccess
+        chown www-data:www-data /tmp/wordpress/.htaccess
+        chmod 664 /tmp/wordpress/.htaccess
+        echo "ConfigMap .htaccess applied with default WordPress rules!"
       fi
     fi
     
