@@ -135,25 +135,43 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 ### Advanced installation
 Find the advanced.secrets.yaml, advanced.configmap.yaml and advanced.values.yaml in the GitHub repo in the subfolder "samples".
 
-This includes:
-* Initial setup of WordPress
-* Plugin Installation
-* Theme Installation
-* Additional WordPress user
-* Additional configuration files
+This includes everything from basic installation plus:
+* **Initial setup of WordPress**
+* **Plugin Installation**
+* **Theme Installation**
+* **Additional WordPress user**
+* **Additional configuration files**
   * .htaccess
   * wp-config.php settings
   * apache custom.ini
-* Permanent Nodeport
-* Prometheus metrics
+* **Permanent Nodeport**
+* **Prometheus metrics**
   * For WordPress
   * For Apache
-* Memcached pod 
+* **Memcached pod**
 
 ```bash
 kubectl apply -f ./samples/advanced.secrets.yaml
 kubectl apply -f ./samples/advanced.configmap.yaml
 helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/advanced.values.yaml
+```
+
+### Advanced installation with High Availability (2 Replicas)
+Find the advanced2.values.yaml in the GitHub repo in the subfolder "samples".
+
+This setup includes everything from the advanced installation plus:
+* **2 WordPress pod replicas** for high availability and load balancing
+* **ReadWriteMany (RWX) storage** to allow multiple pods to share the same WordPress files
+* **Distributed locking** ensures only one pod runs init operations at a time (prevents race conditions)
+
+**Requirements:**
+* Your cluster must support ReadWriteMany (RWX) storage class (e.g., NFS, Ceph, cloud provider shared storage)
+* LoadBalancer or Ingress for distributing traffic across replicas
+
+```bash
+kubectl apply -f ./samples/advanced.secrets.yaml
+kubectl apply -f ./samples/advanced.configmap.yaml
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/advanced2.values.yaml
 ```
 
 ## Support

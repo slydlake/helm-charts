@@ -1,0 +1,74 @@
+replicaCount: 2
+
+wordpress:
+  init:
+    enabled: true
+    existingSecret: "wordpress-test-secret"
+    firstname: "John"
+    lastname: "Doe"
+    title: "John Does's Blog"
+  language: "de_DE"
+  plugins:
+    - name: "two-factor"
+      activate: true
+      autoupdate: true
+    - name: "blocksy-companion"
+      activate: true
+      autoupdate: true
+    - name: "generateblocks"
+      activate: true
+      autoupdate: true
+    - name: "cache-enabler"
+      activate: true
+      autoupdate: true
+    - name: "autoptimize"
+      activate: true
+      autoupdate: true
+    - name: "stackable-ultimate-gutenberg-blocks"
+      activate: true
+      autoupdate: true
+    - name: "manage-notification-emails"
+      activate: true
+      autoupdate: true
+  themes:
+    - name: "blocksy"
+      activate: false
+      autoupdate: true
+    - name: "https://creativethemes.com/downloads/blocksy-child.zip"
+      activate: true
+      autoupdate: true
+  users:
+    - username: "johnsmith"
+      email: "john.smith@example.com"
+      displayname: "John Smith"
+      firstname: "John"
+      lastname: "Smith"
+      role: "contributor"
+      sendEmail: false
+  configExtraSecret:
+    name: "wordpress-test-secret"
+  htaccessConfigMap: "wordpress-custom-config"
+  url: "https://example.com"
+service:
+  nodePorts:
+    http: 30111
+storage:
+  resourcePolicy: "" # Delete PVC on helm uninstall
+  accessModes:
+    - ReadWriteMany
+apache:
+  customPhpConfigMap: "wordpress-custom-config"
+metrics:
+  wordpress:
+    enabled: true
+    serviceMonitor:
+      existingSecret: "wordpress-test-secret"
+  apache:
+    enabled: true
+mariadb:
+  auth:
+    database: "wordpress_db"
+    username: "wordpress_db_user"
+    existingSecret: "wordpress-test-secret"
+memcached:
+  enabled: true
