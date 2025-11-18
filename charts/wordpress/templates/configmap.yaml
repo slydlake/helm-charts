@@ -322,8 +322,8 @@ data:
       fi
     fi
 
-    # NOW WordPress is definitely installed - acquire lock for remaining operations
-    echo "Acquiring lock for plugin/theme installation..."
+    # NOW WordPress is definitely installed - acquire lock for ALL remaining operations
+    echo "Acquiring database lock for initialization..."
     LOCK_ATTEMPTS=0
     while ! claim_lock_db; do
         LOCK_ATTEMPTS=$((LOCK_ATTEMPTS + 1))
@@ -331,10 +331,23 @@ data:
         if [ $WAIT_TIME -ge $MAX_WAIT ]; then
           echo "Timeout waiting for database lock after ${MAX_WAIT}s"
           echo "Checking if another pod has lock..."
-          if is_db_lock_held; then
-            echo "Another pod still holds lock, but taking over anyway..."
+          
+          # Try one final time to forcefully claim the lock
+          POD_ID="$$-$(hostname)"
+          CURRENT_TIME=$(date +%s)
+          wp db query "UPDATE wp_options SET option_value='$POD_ID-$CURRENT_TIME' WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || \
+          wp db query "INSERT INTO wp_options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no');" >/dev/null 2>&1
+          
+          # Verify we actually got it
+          sleep 1
+          LOCK_OWNER=$(wp db query "SELECT option_value FROM wp_options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
+          if [[ "$LOCK_OWNER" == "$POD_ID-$CURRENT_TIME" ]]; then
+            echo "Successfully claimed lock after timeout"
+            break
+          else
+            echo "Failed to claim lock - another pod won. Exiting to avoid conflicts."
+            exit 1
           fi
-          break
         fi
         
         echo "Another pod is currently running init process, waiting... (${WAIT_TIME}s/${MAX_WAIT}s)"
