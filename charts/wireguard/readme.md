@@ -63,6 +63,9 @@ kubectl -n $namespace exec "$POD" -- sh -c 'for peer in "$@"; do echo -e "\n\n--
 ## Client mode
 In the client mode, you have to set a few settings. The important one is to create a secret that includes privatekey, publickey and presharedkey as a key. You get this information from the WireGuard server peer conf.
 You can find a sample of the secret file (in both variants) in the repo.
+
+> **Note:** When using `wireguard.client.config.existingSecret`, the chart detects changes to the secret during `helm upgrade` (or GitOps reconcile) and automatically triggers a pod rollout with the updated configuration. This ensures your WireGuard client uses the latest keys after each upgrade.
+
 ```yaml
 # ./samples/client.secret.yaml
 apiVersion: v1
