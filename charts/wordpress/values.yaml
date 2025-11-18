@@ -17,7 +17,7 @@ image:
   repository: docker.io/wordpress
   ## @param image.tag string Overrides the image tag whose default is the chart appVersion
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "6.8.3-php8.1-apache@sha256:67ec86e454c7bd2580f8f98e928db66df99903dc31747df2f641a5196b82b16d"
+  tag: "6.8.3-php8.1-apache@sha256:7703e57fe86422690203cf5762d9482154f64db66eb372218d3af86fc2e369f4"
   ## @param image.pullPolicy string Image pull policy
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
@@ -1004,7 +1004,7 @@ memcached:
     ## @param memcached.image.repository string Memcached image repository
     repository: memcached
     ## @param memcached.image.tag string Memcached image tag
-    tag: "1.6.39@sha256:050de63e6c082df85f93ffed9c388004b3c6257a06f1904e8628a6f87658eb99"
+    tag: "1.6.39@sha256:4737e17016e4d65ad8007408ec1816096c4ebec04cfa89a5265a3edd3f4ca552"
     ## @param memcached.image.pullPolicy string Memcached image pull policy
     pullPolicy: IfNotPresent
 
