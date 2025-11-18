@@ -229,6 +229,7 @@ data:
     MAX_WAIT=180
     WAIT_TIME=0
     CHECK_INTERVAL=5
+    STALE_LOCK_THRESHOLD=120  # Consider lock stale after 2 minutes
     
     # ============================================================================
     # Database Lock Functions
@@ -239,8 +240,8 @@ data:
       CURRENT_TIME=$(date +%s)
       POD_ID="$$-$(hostname)"
       
-      # Try to insert lock row - will fail if already exists
-      wp db query "INSERT INTO wp_options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no') ON DUPLICATE KEY UPDATE option_id=option_id;" >/dev/null 2>&1
+      # Try to insert lock row - ignore error if already exists
+      wp db query "INSERT IGNORE INTO wp_options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no');" >/dev/null 2>&1
       
       # Check if we actually got the lock
       LOCK_OWNER=$(wp db query "SELECT option_value FROM wp_options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
@@ -249,11 +250,11 @@ data:
         return 0
       fi
       
-      # Check for stale lock (older than 5 minutes)
+      # Check for stale lock (older than threshold)
       LOCK_TIME=$(echo "$LOCK_OWNER" | awk -F'-' '{print $NF}')
       if [[ "$LOCK_TIME" =~ ^[0-9]+$ ]]; then
         LOCK_AGE=$((CURRENT_TIME - LOCK_TIME))
-        if [ $LOCK_AGE -gt 300 ]; then
+        if [ $LOCK_AGE -gt $STALE_LOCK_THRESHOLD ]; then
           echo "Found stale lock (${LOCK_AGE}s old), taking over..." >&2
           wp db query "UPDATE wp_options SET option_value='$POD_ID-$CURRENT_TIME' WHERE option_name='_helm_init_lock';" >/dev/null 2>&1
           return 0
@@ -267,8 +268,6 @@ data:
       wp db query "DELETE FROM wp_options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
       echo "Lock released"
     }
-    
-    trap release_lock EXIT
     
     trap release_lock EXIT
     
@@ -650,5 +649,10 @@ data:
     {{- else }}
     echo "No custom themes specified."
     {{- end }}
-
+    
+    # ============================================================================
+    # Release Lock and Complete
+    # ============================================================================
+    
+    release_lock
     echo "Init script completed!"
