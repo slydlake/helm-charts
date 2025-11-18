@@ -53,6 +53,14 @@
     ],
     "packageRules": [
         {
+            "matchUpdateTypes": [
+                "digest"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "description": "Auto-merge digest-only updates for security patches"
+        },
+        {
             "matchManagers": [
                 "helm-values",
                 "custom.regex"
