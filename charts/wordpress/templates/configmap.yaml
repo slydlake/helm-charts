@@ -240,13 +240,22 @@ data:
       CURRENT_TIME=$(date +%s)
       POD_ID="$$-$(hostname)"
       
+      # Get table prefix dynamically
+      TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Using table prefix: $TABLE_PREFIX" >&2
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Attempting to claim lock with POD_ID=$POD_ID-$CURRENT_TIME" >&2
+      
       # Try to insert lock row - ignore error if already exists
-      wp db query "INSERT IGNORE INTO wp_options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no');" >/dev/null 2>&1
+      wp db query "INSERT IGNORE INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no');" >/dev/null 2>&1
+      INSERT_RESULT=$?
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: INSERT result: $INSERT_RESULT" >&2
       
       # Check if we actually got the lock
-      LOCK_OWNER=$(wp db query "SELECT option_value FROM wp_options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
+      LOCK_OWNER=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Current lock owner: $LOCK_OWNER" >&2
       
       if [[ "$LOCK_OWNER" == "$POD_ID-$CURRENT_TIME" ]]; then
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Successfully claimed lock!" >&2
         return 0
       fi
       
@@ -254,18 +263,22 @@ data:
       LOCK_TIME=$(echo "$LOCK_OWNER" | awk -F'-' '{print $NF}')
       if [[ "$LOCK_TIME" =~ ^[0-9]+$ ]]; then
         LOCK_AGE=$((CURRENT_TIME - LOCK_TIME))
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Lock age: ${LOCK_AGE}s (threshold: ${STALE_LOCK_THRESHOLD}s)" >&2
         if [ $LOCK_AGE -gt $STALE_LOCK_THRESHOLD ]; then
           echo "Found stale lock (${LOCK_AGE}s old), taking over..." >&2
-          wp db query "UPDATE wp_options SET option_value='$POD_ID-$CURRENT_TIME' WHERE option_name='_helm_init_lock';" >/dev/null 2>&1
+          wp db query "UPDATE ${TABLE_PREFIX}options SET option_value='$POD_ID-$CURRENT_TIME' WHERE option_name='_helm_init_lock';" >/dev/null 2>&1
           return 0
         fi
+      else
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Lock time is not numeric: $LOCK_TIME" >&2
       fi
       
       return 1
     }
     
     release_lock() {
-      wp db query "DELETE FROM wp_options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
+      TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
+      wp db query "DELETE FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
       echo "Lock released"
     }
     
@@ -336,12 +349,13 @@ data:
         # Final attempt to forcefully claim the lock
         POD_ID="$$-$(hostname)"
         CURRENT_TIME=$(date +%s)
-        wp db query "UPDATE wp_options SET option_value='$POD_ID-$CURRENT_TIME' WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || \
-        wp db query "INSERT INTO wp_options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no');" >/dev/null 2>&1
+        TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
+        wp db query "UPDATE ${TABLE_PREFIX}options SET option_value='$POD_ID-$CURRENT_TIME' WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || \
+        wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no');" >/dev/null 2>&1
         
         # Verify we actually got it
         sleep 1
-        LOCK_OWNER=$(wp db query "SELECT option_value FROM wp_options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
+        LOCK_OWNER=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
         if [[ "$LOCK_OWNER" == "$POD_ID-$CURRENT_TIME" ]]; then
           echo "Successfully claimed lock after timeout"
           break
