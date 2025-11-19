@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.7.1
+version: 0.7.2
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -30,7 +30,7 @@ annotations:
       description: "Update docker.io/wordpress:6.8.3-php8.1-apache to ed5d7a7"
       links:
         - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/71
+          url: https://github.com/slydlake/helm-charts/pull/72
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.8.3-php8.1-apache
