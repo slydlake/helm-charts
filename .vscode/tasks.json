@@ -1,0 +1,30 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Apply Wordpress ConfigMap in Cluster",
+            "type": "shell",
+            "command": "helm template ${input:releaseName} -n ${input:namespace} . --values <(helm -n ${input:namespace} get values ${input:releaseName} -o yaml) --show-only templates/configmap.yaml | kubectl apply -n ${input:namespace} -f -",
+            "options": {
+                "cwd": "${workspaceFolder}/charts/wordpress"
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "releaseName",
+            "description": "Release Name",
+            "default": "helm-release-name",
+            "type": "promptString"
+        },
+        {
+            "id": "namespace",
+            "description": "Namespace",
+            "default": "namespace",
+            "type": "promptString"
+        }
+    ]
+}
