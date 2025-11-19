@@ -78,14 +78,15 @@
                 "helm-values",
                 "custom.regex"
             ],
-            "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}} dependencies",
+            "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}}",
             "labels": [
                 "dependencies",
                 "renovate"
             ],
+            "semanticCommits": "disabled",
             "commitMessagePrefix": "{{{ groupName }}}",
-            "commitMessageAction": "chore(deps): update",
-            "commitMessageTopic": "{{{ groupName }}} dependencies",
+            "commitMessageAction": "chore(deps): updates",
+            "commitMessageTopic": "",
             "commitMessageExtra": ""
         },
         {
@@ -108,14 +109,17 @@
                 "minor",
                 "patch"
             ],
-            "groupName": "charts/{{{ replace \"charts/\" \"\" parentDir }}} dependencies",
+            "groupName": "charts/{{{ replace \"charts/\" \"\" parentDir }}}",
             "labels": [
                 "dependencies",
                 "renovate",
                 "helm-chart"
             ],
+            "semanticCommits": "disabled",
             "commitMessagePrefix": "{{{ groupName }}}",
-            "commitMessageAction": "chore(deps): update"
+            "commitMessageAction": "chore(deps): updates",
+            "commitMessageTopic": "",
+            "commitMessageExtra": ""
         }
     ]
 }
