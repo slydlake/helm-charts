@@ -285,10 +285,10 @@ data:
     # ============================================================================
     # Configuration
     # ============================================================================
-    MAX_WAIT=180
-    WAIT_TIME=0
     CHECK_INTERVAL=5
-    STALE_LOCK_THRESHOLD=120  # Consider lock stale after 2 minutes
+    STALE_LOCK_THRESHOLD=120  # Consider lock stale after 2 minutes (handles pod deletion)
+    MAX_WAIT=$((STALE_LOCK_THRESHOLD + 30))  # Wait a bit longer than stale threshold
+    WAIT_TIME=0
     
     # ============================================================================
     # Database Lock Functions
@@ -491,12 +491,19 @@ data:
       fi
 
       # Set admin user metadata
-      echo "Setting user metadata..."
       if [ -n "${WP_ADMIN_FIRSTNAME}" ]; then
-        wp user meta update "$WP_ADMIN_USER" first_name "$WP_ADMIN_FIRSTNAME"
+        CURRENT_FIRSTNAME=$(wp user meta get "$WP_ADMIN_USER" first_name 2>/dev/null || echo "")
+        if [ "$CURRENT_FIRSTNAME" != "$WP_ADMIN_FIRSTNAME" ]; then
+          echo "Setting admin first name..."
+          wp user meta update "$WP_ADMIN_USER" first_name "$WP_ADMIN_FIRSTNAME"
+        fi
       fi
       if [ -n "${WP_ADMIN_LASTNAME}" ]; then
-        wp user meta update "$WP_ADMIN_USER" last_name "$WP_ADMIN_LASTNAME"
+        CURRENT_LASTNAME=$(wp user meta get "$WP_ADMIN_USER" last_name 2>/dev/null || echo "")
+        if [ "$CURRENT_LASTNAME" != "$WP_ADMIN_LASTNAME" ]; then
+          echo "Setting admin last name..."
+          wp user meta update "$WP_ADMIN_USER" last_name "$WP_ADMIN_LASTNAME"
+        fi
       fi
     fi
     
@@ -573,19 +580,34 @@ data:
     PLUGINS_TO_AUTOUPDATE=()
     
     {{- range .Values.wordpress.plugins }}
-    if ! echo "$INSTALLED_PLUGINS" | grep -q "^{{ .name }}$"; then
-      {{- if .version }}
-      PLUGINS_TO_INSTALL+=("{{ .name }}:{{ .version }}")
+    # Plugin: {{ .name }}
+    PLUGIN_NAME="{{ .name }}"
+    
+    # Check if it's a URL (at runtime, not template time)
+    if [[ "$PLUGIN_NAME" == http://* ]] || [[ "$PLUGIN_NAME" == https://* ]]; then
+      echo "Installing URL plugin: $PLUGIN_NAME"
+      {{- if .activate }}
+      run wp plugin install "$PLUGIN_NAME" --activate --force
       {{- else }}
-      PLUGINS_TO_INSTALL+=("{{ .name }}")
+      run wp plugin install "$PLUGIN_NAME" --force
+      {{- end }}
+      # Note: Auto-updates for URL plugins are skipped (slug cannot be reliably determined)
+    else
+      # Named plugin - add to batch processing
+      if ! echo "$INSTALLED_PLUGINS" | grep -q "^${PLUGIN_NAME}$"; then
+        {{- if .version }}
+        PLUGINS_TO_INSTALL+=("{{ .name }}:{{ .version }}")
+        {{- else }}
+        PLUGINS_TO_INSTALL+=("{{ .name }}")
+        {{- end }}
+      fi
+      {{- if .activate }}
+      PLUGINS_TO_ACTIVATE+=("{{ .name }}")
+      {{- end }}
+      {{- if .autoupdate }}
+      PLUGINS_TO_AUTOUPDATE+=("{{ .name }}")
       {{- end }}
     fi
-    {{- if .activate }}
-    PLUGINS_TO_ACTIVATE+=("{{ .name }}")
-    {{- end }}
-    {{- if .autoupdate }}
-    PLUGINS_TO_AUTOUPDATE+=("{{ .name }}")
-    {{- end }}
     {{- end }}
 
     # Batch install plugins
