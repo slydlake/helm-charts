@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.7.0
+version: 0.7.1
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,20 +26,11 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "Improved base and init container."
-    - kind: added
-      description: "Added support for MU-Plugins via ConfigMaps. See samples/muPlugins.* for example."
-    - kind: added
-      description: "Added support for custom commands in Init container via ConfigMap. See samples/customInit.* for example."
-    - kind: fixed
-      description: "Improved handling of table prefix during initialization locking."
-    - kind: added
-      description: "Checks if database is initialized, without Init Mode."
-    - kind: fixed
-      description: "Removing the metrics plugin support."
-    - kind: added
-      description: "More debug logging for init container."
+    - kind: changed
+      description: "Update docker.io/wordpress to ed5d7a7"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/76
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.8.3-php8.1-apache
