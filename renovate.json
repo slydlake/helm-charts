@@ -84,7 +84,9 @@
                 "renovate"
             ],
             "commitMessagePrefix": "{{{ groupName }}}",
-            "commitMessageAction": "chore(deps): update"
+            "commitMessageAction": "chore(deps): update",
+            "commitMessageTopic": "{{{ groupName }}} dependencies",
+            "commitMessageExtra": ""
         },
         {
             "matchManagers": [
