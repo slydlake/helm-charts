@@ -75,15 +75,8 @@
         },
         {
             "matchManagers": [
-                "helm-values"
-            ],
-            "matchUpdateTypes": [
-                "minor",
-                "patch",
-                "digest"
-            ],
-            "matchPackageNames": [
-                "/^docker\\.io\\/.+/"
+                "helm-values",
+                "custom.regex"
             ],
             "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}} dependencies",
             "labels": [
@@ -98,14 +91,12 @@
                 "helm-values",
                 "custom.regex"
             ],
-            "versioning": "docker",
-            "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}} dependencies",
-            "labels": [
-                "dependencies",
-                "renovate"
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "digest"
             ],
-            "commitMessagePrefix": "{{{ groupName }}}",
-            "commitMessageAction": "chore(deps): update"
+            "automerge": true
         },
         {
             "matchManagers": [
