@@ -84,8 +84,8 @@
                 "renovate"
             ],
             "semanticCommits": "disabled",
-            "commitMessagePrefix": "{{{ groupName }}}",
-            "commitMessageAction": "chore(deps): updates",
+            "commitMessagePrefix": "",
+            "commitMessageAction": "{{{ groupName }}} chore(deps): updates",
             "commitMessageTopic": "",
             "commitMessageExtra": ""
         },
@@ -116,8 +116,8 @@
                 "helm-chart"
             ],
             "semanticCommits": "disabled",
-            "commitMessagePrefix": "{{{ groupName }}}",
-            "commitMessageAction": "chore(deps): updates",
+            "commitMessagePrefix": "",
+            "commitMessageAction": "{{{ groupName }}} chore(deps): updates",
             "commitMessageTopic": "",
             "commitMessageExtra": ""
         }
