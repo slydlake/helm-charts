@@ -91,8 +91,9 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Apache PHP Config**: Set PHP settings like upload limits via `apache.customPhpConfig`.
 
 ### Custom Init Commands
-- **Execute custom shell commands** after init.sh via ConfigMap (`wordpress.init.customInitConfigMap`)
+- **Execute custom shell commands** after init.sh via ConfigMap (`wordpress.init.customInitConfigMap.name`)
 - Perfect for custom setup tasks like updating plugins or creating pages
+- Configure with `name` and optional `key` (defaults to "commands.sh")
 - See `samples/customInit.configmap.yaml` and `samples/customInit.values.yaml`
 
 ### MU-Plugins (Must-Use Plugins)

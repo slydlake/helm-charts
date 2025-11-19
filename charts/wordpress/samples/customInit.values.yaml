@@ -7,9 +7,10 @@ wordpress:
   init:
     enabled: true
     # Reference the ConfigMap with custom init commands
-    customInitConfigMap: "wordpress-custom-init"
-    # Optional: Specify a different key name (defaults to "commands.sh")
-    # customInitConfigMapKey: "my-custom-script.sh"
+    customInitConfigMap:
+      name: "wordpress-custom-init"
+      # Optional: Specify a different key name (defaults to "commands.sh")
+      # key: "my-custom-script.sh"
 
     # Your normal init configuration
     username: "admin"

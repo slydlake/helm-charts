@@ -163,9 +163,9 @@ data:
     # ============================================================================
     # Custom Init Commands ConfigMap Info
     # ============================================================================
-    {{- if .Values.wordpress.init.customInitConfigMap }}
+    {{- if .Values.wordpress.init.customInitConfigMap.name }}
     echo ""
-    echo "Custom init commands ConfigMap detected: {{ .Values.wordpress.init.customInitConfigMap }}"
+    echo "Custom init commands ConfigMap detected: {{ .Values.wordpress.init.customInitConfigMap.name }}"
     {{- end }}
     
     echo "========================================="
@@ -783,13 +783,13 @@ data:
     # ============================================================================
     # Custom Init Commands
     # ============================================================================
-    {{- if .Values.wordpress.init.customInitConfigMap }}
+    {{- if .Values.wordpress.init.customInitConfigMap.name }}
     
     echo "Running custom init commands from ConfigMap..."
     echo "========================================="
-    if [ -f /tmp/custom-init-commands/{{ .Values.wordpress.init.customInitConfigMapKey | default "commands.sh" }} ]; then
+    if [ -f /tmp/custom-init-commands/{{ .Values.wordpress.init.customInitConfigMap.key | default "commands.sh" }} ]; then
       # Execute the custom commands script (already executable via defaultMode: 0755)
-      /tmp/custom-init-commands/{{ .Values.wordpress.init.customInitConfigMapKey | default "commands.sh" }}
+      /tmp/custom-init-commands/{{ .Values.wordpress.init.customInitConfigMap.key | default "commands.sh" }}
       echo "========================================="
       echo "Custom init commands completed!"
     else

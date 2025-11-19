@@ -287,14 +287,20 @@
                             "default": false
                         },
                         "customInitConfigMap": {
-                            "type": "string",
-                            "description": "Name of existing ConfigMap containing custom init commands to run after init.sh",
-                            "default": ""
-                        },
-                        "customInitConfigMapKey": {
-                            "type": "string",
-                            "description": "Key in ConfigMap containing custom init commands",
-                            "default": "commands.sh"
+                            "type": "object",
+                            "description": "ConfigMap for custom init commands",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "description": "Name of existing ConfigMap",
+                                    "default": ""
+                                },
+                                "key": {
+                                    "type": "string",
+                                    "description": "Key in ConfigMap containing custom init commands",
+                                    "default": "commands.sh"
+                                }
+                            }
                         }
                     }
                 },

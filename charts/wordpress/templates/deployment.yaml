@@ -101,9 +101,9 @@ spec:
           {{- end }}
         {{- end }}
 
-        {{- if .Values.wordpress.init.customInitConfigMap }}
-          {{- $name := .Values.wordpress.init.customInitConfigMap }}
-          {{- $cm := (lookup "v1" "ConfigMap" .Release.Namespace $name) }}
+        {{- if .Values.wordpress.init.customInitConfigMap.name }}
+          {{- $name := .Values.wordpress.init.customInitConfigMap.name }}
+          {{- $cm := lookup "v1" "ConfigMap" .Release.Namespace $name }}
           {{- if $cm }}
         checksum/wordpress-init-customInitConfigMap: {{ toJson $cm.data | sha256sum }}
           {{- else }}
@@ -302,7 +302,7 @@ spec:
             - name: {{ include "wordpress.fullname" . }}-init
               mountPath: /tmp/init.sh.readonly
               subPath: init.sh
-            {{- if .Values.wordpress.init.customInitConfigMap }}
+            {{- if .Values.wordpress.init.customInitConfigMap.name }}
             - name: custom-init-commands
               mountPath: /tmp/custom-init-commands
             {{- end }}
@@ -625,10 +625,10 @@ spec:
       - name: {{ include "wordpress.fullname" . }}
         persistentVolumeClaim:
           claimName: {{ if .Values.storage.existingClaim }}{{ .Values.storage.existingClaim }}{{ else }}{{ include "wordpress.fullname" . }}{{ end }}
-      {{- if .Values.wordpress.init.customInitConfigMap }}
+      {{- if .Values.wordpress.init.customInitConfigMap.name }}
       - name: custom-init-commands
         configMap:
-          name: {{ .Values.wordpress.init.customInitConfigMap }}
+          name: {{ .Values.wordpress.init.customInitConfigMap.name }}
           defaultMode: 0755
       {{- end }}
       {{- range .Values.wordpress.muPluginsConfigMaps }}
