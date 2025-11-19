@@ -232,6 +232,12 @@ wordpress:
   #     autoupdate: true
   plugins: []
 
+  ## @param wordpress.pluginsPrune boolean Remove all plugins not defined in wordpress.plugins list
+  # When enabled, all installed plugins except those in the wordpress.plugins list will be removed during init
+  # This ensures only explicitly defined plugins remain installed
+  # Note: Does not affect WordPress core plugins
+  pluginsPrune: false
+
   ## @param wordpress.themes array WordPress themes to install
   ## @param wordpress.themes[].name string Name|zip|URL: Name of the theme (e.g. twentytwentyfour), local zip file or remote URL
   ## e.g. you want to install the theme Astra: go to the theme page and take a look at the url
@@ -246,6 +252,12 @@ wordpress:
   #     activate: true
   #     autoupdate: true
   themes: []
+
+  ## @param wordpress.themesPrune boolean Remove all themes not defined in wordpress.themes list
+  # When enabled, all installed themes except those in the wordpress.themes list will be removed during init
+  # This ensures only explicitly defined themes remain installed
+  # Note: Does not remove active theme even if not in list (safety measure)
+  themesPrune: false
 
   ## @param wordpress.users array WordPress users to create
   ## @param wordpress.users[].name string mandatory Name of the user

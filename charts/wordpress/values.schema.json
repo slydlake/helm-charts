@@ -354,6 +354,11 @@
                     "description": "WordPress plugins to install",
                     "default": []
                 },
+                "pluginsPrune": {
+                    "type": "boolean",
+                    "description": "Remove all plugins not defined in wordpress.plugins list",
+                    "default": false
+                },
                 "themes": {
                     "type": "array",
                     "items": {
@@ -382,6 +387,11 @@
                     },
                     "description": "WordPress themes to install",
                     "default": []
+                },
+                "themesPrune": {
+                    "type": "boolean",
+                    "description": "Remove all themes not defined in wordpress.themes list",
+                    "default": false
                 },
                 "users": {
                     "type": "array",

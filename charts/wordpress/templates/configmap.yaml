@@ -672,6 +672,43 @@ data:
     {{- else }}
     echo "No custom plugins specified."
     {{- end }}
+
+    {{- if .Values.wordpress.pluginsPrune }}
+    # ============================================================================
+    # Plugin Pruning - Remove plugins not in the defined list
+    # ============================================================================
+    echo "Pruning plugins not in the defined list..."
+    
+    # Build comma-separated list of plugins to exclude from deletion
+    EXCLUDE_PLUGINS=""
+    {{- if .Values.wordpress.plugins }}
+    {{- range .Values.wordpress.plugins }}
+    {{- if eq . (index $.Values.wordpress.plugins 0) }}
+    EXCLUDE_PLUGINS="{{ .name }}"
+    {{- else }}
+    EXCLUDE_PLUGINS="${EXCLUDE_PLUGINS},{{ .name }}"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if .Values.metrics.wordpress.enabled }}
+    {{- if .Values.metrics.wordpress.installPlugin }}
+    {{- if .Values.metrics.wordpress.pluginNameOverride }}
+    [ -n "$EXCLUDE_PLUGINS" ] && EXCLUDE_PLUGINS="${EXCLUDE_PLUGINS},{{ .Values.metrics.wordpress.pluginNameOverride }}" || EXCLUDE_PLUGINS="{{ .Values.metrics.wordpress.pluginNameOverride }}"
+    {{- else }}
+    [ -n "$EXCLUDE_PLUGINS" ] && EXCLUDE_PLUGINS="${EXCLUDE_PLUGINS},slymetrics" || EXCLUDE_PLUGINS="slymetrics"
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    
+    # Delete all plugins except those in the exclude list
+    if [ -n "$EXCLUDE_PLUGINS" ]; then
+      echo "Keeping plugins: $EXCLUDE_PLUGINS"
+      run wp plugin delete --all --exclude="$EXCLUDE_PLUGINS"
+    else
+      echo "Deleting all plugins..."
+      run wp plugin delete --all
+    fi
+    {{- end }}
     
     # ============================================================================
     # Theme Management
@@ -778,6 +815,58 @@ data:
     {{- else }}
     echo "No custom themes specified."
     {{- end }}
+
+    {{- if .Values.wordpress.themesPrune }}
+    # ============================================================================
+    # Theme Pruning - Remove themes not in the defined list
+    # ============================================================================
+    echo "Pruning themes not in the defined list..."
+    
+    # Build list of theme slugs to keep
+    THEMES_TO_KEEP=()
+    {{- if .Values.wordpress.themes }}
+    {{- range .Values.wordpress.themes }}
+    THEME_SLUG=$(get_theme_slug "{{ .name }}")
+    THEMES_TO_KEEP+=("$THEME_SLUG")
+    {{- end }}
+    {{- end }}
+    
+    # Get all installed themes and active theme
+    INSTALLED_THEMES=$(wp theme list --field=name 2>/dev/null || echo "")
+    ACTIVE_THEME=$(wp theme list --status=active --field=name 2>/dev/null || echo "")
+    
+    # Build list of themes to delete (installed themes minus keep list minus active theme)
+    THEMES_TO_DELETE=()
+    for theme in $INSTALLED_THEMES; do
+      # Safety: Never delete the active theme
+      if [ "$theme" = "$ACTIVE_THEME" ]; then
+        echo "Keeping active theme: $theme"
+        continue
+      fi
+      
+      # Check if theme is in the keep list
+      KEEP=false
+      for keep_theme in "${THEMES_TO_KEEP[@]}"; do
+        if [ "$theme" = "$keep_theme" ]; then
+          KEEP=true
+          break
+        fi
+      done
+      
+      if [ "$KEEP" = false ]; then
+        THEMES_TO_DELETE+=("$theme")
+      fi
+    done
+    
+    # Delete all themes in one command for better performance
+    if [ ${#THEMES_TO_DELETE[@]} -gt 0 ]; then
+      echo "Removing ${#THEMES_TO_DELETE[@]} theme(s): ${THEMES_TO_DELETE[*]}"
+      run wp theme delete "${THEMES_TO_DELETE[@]}"
+    else
+      echo "No themes to remove."
+    fi
+    {{- end }}
+
     echo "WordPress initialization completed!"
     
     # ============================================================================

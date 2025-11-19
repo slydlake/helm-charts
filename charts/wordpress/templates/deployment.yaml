@@ -294,6 +294,20 @@ spec:
               value: {{ .Values.wordpress.init.lastname | quote }}
             {{- end }}
             {{- end }}
+          {{ if and .Values.wordpress.configExtraConfigMap.name  (not .Values.wordpress.configExtraSecret.name) }}  
+            - name: WORDPRESS_CONFIG_EXTRA
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.wordpress.configExtraConfigMap.name }}
+                  key: {{ .Values.wordpress.configExtraConfigMap.key | default "wordpress.configExtra" }}
+          {{- end }}
+          {{ if .Values.wordpress.configExtraSecret.name }}  
+            - name: WORDPRESS_CONFIG_EXTRA
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.wordpress.configExtraSecret.name }}
+                  key: {{ .Values.wordpress.configExtraSecret.key | default "wordpress.configExtra" }}
+          {{- end }}
           volumeMounts:
             - name: {{ include "wordpress.fullname" . }}
               mountPath: /var/www/html
