@@ -2,6 +2,7 @@
     "extends": [
         "config:recommended"
     ],
+    "semanticCommits": "disabled",
     "enabledManagers": [
         "helm-values",
         "helmv3",
@@ -85,7 +86,7 @@
             ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
-            "commitMessageAction": "{{{ groupName }}} chore(deps): updates",
+            "commitMessageAction": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}} chore(deps): updates",
             "commitMessageTopic": "",
             "commitMessageExtra": ""
         },
@@ -117,7 +118,7 @@
             ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
-            "commitMessageAction": "{{{ groupName }}} chore(deps): updates",
+            "commitMessageAction": "charts/{{{ replace \"charts/\" \"\" parentDir }}} chore(deps): updates",
             "commitMessageTopic": "",
             "commitMessageExtra": ""
         }
