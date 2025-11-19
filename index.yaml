@@ -1862,6 +1862,67 @@ entries:
   - annotations:
       artifacthub.io/category: networking
       artifacthub.io/changes: |
+        - kind: changed
+          description: "Update docker.io/wordpress to ed5d7a7"
+          links:
+            - name: Pull Request
+              url: https://github.com/slydlake/helm-charts/pull/77
+      artifacthub.io/images: |
+        - name: wordpress
+          image: docker.io/wordpress:6.8.3-php8.1-apache
+        - name: wordpress-cli
+          image: docker.io/wordpress:cli-2.12.0-php8.1
+        - name: metrics-apache
+          image: docker.io/lusotycoon/apache-exporter:v1.0.11
+        - name: mariadb
+          image: docker.io/mariadb:12.0.2-noble
+        - name: memcached
+          image: docker.io/memcached:1.6.39
+      artifacthub.io/license: MIT
+      artifacthub.io/links: |
+        - name: SlyCharts GitHub Repository
+          url: https://github.com/slydlake/helm-charts/tree/main/charts/wordpress
+        - name: Official WordPress Repository
+          url: https://github.com/docker-library/
+        - name: "SlyMetrics WordPress plugin for Prometheus Metrics"
+          url: https://github.com/slydlake/slymetrics
+        - name: Apache Metrics container
+          url: https://github.com/Lusitaniae/apache_exporter
+      artifacthub.io/maintainers: |
+        - name: slydlake
+          email: sly.dlake@gmail.com
+    apiVersion: v2
+    appVersion: 6.8.3
+    created: "2025-11-19T12:13:38.876704349Z"
+    dependencies:
+    - condition: memcached.enabled
+      name: memcached
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.7.0
+    - condition: mariadb.enabled
+      name: mariadb
+      repository: oci://registry-1.docker.io/cloudpirates
+      version: 0.7.0
+    description: Using the official WordPress image. This chart provides automation
+      for installation, user management, plugin installation, and metrics.
+    digest: 1cb6ec983e4c233d3696f3013a066c62a88fe777cee4e29d8cc71fa9a9a8f946
+    home: https://github.com/slydlake/helm-charts
+    icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
+    keywords:
+    - wordpress
+    - blog
+    maintainers:
+    - name: slydlake
+    name: wordpress
+    sources:
+    - https://github.com/slydlake/helm-charts
+    type: application
+    urls:
+    - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.7.1/wordpress-0.7.1.tgz
+    version: 0.7.1
+  - annotations:
+      artifacthub.io/category: networking
+      artifacthub.io/changes: |
         - kind: fixed
           description: "Race condition during WordPress init fixed."
       artifacthub.io/images: |
@@ -3399,4 +3460,4 @@ entries:
     urls:
     - https://github.com/slydlake/helm-charts/releases/download/wordpress-0.1.0/wordpress-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-18T22:30:10.132416039Z"
+generated: "2025-11-19T12:13:38.876880367Z"
