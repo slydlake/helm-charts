@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - prerelease
     paths:
       - "charts/**"
   workflow_dispatch:
@@ -128,6 +129,15 @@ jobs:
           echo "chart_version=$chart_version" >> $GITHUB_OUTPUT
           echo "chart_name=$chart_name" >> $GITHUB_OUTPUT
 
+          # Check if version is a prerelease (contains -alpha, -beta, or -rc)
+          if echo "$chart_version" | grep -qE '\-(alpha|beta|rc)'; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "Detected prerelease version: $chart_version"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "Detected stable version: $chart_version"
+          fi
+
           # Check if this version already exists in the registry
           if helm pull "oci://ghcr.io/slybase/charts/$chart_name" --version "$chart_version" 2>/dev/null; then
             echo "Chart $chart_name:$chart_version already exists in registry"
@@ -136,6 +146,27 @@ jobs:
             echo "Chart $chart_name:$chart_version does not exist, will publish"
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Add prerelease annotation if needed
+        if: steps.chart-changes.outputs.skip == 'false' && steps.chart-changes.outputs.is_prerelease == 'true'
+        run: |
+          chart_dir="charts/${{ matrix.chart }}"
+          chart_file="$chart_dir/Chart.yaml"
+
+          echo "Adding artifacthub.io/prerelease annotation to Chart.yaml"
+
+          # Check if annotations section exists
+          if grep -q "^annotations:" "$chart_file"; then
+            # Add prerelease annotation to existing annotations section (after the "annotations:" line)
+            awk '/^annotations:/ {print; print "  artifacthub.io/prerelease: \"true\""; next}1' "$chart_file" > "$chart_file.tmp" && mv "$chart_file.tmp" "$chart_file"
+          else
+            # Add annotations section with prerelease annotation before keywords
+            awk '/^keywords:/ {print "annotations:"; print "  artifacthub.io/prerelease: \"true\""}1' "$chart_file" > "$chart_file.tmp" && mv "$chart_file.tmp" "$chart_file"
+          fi
+
+          echo "Prerelease annotation added successfully"
+          echo "Modified Chart.yaml annotations:"
+          grep -A 1 "artifacthub.io/prerelease" "$chart_file" || echo "Note: Annotation should be added"
 
       - name: Package and push chart to OCI registry
         if: steps.chart-changes.outputs.skip == 'false'
@@ -205,7 +236,7 @@ jobs:
           # Verify the signature
           cosign verify "$chart_ref" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/oci-release.yaml@refs/heads/main"
+            --certificate-identity "https://github.com/${{ github.repository }}/.github/workflows/oci-release.yaml@refs/heads/${{ github.ref_name }}"
 
           echo "Signature verification successful"
 
@@ -225,7 +256,7 @@ jobs:
           echo "helm install my-release oci://ghcr.io/slybase/charts/$chart_name --version $chart_version"
           echo ""
           echo "To verify signature:"
-          echo "cosign verify $chart_ref --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity https://github.com/${{ github.repository }}/.github/workflows/oci-release.yaml@refs/heads/main"
+          echo "cosign verify $chart_ref --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity https://github.com/${{ github.repository }}/.github/workflows/oci-release.yaml@refs/heads/${{ github.ref_name }}"
 
       - name: Upload ArtifactHub metadata for this chart
         if: steps.chart-changes.outputs.skip == 'false'
