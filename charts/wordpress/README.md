@@ -90,6 +90,17 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Apache Ports Config**: Adjust `/etc/apache2/ports.conf` with `apache.customPortsConfig`.
 - **Apache PHP Config**: Set PHP settings like upload limits via `apache.customPhpConfig`.
 
+### Custom Init Commands
+- **Execute custom shell commands** after init.sh via ConfigMap (`wordpress.init.customInitConfigMap`)
+- Perfect for custom setup tasks like updating plugins or creating pages
+- See `samples/customInit.configmap.yaml` and `samples/customInit.values.yaml`
+
+### MU-Plugins (Must-Use Plugins)
+- **Deploy MU-Plugins via ConfigMaps** - automatically activated PHP code that cannot be deactivated
+- Each ConfigMap data key becomes a PHP file in `wp-content/mu-plugins/`
+- Reference multiple ConfigMaps in `wordpress.muPluginsConfigMaps`
+- See `samples/muPlugins.configmap.yaml` and `samples/muPlugins.values.yaml`
+
 
 ## Security by default
 
@@ -172,6 +183,22 @@ This setup includes everything from the advanced installation plus:
 kubectl apply -f ./samples/advanced.secrets.yaml
 kubectl apply -f ./samples/advanced.configmap.yaml
 helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/advanced2.values.yaml
+```
+
+### Custom Init Commands
+Execute custom shell commands after WordPress installation. See `samples/customInit.configmap.yaml` and `samples/customInit.values.yaml`.
+
+```bash
+kubectl apply -f ./samples/customInit.configmap.yaml
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/customInit.values.yaml
+```
+
+### MU-Plugins via ConfigMaps
+Deploy Must-Use Plugins that are automatically activated. See `samples/muPlugins.configmap.yaml` and `samples/muPlugins.values.yaml`.
+
+```bash
+kubectl apply -f ./samples/muPlugins.configmap.yaml
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/muPlugins.values.yaml
 ```
 
 ## Support

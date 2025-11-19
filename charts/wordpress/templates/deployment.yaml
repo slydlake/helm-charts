@@ -100,6 +100,26 @@ spec:
         checksum/apache-customPhpConfigMap: {{ $name | sha256sum }}
           {{- end }}
         {{- end }}
+
+        {{- if .Values.wordpress.init.customInitConfigMap }}
+          {{- $name := .Values.wordpress.init.customInitConfigMap }}
+          {{- $cm := (lookup "v1" "ConfigMap" .Release.Namespace $name) }}
+          {{- if $cm }}
+        checksum/wordpress-init-customInitConfigMap: {{ toJson $cm.data | sha256sum }}
+          {{- else }}
+        checksum/wordpress-init-customInitConfigMap: {{ $name | sha256sum }}
+          {{- end }}
+        {{- end }}
+
+        {{- range .Values.wordpress.muPluginsConfigMaps }}
+          {{- $name := .name }}
+          {{- $cm := lookup "v1" "ConfigMap" $.Release.Namespace $name }}
+          {{- if $cm }}
+        checksum/wordpress-muPlugins-{{ $name }}: {{ toJson $cm.data | sha256sum }}
+          {{- else }}
+        checksum/wordpress-muPlugins-{{ $name }}: {{ $name | sha256sum }}
+          {{- end }}
+        {{- end }}
       labels:
         {{- include "wordpress.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
@@ -168,6 +188,10 @@ spec:
               subPath: wordpress-rewrite-rules.txt
             - name: {{ include "wordpress.fullname" . }}-configfiles
               mountPath: /tmp/configfiles
+            {{- range .Values.wordpress.muPluginsConfigMaps }}
+            - name: mu-plugins-{{ .name }}
+              mountPath: /tmp/mu-plugins-{{ .name }}
+            {{- end }}
         - name: {{ .Chart.Name }}-init
           image: "{{ .Values.wordpress.init.image.repository | default .Values.wordpress.init.repository | default "docker.io/wordpress" }}{{- if .Values.wordpress.init.image.tag  -}}:{{ .Values.wordpress.init.image.tag | default "cli" }}{{- end }}"
           {{- with .Values.containerSecurityContext }}
@@ -278,6 +302,10 @@ spec:
             - name: {{ include "wordpress.fullname" . }}-init
               mountPath: /tmp/init.sh.readonly
               subPath: init.sh
+            {{- if .Values.wordpress.init.customInitConfigMap }}
+            - name: custom-init-commands
+              mountPath: /tmp/custom-init-commands
+            {{- end }}
       {{- if .Values.initContainers }}
         {{- toYaml .Values.initContainers | nindent 8 }}
       {{- end }}
@@ -597,6 +625,18 @@ spec:
       - name: {{ include "wordpress.fullname" . }}
         persistentVolumeClaim:
           claimName: {{ if .Values.storage.existingClaim }}{{ .Values.storage.existingClaim }}{{ else }}{{ include "wordpress.fullname" . }}{{ end }}
+      {{- if .Values.wordpress.init.customInitConfigMap }}
+      - name: custom-init-commands
+        configMap:
+          name: {{ .Values.wordpress.init.customInitConfigMap }}
+          defaultMode: 0755
+      {{- end }}
+      {{- range .Values.wordpress.muPluginsConfigMaps }}
+      - name: mu-plugins-{{ .name }}
+        configMap:
+          name: {{ .name }}
+          defaultMode: 0644
+      {{- end }}
       {{- if .Values.extraVolumes }}
       {{- toYaml .Values.extraVolumes | nindent 6 }}
       {{- end }}

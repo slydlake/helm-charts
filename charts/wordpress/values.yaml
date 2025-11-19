@@ -179,6 +179,24 @@ wordpress:
     ## @param wordpress.init.debug boolean Enable debug mode in Job "setter"
     debug: false
 
+    ## @param wordpress.init.customInitConfigMap string Name of existing ConfigMap for custom init commands
+    # ConfigMap containing additional commands to run after init.sh
+    # Must contain a key with shell commands (default key: "commands.sh")
+    # These commands will be executed at the end of the init container
+    # Example:
+    # apiVersion: v1
+    # kind: ConfigMap
+    # metadata:
+    #   name: wordpress-custom-init
+    # data:
+    #   commands.sh: |
+    #     echo "Running custom init commands..."
+    #     wp plugin update --all
+    customInitConfigMap: ""
+
+    ## @param wordpress.init.customInitConfigMapKey string Key in ConfigMap containing custom init commands
+    customInitConfigMapKey: "commands.sh"
+
   ## @section WordPress general settings
 
   ## @param wordpress.permalinks WordPress permalinks settings
@@ -309,7 +327,31 @@ wordpress:
   # enable debugging see: https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/
   debug: false
 
-## @section Apache parameters
+  ## @param wordpress.muPluginsConfigMaps array List of ConfigMaps containing MU-Plugins files
+  ## Each ConfigMap will be mounted and its data keys will be copied as PHP files to wp-content/mu-plugins/
+  ## The mu-plugins directory will be created if it doesn't exist
+  ## MU-Plugins (Must-Use Plugins) are automatically activated by WordPress
+  ## You can copy all keys from a ConfigMap or specify a single key
+  ## Example:
+  ## muPluginsConfigMaps:
+  ##   - name: my-mu-plugin           # Copies all keys from this ConfigMap
+  ##   - name: my-other-plugin
+  ##     key: security.php            # Copies only this specific key
+  ## 
+  ## Where the ConfigMap looks like:
+  ## apiVersion: v1
+  ## kind: ConfigMap
+  ## metadata:
+  ##   name: my-mu-plugin
+  ## data:
+  ##   custom-functions.php: |
+  ##     <?php
+  ##     // Custom WordPress functions
+  ##     add_action('init', function() {
+  ##       // Your code here
+  ##     });
+  muPluginsConfigMaps: []
+  ## @section Apache parameters
 apache:
   ## @param apache.customDefaultSiteConfig string Custom Apache default site config
   ## this is the file apache2/sites-available/000-default.conf

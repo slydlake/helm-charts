@@ -113,7 +113,64 @@ data:
     else
         echo "WordPress already present in /tmp/wordpress - skipping copy"
     fi
+    
+    # ============================================================================
+    # Setup MU-Plugins from ConfigMaps
+    # ============================================================================
+    {{- if .Values.wordpress.muPluginsConfigMaps }}
+    echo ""
+    echo "Setting up MU-Plugins from ConfigMaps..."
+    echo "========================================="
+    
+    # Create mu-plugins directory if it doesn't exist
+    mkdir -p /tmp/wordpress/wp-content/mu-plugins
+    chown www-data:www-data /tmp/wordpress/wp-content/mu-plugins
+    chmod 755 /tmp/wordpress/wp-content/mu-plugins
+    
+    {{- range .Values.wordpress.muPluginsConfigMaps }}
+    # Copy files from ConfigMap: {{ .name }}
+    if [ -d "/tmp/mu-plugins-{{ .name }}" ]; then
+      {{- if .key }}
+      # Copy specific key only
+      if [ -f "/tmp/mu-plugins-{{ .name }}/{{ .key }}" ]; then
+        echo "Copying MU-Plugin file {{ .key }} from {{ .name }}..."
+        cp /tmp/mu-plugins-{{ .name }}/{{ .key }} /tmp/wordpress/wp-content/mu-plugins/
+        chown www-data:www-data /tmp/wordpress/wp-content/mu-plugins/{{ .key }}
+        chmod 644 /tmp/wordpress/wp-content/mu-plugins/{{ .key }}
+        echo "MU-Plugin file {{ .key }} from {{ .name }} copied successfully!"
+      else
+        echo "Warning: Key {{ .key }} not found in ConfigMap {{ .name }}"
+      fi
+      {{- else }}
+      # Copy all files from ConfigMap
+      echo "Copying all MU-Plugin files from {{ .name }}..."
+      cp -r -L /tmp/mu-plugins-{{ .name }}/* /tmp/wordpress/wp-content/mu-plugins/ 2>/dev/null || true
+      # Set correct ownership and permissions for all copied files
+      find /tmp/wordpress/wp-content/mu-plugins -type f -exec chown www-data:www-data {} \;
+      find /tmp/wordpress/wp-content/mu-plugins -type f -exec chmod 644 {} \;
+      echo "MU-Plugin files from {{ .name }} copied successfully!"
+      {{- end }}
+    else
+      echo "Warning: MU-Plugin ConfigMap mount {{ .name }} not found"
+    fi
+    {{- end }}
+    
+    echo "MU-Plugins setup completed!"
+    {{- else }}
+    echo "No MU-Plugins ConfigMaps configured."
+    {{- end }}
+    
+    # ============================================================================
+    # Custom Init Commands ConfigMap Info
+    # ============================================================================
+    {{- if .Values.wordpress.init.customInitConfigMap }}
+    echo ""
+    echo "Custom init commands ConfigMap detected: {{ .Values.wordpress.init.customInitConfigMap }}"
+    {{- end }}
+    
+    echo "========================================="
     echo "Base script completed!"
+    echo "========================================="
   htaccess-setup.sh: |
     #!/bin/sh
     # Script to setup .htaccess on persistent volume
@@ -177,7 +234,9 @@ data:
       fi
     fi
     
+    echo "========================================="
     echo ".htaccess setup completed!"
+    echo "========================================="
   wordpress-rewrite-rules.txt: |
     <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -244,6 +303,12 @@ data:
       TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Using table prefix: $TABLE_PREFIX" >&2
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Attempting to claim lock with POD_ID=$POD_ID-$CURRENT_TIME" >&2
+      
+      # Check if wp_options table exists - if not, it's a fresh install
+      if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: wp_options table doesn't exist yet, claiming lock for fresh install" >&2
+        return 0
+      fi
       
       # Try to insert lock row - ignore error if already exists
       wp db query "INSERT IGNORE INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no');" >/dev/null 2>&1
@@ -334,6 +399,34 @@ data:
       else
         echo "WordPress is already installed, skipping installation."
       fi
+    else
+      # WP_INIT is false - check if WordPress is already installed
+      TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
+      
+      # Check if wp_options table exists
+      if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+        echo "========================================="
+        echo "ERROR: WordPress database tables not found!"
+        echo "========================================="
+        echo ""
+        echo "The database exists but WordPress tables are missing."
+        echo "This indicates one of the following issues:"
+        echo ""
+        echo "1. WordPress initialization has not been performed yet"
+        echo "   -> Set wordpress.init.enabled=true in your values.yaml"
+        echo ""
+        echo "2. Wrong table prefix configured"
+        echo "   -> Current prefix: ${TABLE_PREFIX}"
+        echo "   -> Check wordpress.tablePrefix in your values.yaml"
+        echo ""
+        echo "3. Database was reset but persistent volume still exists"
+        echo "   -> Delete the PVC and reinstall"
+        echo ""
+        echo "========================================="
+        exit 1
+      fi
+      
+      echo "WordPress tables found, continuing with configuration..."
     fi
     
     # ============================================================================
@@ -463,8 +556,8 @@ data:
         AUTOUPDATE_ENABLED=$(wp plugin list --fields=name,auto_update --format=csv 2>/dev/null | grep ",on$" | cut -d',' -f1 || echo "")
       fi
     else
-      # Remove plugin if WORDPRESS_METRICS is empty
-      if echo "$INSTALLED_PLUGINS" | grep -q "^${WORDPRESS_METRICS}$"; then
+      # Remove plugin if WORDPRESS_METRICS is empty and plugin exists
+      if [ -n "${WORDPRESS_METRICS}" ] && [ -n "$INSTALLED_PLUGINS" ] && echo "$INSTALLED_PLUGINS" | grep -q "^${WORDPRESS_METRICS}$"; then
         echo "Removing metrics plugin..."
         wp plugin delete ${WORDPRESS_METRICS}
         INSTALLED_PLUGINS=$(wp plugin list --field=name 2>/dev/null || echo "")
@@ -663,10 +756,30 @@ data:
     {{- else }}
     echo "No custom themes specified."
     {{- end }}
+    echo "WordPress initialization completed!"
+    
+    # ============================================================================
+    # Custom Init Commands
+    # ============================================================================
+    {{- if .Values.wordpress.init.customInitConfigMap }}
+    
+    echo "Running custom init commands from ConfigMap..."
+    echo "========================================="
+    if [ -f /tmp/custom-init-commands/{{ .Values.wordpress.init.customInitConfigMapKey | default "commands.sh" }} ]; then
+      # Execute the custom commands script (already executable via defaultMode: 0755)
+      /tmp/custom-init-commands/{{ .Values.wordpress.init.customInitConfigMapKey | default "commands.sh" }}
+      echo "========================================="
+      echo "Custom init commands completed!"
+    else
+      echo "Warning: Custom commands file not found in ConfigMap"
+    fi
+    {{- else }}
+    echo "No custom init commands configured."
+    {{- end }}
     
     # ============================================================================
     # Release Lock and Complete
     # ============================================================================
     
-    release_lock
+    # Lock will be released automatically via trap on EXIT
     echo "Init script completed!"

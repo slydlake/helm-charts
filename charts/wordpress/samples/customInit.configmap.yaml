@@ -1,0 +1,42 @@
+# Example ConfigMap for custom init commands
+# This ConfigMap can be used to run additional commands after the init.sh script
+# in the WordPress init container without creating a custom init container.
+#
+# Apply this ConfigMap first:
+#   kubectl apply -f customInit.configmap.yaml
+#
+# Then reference it in your values.yaml:
+#   wordpress:
+#     init:
+#       enabled: true
+#       customInitConfigMap: "wordpress-custom-init"
+#       # customInitConfigMapKey: "commands.sh"  # Optional, defaults to "commands.sh"
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wordpress-custom-init
+data:
+  commands.sh: |
+    #!/bin/bash
+    # Custom init commands - these run at the end of the init container
+    # after WordPress installation and configuration
+
+    echo "Running custom initialization commands..."
+
+    # Example: Update all plugins to their latest versions
+    # wp plugin update --all
+
+    # Example: Install and activate a specific plugin
+    # wp plugin install contact-form-7 --activate
+
+    # Example: Set custom WordPress options
+    # wp option update blogdescription "My awesome WordPress site"
+
+    # Example: Create a custom page
+    # wp post create --post_type=page --post_title='Privacy Policy' --post_status=publish
+
+    # Example: Enable maintenance mode during deployment
+    # wp maintenance-mode activate
+
+    echo "Custom initialization completed!"

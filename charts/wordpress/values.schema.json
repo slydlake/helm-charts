@@ -285,6 +285,16 @@
                             "type": "boolean",
                             "description": "Enable debug mode in Job setter",
                             "default": false
+                        },
+                        "customInitConfigMap": {
+                            "type": "string",
+                            "description": "Name of existing ConfigMap containing custom init commands to run after init.sh",
+                            "default": ""
+                        },
+                        "customInitConfigMapKey": {
+                            "type": "string",
+                            "description": "Key in ConfigMap containing custom init commands",
+                            "default": "commands.sh"
                         }
                     }
                 },
@@ -478,6 +488,27 @@
                     "type": "boolean",
                     "description": "Enable WordPress debug mode",
                     "default": false
+                },
+                "muPluginsConfigMaps": {
+                    "type": "array",
+                    "description": "List of ConfigMaps containing MU-Plugins files. Each ConfigMap's data keys (or specific key) will be copied as PHP files to wp-content/mu-plugins/",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Name of the ConfigMap containing MU-Plugin files"
+                            },
+                            "key": {
+                                "type": "string",
+                                "description": "Optional: Specific key from ConfigMap to copy. If omitted, all keys will be copied."
+                            }
+                        },
+                        "required": [
+                            "name"
+                        ]
+                    },
+                    "default": []
                 }
             }
         },

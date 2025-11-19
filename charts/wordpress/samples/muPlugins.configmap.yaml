@@ -1,0 +1,110 @@
+# Example ConfigMap for WordPress MU-Plugins (Must-Use Plugins)
+# MU-Plugins are automatically activated by WordPress and cannot be deactivated from the admin UI
+# This is useful for essential site functionality that should always be active
+#
+# Apply these ConfigMaps first:
+#   kubectl apply -f muPlugins.configmap.yaml
+#
+# Then reference them in your values.yaml:
+#   wordpress:
+#     muPluginsConfigMaps:
+#       - name: wordpress-mu-plugins
+#       - name: wordpress-mu-plugins-extra
+#
+# You can also specify a specific key from a ConfigMap:
+#   wordpress:
+#     muPluginsConfigMaps:
+#       - name: wordpress-mu-plugins
+#       - name: wordpress-mu-plugins-extra
+#         key: custom-analytics.php
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wordpress-mu-plugins
+data:
+  # Each key in this ConfigMap becomes a PHP file in wp-content/mu-plugins/
+  # The key name should end with .php
+
+  custom-security.php: |
+    <?php
+    /**
+     * Plugin Name: Custom Security Settings
+     * Description: Essential security configurations for WordPress
+     * Version: 1.0.0
+     */
+
+    // Disable file editing in WordPress admin
+    if (!defined('DISALLOW_FILE_EDIT')) {
+        define('DISALLOW_FILE_EDIT', true);
+    }
+
+    // Remove WordPress version from header
+    remove_action('wp_head', 'wp_generator');
+
+    // Disable XML-RPC to prevent attacks
+    add_filter('xmlrpc_enabled', '__return_false');
+
+  custom-performance.php: |
+    <?php
+    /**
+     * Plugin Name: Custom Performance Tweaks
+     * Description: Performance optimizations for WordPress
+     * Version: 1.0.0
+     */
+
+    // Disable emojis to reduce HTTP requests
+    add_action('init', function() {
+        remove_action('wp_head', 'print_emoji_detection_script', 7);
+        remove_action('admin_print_scripts', 'print_emoji_detection_script');
+        remove_action('wp_print_styles', 'print_emoji_styles');
+        remove_action('admin_print_styles', 'print_emoji_styles');
+    });
+
+    // Limit post revisions
+    if (!defined('WP_POST_REVISIONS')) {
+        define('WP_POST_REVISIONS', 5);
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wordpress-mu-plugins-extra
+  namespace: default
+data:
+  custom-branding.php: |
+    <?php
+    /**
+     * Plugin Name: Custom Admin Branding
+     * Description: Customize the WordPress admin area
+     * Version: 1.0.0
+     */
+
+    // Customize admin footer text
+    add_filter('admin_footer_text', function($text) {
+        return 'Powered by <a href="https://example.com">My Company</a>';
+    });
+
+    // Custom login logo
+    add_action('login_enqueue_scripts', function() {
+        echo '<style>
+            #login h1 a {
+                background-image: none;
+                text-indent: 0;
+            }
+        </style>';
+    });
+
+  custom-analytics.php: |
+    <?php
+    /**
+     * Plugin Name: Custom Analytics
+     * Description: Add custom analytics tracking code
+     * Version: 1.0.0
+     */
+
+    // Add custom analytics code to footer
+    add_action('wp_footer', function() {
+        echo '<!-- Custom Analytics Code -->';
+        // Add your analytics code here
+    });
