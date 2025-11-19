@@ -11,6 +11,33 @@
                 "cwd": "${workspaceFolder}/charts/wordpress"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Install test chart",
+            "type": "shell",
+            "command": "helm install ${input:chart} -n ${input:namespace} . --values ./samples/${input:valuesFile} --create-namespace",
+            "options": {
+                "cwd": "${workspaceFolder}/charts/${input:chart}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Uninstall test chart",
+            "type": "shell",
+            "command": "helm uninstall ${input:chart} -n ${input:namespace}; kubectl delete pvc -n ${input:namespace} -l app.kubernetes.io/instance=${input:chart}; kubectl get pvc -n ${input:namespace} -o json | jq -r '.items[] | select(.metadata.annotations[\"meta.helm.sh/release-name\"] == \"'${input:chart}'\") | .metadata.name' | xargs -r kubectl delete pvc -n ${input:namespace}",
+            "options": {
+                "cwd": "${workspaceFolder}/charts/${input:chart}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Reinstall test chart",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Uninstall test chart",
+                "Install test chart"
+            ],
+            "problemMatcher": []
         }
     ],
     "inputs": [
@@ -25,6 +52,22 @@
             "description": "Namespace",
             "default": "namespace",
             "type": "promptString"
+        },
+        {
+            "id": "chart",
+            "description": "Chart",
+            "type": "pickString",
+            "options": [
+                "wg-easy",
+                "wireguard",
+                "wordpress"
+            ]
+        },
+        {
+            "id": "valuesFile",
+            "description": "Values File (e.g., simple.values.yaml)",
+            "type": "promptString",
+            "default": "simple.values.yaml"
         }
     ]
 }
