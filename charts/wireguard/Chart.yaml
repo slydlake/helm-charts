@@ -2,8 +2,8 @@ apiVersion: v2
 name: wireguard
 description: "Using the offical linuxserver/wireguard image with almost any environment variables for K8S. Supporting server and client mode."
 type: application
-version: 0.2.4
-appVersion: 1.0.20250521-r0-ls90
+version: 0.2.5
+appVersion: 1.0.20250521-r0-ls91
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
@@ -22,12 +22,15 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "Client mode with existingSecret now automatically updates when source secret changes (helm upgrade or GitOps reconcile)."
+    - kind: changed
+      description: "Update linuxserver/wireguard to 1.0.20250521-r0-ls91"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/78
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wireguard
-      image: docker.io/linuxserver/wireguard:1.0.20250521-r0-ls90
+      image: docker.io/linuxserver/wireguard:1.0.20250521-r0-ls91
 keywords:
   - wireguard
   - vpn
