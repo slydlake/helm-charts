@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.8.0-beta1
+version: 0.8.0-beta2
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -29,9 +29,21 @@ annotations:
     - kind: added
       description: "Added WORDPRESS_CONFIG_EXTRA environment variable support to init container for consistent configuration across all containers"
     - kind: added
+      description: "Added wordpress.plugins option to define plugins to be installed via Composer during init."
+    - kind: added
+      description: "Added wordpress.themes option to define themes to be installed via Composer during init."
+    - kind: added
+      description: "Added wordpress.composer.repositories option to configure custom Composer repositories (e.g., private GitHub, Satis, premium plugins). Default repositories (wpackagist.org) are documented in values.yaml"
+    - kind: added
+      description: "Added init container support for installing Composer plugins and themes during initialization"
+    - kind: added
       description: "Added wordpress.pluginsPrune option to automatically remove all plugins not defined in wordpress.plugins list during init"
     - kind: added
       description: "Added wordpress.themesPrune option to automatically remove all themes not defined in wordpress.themes list during init (protects active theme)"
+    - kind: added
+      description: "Added samples/composer.values.yaml sample file demonstrating usage of Composer plugins, themes, and custom repositories"
+    - kind: changed
+      description: "Changed samples/customInit.values.yaml and muPlugins.values.yaml with fixed nodePort for easier testing"
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.8.3-php8.1-apache

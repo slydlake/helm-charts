@@ -1,0 +1,106 @@
+# Example configuration for using Composer packages with WordPress
+# This demonstrates how to install plugins and themes via Composer that are not available in the WordPress.org repository
+
+wordpress:
+  init:
+    enabled: true
+    existingSecret: "wordpress-test-secret"
+    firstname: "John"
+    lastname: "Doe"
+    title: "John Does's Blog"
+  url: "http://192.168.178.21:30111"
+
+  permalinks:
+    structure: postName
+
+  # Example Composer plugins
+  plugins:
+    # Regular WordPress.org plugin for comparison
+    - name: "classic-editor"
+      activate: true
+      autoupdate: true
+
+    # Composer package from GitHub
+    # This is a popular S3 uploads plugin for WordPress
+    - name: "humanmade/s3-uploads"
+      activate: true
+      autoupdate: true # Will always install latest on each init run
+
+    # Composer package with fixed version
+    - name: "wpackagist-plugin/wordpress-seo"
+      version: "22.0"
+      activate: true
+    # autoupdate ignored when version is specified
+
+  # Example Composer themes
+  themes:
+    # Composer package theme with auto-update
+    - name: "wpackagist-theme/astra"
+      autoupdate: true
+      activate: false
+
+    # Regular theme for comparison
+    - name: "twentytwentyfour"
+      activate: true
+  composer:
+    # @param wordpress.composer.repositories array Custom Composer repositories to add to composer.json
+    # By default, the following repositories are already configured:
+    # - packagist.org (Composer default - always available)
+    # - wpackagist.org (mirrors all WordPress.org plugins and themes)
+    #
+    # Add additional repositories for:
+    # - Private/premium plugins from GitHub, GitLab, or Bitbucket
+    # - Custom Satis/Private Packagist servers
+    # - Premium plugin vendors (e.g., ACF Pro, Gravity Forms)
+    #
+    # Example:
+    repositories: []
+      # Real-world examples you can test:
+
+      # 1. WPackagist Extra - Alternative repository for WordPress plugins/themes
+      # This is safe to test as it doesn't require authentication
+      # - type: "composer"
+      #   url: "https://wpackagist.org"
+      #   options:
+      #     ssl:
+      #       verify_peer: true
+
+      # 2. GitHub VCS repository (public repo as example)
+      # Note: May require GitHub authentication for private repos or hit rate limits
+      # - type: "vcs"
+      #   url: "https://github.com/Yoast/wordpress-seo"
+
+      # 2. WP Pusher's packagist alternative (free plugins mirror)
+      # - type: "composer"
+      #   url: "https://wpackagist.org"
+
+      # 3. Package repository for a specific plugin
+      # - type: "package"
+      #   package:
+      #     name: "deliciousbrains/wp-migrate-db-pro"
+      #     version: "2.6.0"
+      #     type: "wordpress-plugin"
+      #     dist:
+      #       url: "https://example.com/wp-migrate-db-pro.zip"
+      #       type: "zip"
+
+      # 4. Roots Bedrock's packagist (includes ACF Pro if you have license)
+      # - type: "composer"
+      #   url: "https://composer.roots.io"
+
+      # 5. Packagist (already default, but showing for reference)
+      # - type: "composer"
+      #   url: "https://packagist.org"
+  pluginsPrune: true
+  themesPrune: true
+service:
+  nodePorts:
+    http: 30111
+# Database configuration
+mariadb:
+  enabled: true
+  auth:
+    enabled: true
+    database: "wordpress_db"
+    username: "wordpress_db_user"
+    existingSecret: "wordpress-test-secret"

@@ -17,7 +17,9 @@ wordpress:
     password: "SuperSecurePassword123!"
     email: "admin@example.com"
     title: "My WordPress Site"
-
+service:
+  nodePorts:
+    http: 30111
 # Database configuration (example with MariaDB)
 mariadb:
   enabled: true

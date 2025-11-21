@@ -22,7 +22,9 @@ wordpress:
       key: custom-analytics.php
     # Or copy all files from another ConfigMap:
     # - name: wordpress-mu-plugins-extra
-
+service:
+  nodePorts:
+    http: 30111
 # Database configuration (example with MariaDB)
 mariadb:
   enabled: true

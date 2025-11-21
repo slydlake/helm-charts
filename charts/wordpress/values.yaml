@@ -218,18 +218,24 @@ wordpress:
     # customStructure: /%year%/%month%/%day%/%postname%/
 
   ## @param wordpress.plugins array WordPress plugins to install
-  ## @param wordpress.plugins[].name string Name|zip|URL: Name of the plugin (e.g. hello-dolly), local zip file or remote URL
+  ## @param wordpress.plugins[].name string Name|zip|URL|Composer: Name of the plugin (e.g. hello-dolly), local zip file, remote URL, or Composer package (e.g. humanmade/s3-uploads)
   ## e.g. you want to install the plugin Two Factor: go to the plugin page and take a look at the url
   ## e.g. https://wordpress.org/plugins/two-factor/ then is the name of the plugin "two-factor"
+  ## For Composer packages: use vendor/package format (e.g. humanmade/s3-uploads)
   ## @param wordpress.plugins[].version string Version of the plugin (e.g. 1.0.0)
   ## If not set, the latest version will be installed
+  ## For Composer packages: use Composer version syntax (e.g. "^3.0" or "3.0.0")
   ## @param wordpress.plugins[].activate boolean Activate the plugin after install
   ## @param wordpress.plugins[].autoupdate boolean Enable auto-updates for the plugin
+  ## For Composer packages: only works when no version is specified (always installs latest on each init run)
   # plugins:
   #   - name: "test-plugin"
   #     version: "1.1.0"
   #     activate: true
   #     autoupdate: true
+  #   - name: "humanmade/s3-uploads"  # Composer package
+  #     activate: true
+  #     autoupdate: true  # Will update to latest on each init run
   plugins: []
 
   ## @param wordpress.pluginsPrune boolean Remove all plugins not defined in wordpress.plugins list
@@ -239,17 +245,23 @@ wordpress:
   pluginsPrune: false
 
   ## @param wordpress.themes array WordPress themes to install
-  ## @param wordpress.themes[].name string Name|zip|URL: Name of the theme (e.g. twentytwentyfour), local zip file or remote URL
+  ## @param wordpress.themes[].name string Name|zip|URL|Composer: Name of the theme (e.g. twentytwentyfour), local zip file, remote URL, or Composer package
   ## e.g. you want to install the theme Astra: go to the theme page and take a look at the url
   ## e.g. https://wordpress.org/themes/astra/ then is the name of the theme "astra"
+  ## For Composer packages: use vendor/package format (e.g. wpackagist-theme/astra)
   ## @param wordpress.themes[].version string Version of the theme (e.g. 1.0.0)
   ## If not set, the latest version will be installed
+  ## For Composer packages: use Composer version syntax (e.g. "^4.0" or "4.0.0")
   ## @param wordpress.themes[].activate boolean Activate the theme after install
   ## @param wordpress.themes[].autoupdate boolean Enable auto-updates for the theme
+  ## For Composer packages: only works when no version is specified (always installs latest on each init run)
   # themes:
   #   - name: "astra"
   #     version: "4.0.0"
   #     activate: true
+  #     autoupdate: true
+  #   - name: "wpackagist-theme/custom-theme"  # Composer package
+  #     activate: false
   #     autoupdate: true
   themes: []
 
@@ -258,6 +270,33 @@ wordpress:
   # This ensures only explicitly defined themes remain installed
   # Note: Does not remove active theme even if not in list (safety measure)
   themesPrune: false
+
+  ## @section Composer configuration
+  composer:
+    ## @param wordpress.composer.repositories array Custom Composer repositories to add to composer.json
+    ## By default, the following repositories are already configured:
+    ## - packagist.org (Composer default - always available)
+    ## - wpackagist.org (mirrors all WordPress.org plugins and themes)
+    ##
+    ## Add additional repositories for:
+    ## - Private/premium plugins from GitHub, GitLab, or Bitbucket
+    ## - Custom Satis/Private Packagist servers
+    ## - Premium plugin vendors (e.g., ACF Pro, Gravity Forms)
+    ##
+    ## Example:
+    # repositories:
+    #   - type: "vcs"
+    #     url: "https://github.com/mycompany/private-plugin"
+    #   - type: "composer"
+    #     url: "https://my-satis-server.com"
+    #   - type: "package"
+    #     package:
+    #       name: "vendor/premium-plugin"
+    #       version: "1.0.0"
+    #       dist:
+    #         url: "https://example.com/premium-plugin.zip"
+    #         type: "zip"
+    repositories: []
 
   ## @param wordpress.users array WordPress users to create
   ## @param wordpress.users[].name string mandatory Name of the user

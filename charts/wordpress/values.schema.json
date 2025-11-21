@@ -393,6 +393,36 @@
                     "description": "Remove all themes not defined in wordpress.themes list",
                     "default": false
                 },
+                "composer": {
+                    "type": "object",
+                    "properties": {
+                        "repositories": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "description": "Repository type (composer, vcs, package, etc.)"
+                                    },
+                                    "url": {
+                                        "type": "string",
+                                        "description": "Repository URL"
+                                    },
+                                    "package": {
+                                        "type": "object",
+                                        "description": "Package definition for package type repositories"
+                                    }
+                                }
+                            },
+                            "description": "Custom Composer repositories to add to composer.json",
+                            "default": []
+                        }
+                    },
+                    "default": {
+                        "repositories": []
+                    }
+                },
                 "users": {
                     "type": "array",
                     "items": {

@@ -60,13 +60,15 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Language**: Set the WordPress language (e.g., de_DE for German).
 
 ### Plugin Installation
-- **Automatic Installation**: Install plugins from WordPress.org, local ZIPs, or URLs.
-- **Versioning**: Specify plugin versions.
+- **Automatic Installation**: Install plugins from WordPress.org, local ZIPs, URLs, or Composer packages.
+- **Composer Support**: Install plugins via Composer (e.g., `humanmade/s3-uploads`) that aren't available in WordPress.org.
+- **Versioning**: Specify plugin versions (WordPress.org and Composer syntax supported).
 - **Activation and Auto-Updates**: Activate plugins after installation and enable auto-updates.
 
 ### Theme Installation
-- **Automatic Installation**: Install themes from WordPress.org, local ZIPs, or URLs.
-- **Versioning**: Specify theme versions.
+- **Automatic Installation**: Install themes from WordPress.org, local ZIPs, URLs, or Composer packages.
+- **Composer Support**: Install themes via Composer (e.g., `wpackagist-theme/astra`).
+- **Versioning**: Specify theme versions (WordPress.org and Composer syntax supported).
 - **Activation and Auto-Updates**: Activate themes after installation and enable auto-updates.
 - **Custom Themes**: Support for custom theme ZIPs via direct URLs.
 
@@ -200,6 +202,46 @@ Deploy Must-Use Plugins that are automatically activated. See `samples/muPlugins
 ```bash
 kubectl apply -f ./samples/muPlugins.configmap.yaml
 helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/muPlugins.values.yaml
+```
+
+### Composer Packages
+Install plugins and themes via Composer that aren't available in WordPress.org. See `samples/composer.values.yaml`.
+
+```bash
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/composer.values.yaml
+```
+
+**Examples:**
+- **Plugins**: `humanmade/s3-uploads`, `wpackagist-plugin/wordpress-seo`
+- **Themes**: `wpackagist-theme/astra`
+- **Auto-Update**: Works for packages without fixed version (always installs latest)
+- **Pruning**: Compatible with `pluginsPrune` and `themesPrune`
+
+#### Custom Composer Repositories
+By default, these repositories are already configured:
+- **packagist.org** - Composer's default repository (always available)
+- **wpackagist.org** - Mirrors all WordPress.org plugins and themes
+
+Add custom repositories for private/premium packages:
+
+```yaml
+wordpress:
+  composer:
+    repositories:
+      - type: "vcs"
+        url: "https://github.com/mycompany/private-plugin"
+      - type: "composer"
+        url: "https://my-satis-server.com"
+      - type: "package"
+        package:
+          name: "vendor/premium-plugin"
+          version: "1.0.0"
+          dist:
+            url: "https://example.com/premium-plugin.zip"
+            type: "zip"
+  plugins:
+    - name: "mycompany/private-plugin"
+      activate: true
 ```
 
 ## Support
