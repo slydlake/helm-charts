@@ -206,6 +206,48 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 
 ### Composer Packages
 Install plugins and themes via Composer that aren't available in WordPress.org. See `samples/composer.values.yaml`.
+<<<<<<< HEAD
+=======
+
+```bash
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/composer.values.yaml
+```
+
+**Examples:**
+- **Plugins**: `humanmade/s3-uploads`, `wpackagist-plugin/wordpress-seo`
+- **Themes**: `wpackagist-theme/astra`
+- **Auto-Update**: Works for packages without fixed version (always installs latest)
+- **Pruning**: Compatible with `pluginsPrune` and `themesPrune`
+
+#### Custom Composer Repositories
+By default, these repositories are already configured:
+- **packagist.org** - Composer's default repository (always available)
+- **wpackagist.org** - Mirrors all WordPress.org plugins and themes
+
+Add custom repositories for private/premium packages:
+
+```yaml
+wordpress:
+  composer:
+    repositories:
+      - type: "vcs"
+        url: "https://github.com/mycompany/private-plugin"
+      - type: "composer"
+        url: "https://my-satis-server.com"
+      - type: "package"
+        package:
+          name: "vendor/premium-plugin"
+          version: "1.0.0"
+          dist:
+            url: "https://example.com/premium-plugin.zip"
+            type: "zip"
+  plugins:
+    - name: "mycompany/private-plugin"
+      activate: true
+```
+
+## Support
+>>>>>>> aae887d (beta2)
 
 ```bash
 helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/composer.values.yaml
