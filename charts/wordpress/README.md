@@ -92,7 +92,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Apache Ports Config**: Adjust `/etc/apache2/ports.conf` with `apache.customPortsConfig`.
 - **Apache PHP Config**: Set PHP settings like upload limits via `apache.customPhpConfig`.
 
-### Custom Init Commands
+### Custom commands in init container
 - **Execute custom shell commands** after init.sh via ConfigMap (`wordpress.init.customInitConfigMap.name`)
 - Perfect for custom setup tasks like updating plugins or creating pages
 - Configure with `name` and optional `key` (defaults to "commands.sh")
@@ -111,7 +111,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Container Security Context**: RunAsNonRoot and additional security measures enabled.
 
 
-## Configuration
+## WordPress configuration
 
 ### Mandatory parameters
 - `wordpress.url`: Is needed to set wp-config with correct settings
@@ -133,7 +133,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - `memcached.enabled`: Enable embedded memcached
 
 
-## Installation
+## Installation samples
 
 ### Basic Installation
 See in TL;DR
@@ -218,9 +218,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Pruning**: Compatible with `pluginsPrune` and `themesPrune`
 
 #### Custom Composer Repositories
-By default, these repositories are already configured:
-- **packagist.org** - Composer's default repository (always available)
-- **wpackagist.org** - Mirrors all WordPress.org plugins and themes
+By default, only **wpackagist.org** is configured, which mirrors all WordPress.org plugins and themes.
 
 Add custom repositories for private/premium packages:
 

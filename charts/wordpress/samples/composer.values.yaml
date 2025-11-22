@@ -8,7 +8,7 @@ wordpress:
     firstname: "John"
     lastname: "Doe"
     title: "John Does's Blog"
-  url: "http://192.168.178.21:30111"
+  url: "https://example.com"
 
   permalinks:
     structure: postName
@@ -37,11 +37,11 @@ wordpress:
     # Composer package theme with auto-update
     - name: "wpackagist-theme/astra"
       autoupdate: true
-      activate: false
+      activate: true
 
     # Regular theme for comparison
     - name: "twentytwentyfour"
-      activate: true
+      activate: false
   composer:
     # @param wordpress.composer.repositories array Custom Composer repositories to add to composer.json
     # By default, the following repositories are already configured:
@@ -57,7 +57,7 @@ wordpress:
     repositories: []
       # Real-world examples you can test:
 
-      # 1. WPackagist Extra - Alternative repository for WordPress plugins/themes
+      # WPackagist Extra - Alternative repository for WordPress plugins/themes
       # This is safe to test as it doesn't require authentication
       # - type: "composer"
       #   url: "https://wpackagist.org"
@@ -65,32 +65,6 @@ wordpress:
       #     ssl:
       #       verify_peer: true
 
-      # 2. GitHub VCS repository (public repo as example)
-      # Note: May require GitHub authentication for private repos or hit rate limits
-      # - type: "vcs"
-      #   url: "https://github.com/Yoast/wordpress-seo"
-
-      # 2. WP Pusher's packagist alternative (free plugins mirror)
-      # - type: "composer"
-      #   url: "https://wpackagist.org"
-
-      # 3. Package repository for a specific plugin
-      # - type: "package"
-      #   package:
-      #     name: "deliciousbrains/wp-migrate-db-pro"
-      #     version: "2.6.0"
-      #     type: "wordpress-plugin"
-      #     dist:
-      #       url: "https://example.com/wp-migrate-db-pro.zip"
-      #       type: "zip"
-
-      # 4. Roots Bedrock's packagist (includes ACF Pro if you have license)
-      # - type: "composer"
-      #   url: "https://composer.roots.io"
-
-      # 5. Packagist (already default, but showing for reference)
-      # - type: "composer"
-      #   url: "https://packagist.org"
   pluginsPrune: true
   themesPrune: true
 service:
