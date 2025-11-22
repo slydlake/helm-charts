@@ -220,9 +220,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Pruning**: Compatible with `pluginsPrune` and `themesPrune`
 
 #### Custom Composer Repositories
-By default, these repositories are already configured:
-- **packagist.org** - Composer's default repository (always available)
-- **wpackagist.org** - Mirrors all WordPress.org plugins and themes
+By default, only **wpackagist.org** is configured, which mirrors all WordPress.org plugins and themes.
 
 Add custom repositories for private/premium packages:
 

@@ -57,6 +57,7 @@ wordpress:
     repositories: []
     # Real-world examples you can test:
 
+<<<<<<< HEAD
     # WPackagist Extra - Alternative repository for WordPress plugins/themes
     # This is safe to test as it doesn't require authentication
     # - type: "composer"
@@ -64,6 +65,15 @@ wordpress:
     #   options:
     #     ssl:
     #       verify_peer: true
+=======
+      # WPackagist Extra - Alternative repository for WordPress plugins/themes
+      # This is safe to test as it doesn't require authentication
+      # - type: "composer"
+      #   url: "https://wpackagist.org"
+      #   options:
+      #     ssl:
+      #       verify_peer: true
+>>>>>>> 1003169 (beta3)
 
   pluginsPrune: true
   themesPrune: true
