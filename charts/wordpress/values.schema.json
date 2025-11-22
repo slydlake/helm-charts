@@ -1204,6 +1204,26 @@
                                     "description": "Custom selector for ServiceMonitor"
                                 }
                             }
+                        },
+                        "grafanaDashboard": {
+                            "type": "object",
+                            "description": "Grafana Dashboard configuration for WordPress metrics",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "description": "Enable Grafana Dashboard ConfigMap deployment",
+                                    "default": false
+                                },
+                                "namespace": {
+                                    "type": "string",
+                                    "description": "Namespace for Grafana Dashboard ConfigMap (defaults to release namespace if empty)",
+                                    "default": ""
+                                },
+                                "customLabels": {
+                                    "type": "object",
+                                    "description": "Additional labels for Grafana Dashboard ConfigMap"
+                                }
+                            }
                         }
                     }
                 },

@@ -82,7 +82,9 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
   - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics] 
 - **Apache Metrics**: Sidecar container for Apache metrics.
   - See details on GitHub Repo of (apache exporter from Lusitaniae)[https://github.com/Lusitaniae/apache_exporter]
-- **Grafana Dashboard**: Integrate with Grafana for metrics visualization.
+- **Grafana Dashboard**: Automatically deploy Grafana dashboard for WordPress metrics visualization.
+  - Requires Grafana with dashboard sidecar (e.g., kube-prometheus-stack)
+  - Automatically discovered via `grafana_dashboard: "1"` labe
 
 
 ### Additional Configuration Files in values

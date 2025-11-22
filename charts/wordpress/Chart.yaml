@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.8.0-beta3
+version: 0.8.0-beta4
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,6 +26,8 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
+    - kind: added
+      description: "Added Grafana Dashboard auto-deployment feature for WordPress metrics (metrics.wordpress.grafanaDashboard) with automatic discovery via grafana_dashboard label and optional folder organization"
     - kind: added
       description: "Added WORDPRESS_CONFIG_EXTRA environment variable support to init container for consistent configuration across all containers"
     - kind: added

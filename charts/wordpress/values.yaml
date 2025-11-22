@@ -780,6 +780,24 @@ metrics:
       # sample generation: echo $(openssl rand -hex 32)
       token: ""
 
+    ## @section metrics.wordpress.grafanaDashboard object Grafana Dashboard configuration
+    grafanaDashboard:
+      ## @param metrics.wordpress.grafanaDashboard.enabled boolean Deploy the Grafana dashboard ConfigMap
+      # If enabled, a ConfigMap with the Grafana dashboard JSON will be created
+      # Requires Grafana with dashboard sidecar enabled (e.g., kube-prometheus-stack)
+      enabled: false
+      ## @param metrics.wordpress.grafanaDashboard.namespace string Namespace where the dashboard ConfigMap should be created
+      # If empty, defaults to the release namespace
+      namespace: ""
+      ## @param metrics.wordpress.grafanaDashboard.customLabels object Additional labels for the dashboard ConfigMap
+      # Additional labels to add to the ConfigMap for custom Grafana sidecar label selectors
+      # Note: The label `grafana_dashboard: "1"` is already set by default for automatic dashboard discovery
+      #
+      # Example:
+      # customLabels:
+      #   release: kube-prometheus-stack        # Match specific Grafana instance
+      customLabels: {}
+
   ## @section Apache Metrics parameters
   ## This uses the Apache Exporter sidecar to expose metrics
   apache:
