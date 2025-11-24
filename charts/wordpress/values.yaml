@@ -629,7 +629,7 @@ resources: {}
 livenessProbe:
   enabled: true
   initialDelaySeconds: 10
-  periodSeconds: 10
+  periodSeconds: 20
   timeoutSeconds: 5
   failureThreshold: 3
   successThreshold: 1
@@ -642,7 +642,7 @@ livenessProbe:
   ## @param readinessProbe.successThreshold integer Success threshold for readiness probe
 readinessProbe:
   enabled: true
-  initialDelaySeconds: 60
+  initialDelaySeconds: 5
   periodSeconds: 15
   timeoutSeconds: 5
   failureThreshold: 10
@@ -656,10 +656,10 @@ readinessProbe:
   ## @param startupProbe.successThreshold integer Success threshold for startup probe
 startupProbe:
   enabled: true
-  initialDelaySeconds: 90
-  periodSeconds: 30
+  initialDelaySeconds: 10
+  periodSeconds: 10
   timeoutSeconds: 5
-  failureThreshold: 20
+  failureThreshold: 30
   successThreshold: 1
 ## @param customLivenessProbe object Override default liveness probe
 # override default liveness probe
