@@ -8,8 +8,17 @@ fi
 
 # Script to update Chart.yaml metadata after Renovate updates
 # Updates: 
-#   - version (patch +1)
+#   - version (major/minor/patch based on dependency update type)
 #   - artifacthub.io/changes
+#
+# Version bump logic:
+#   - Direct dependencies (images, etc.):
+#     - major update -> chart gets major bump
+#     - minor update -> chart gets minor bump
+#     - patch/digest update -> chart gets patch bump
+#   - Helm subchart dependencies:
+#     - major update -> chart gets minor bump
+#     - minor/patch update -> chart gets patch bump
 #
 # Note: appVersion is managed by Renovate directly via regex manager
 #       to preserve full version tags (e.g., 1.0.20250521-r0-ls88)
@@ -21,6 +30,56 @@ fi
 PR_TITLE="$1"
 PR_URL="$2"
 MANUAL_CHART="$3"
+
+# Function to determine version bump type from old and new versions
+# Returns: major, minor, or patch
+get_version_bump_type() {
+  local old_version="$1"
+  local new_version="$2"
+  
+  # Extract major.minor.patch - handle versions with prefixes like v1.2.3
+  local old_major=$(echo "$old_version" | sed 's/^v//' | cut -d. -f1)
+  local old_minor=$(echo "$old_version" | sed 's/^v//' | cut -d. -f2)
+  local new_major=$(echo "$new_version" | sed 's/^v//' | cut -d. -f1)
+  local new_minor=$(echo "$new_version" | sed 's/^v//' | cut -d. -f2)
+  
+  # Handle non-numeric versions gracefully
+  if ! [[ "$old_major" =~ ^[0-9]+$ ]] || ! [[ "$new_major" =~ ^[0-9]+$ ]]; then
+    echo "patch"
+    return
+  fi
+  
+  if [ "$new_major" -gt "$old_major" ] 2>/dev/null; then
+    echo "major"
+  elif [ "$new_minor" -gt "$old_minor" ] 2>/dev/null; then
+    echo "minor"
+  else
+    echo "patch"
+  fi
+}
+
+# Function to bump version based on type
+# Args: current_version bump_type
+bump_version() {
+  local current="$1"
+  local bump_type="$2"
+  
+  local major=$(echo "$current" | cut -d. -f1)
+  local minor=$(echo "$current" | cut -d. -f2)
+  local patch=$(echo "$current" | cut -d. -f3)
+  
+  case "$bump_type" in
+    major)
+      echo "$((major + 1)).0.0"
+      ;;
+    minor)
+      echo "$major.$((minor + 1)).0"
+      ;;
+    patch|*)
+      echo "$major.$minor.$((patch + 1))"
+      ;;
+  esac
+}
 
 # Find all changed Chart.yaml or values.yaml files
 if [ -n "$MANUAL_CHART" ]; then
@@ -49,13 +108,13 @@ for CHART_DIR in $CHANGED_CHARTS; do
   CURRENT_VERSION=$(grep '^version:' "$CHART_YAML" | awk '{print $2}')
   echo "Current version: $CURRENT_VERSION"
   
-  # Increment patch version (x.x.X+1)
-  NEW_VERSION=$(echo "$CURRENT_VERSION" | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
-  echo "New version: $NEW_VERSION"
-  
   # Extract all dependency changes from commit messages
   # Renovate commits have format: "chore(deps): update <name> to <version>"
   DEPENDENCY_CHANGES=$(git log --oneline origin/main..HEAD | grep "chore(deps): update" | grep " to " | sed 's/.*chore(deps): update //' | sed 's/ to / /')
+  
+  # Initialize variables for version detection
+  VERSION_INFO=""
+  UPDATE_TYPE_INFO=""
   
   if [ -z "$DEPENDENCY_CHANGES" ]; then
     # Try to get from PR commits using gh CLI
@@ -79,6 +138,19 @@ for CHART_DIR in $CHANGED_CHARTS; do
           TABLE_LINES=$(echo "$PR_BODY" | grep '^|' | grep -v 'Package.*Update.*Change' | grep -v '^---$' | tail -n +2)  # Skip header and separator
           echo "TABLE_LINES from body: $TABLE_LINES"
           if [ -n "$TABLE_LINES" ]; then
+            # Extract: package_name old_version new_version update_type
+            VERSION_INFO=$(echo "$TABLE_LINES" | awk -F'|' '{
+              gsub(/^[ \t]+|[ \t]+$/, "", $2);  # Package name
+              gsub(/^[ \t]+|[ \t]+$/, "", $3);  # Update type (major/minor/patch)
+              gsub(/^[ \t]+|[ \t]+$/, "", $4);  # Change (old -> new)
+              split($4, versions, " -> ");
+              old_version = versions[1];
+              new_version = versions[2];
+              gsub(/`/, "", old_version);
+              gsub(/`/, "", new_version);
+              update_type = tolower($3);
+              print $2 "|" old_version "|" new_version "|" update_type
+            }')
             DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
           fi
         fi
@@ -92,6 +164,18 @@ for CHART_DIR in $CHANGED_CHARTS; do
             TABLE_LINES=$(echo "$FIRST_COMMENT" | grep '^|' | grep -v 'Package.*Update.*Change' | grep -v '^---$' | tail -n +2)
             echo "TABLE_LINES from comment: $TABLE_LINES"
             if [ -n "$TABLE_LINES" ]; then
+              VERSION_INFO=$(echo "$TABLE_LINES" | awk -F'|' '{
+                gsub(/^[ \t]+|[ \t]+$/, "", $2);
+                gsub(/^[ \t]+|[ \t]+$/, "", $3);
+                gsub(/^[ \t]+|[ \t]+$/, "", $4);
+                split($4, versions, " -> ");
+                old_version = versions[1];
+                new_version = versions[2];
+                gsub(/`/, "", old_version);
+                gsub(/`/, "", new_version);
+                update_type = tolower($3);
+                print $2 "|" old_version "|" new_version "|" update_type
+              }')
               DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
             fi
           fi
@@ -109,6 +193,89 @@ for CHART_DIR in $CHANGED_CHARTS; do
   
   echo "Dependency changes for $CHART_DIR:"
   echo "$DEPENDENCY_CHANGES"
+  
+  # Determine the highest bump type needed
+  # Priority: major > minor > patch
+  HIGHEST_BUMP="patch"
+  
+  if [ -n "$VERSION_INFO" ]; then
+    echo "Analyzing version changes..."
+    echo "$VERSION_INFO"
+    
+    while IFS='|' read -r pkg_name old_ver new_ver update_type; do
+      [ -z "$pkg_name" ] && continue
+      
+      echo "  Package: $pkg_name, Old: $old_ver, New: $new_ver, Type: $update_type"
+      
+      # Check if this is a Helm subchart dependency (listed in Chart.yaml dependencies)
+      IS_SUBCHART=false
+      if grep -q "name: $pkg_name" "$CHART_YAML" 2>/dev/null; then
+        # Check if it's in the dependencies section
+        if awk '/^dependencies:/,/^[^ ]/' "$CHART_YAML" | grep -q "name: $pkg_name"; then
+          IS_SUBCHART=true
+        fi
+      fi
+      
+      # Determine bump type based on update type from Renovate
+      if [ -n "$update_type" ]; then
+        DEP_BUMP_TYPE="$update_type"
+      else
+        # Fallback: calculate from version numbers
+        DEP_BUMP_TYPE=$(get_version_bump_type "$old_ver" "$new_ver")
+      fi
+      
+      echo "  Detected bump type: $DEP_BUMP_TYPE, Is subchart: $IS_SUBCHART"
+      
+      if [ "$IS_SUBCHART" = true ]; then
+        # For Helm subcharts: major -> minor, minor/patch -> patch
+        if [ "$DEP_BUMP_TYPE" = "major" ]; then
+          if [ "$HIGHEST_BUMP" = "patch" ]; then
+            HIGHEST_BUMP="minor"
+          fi
+        fi
+        # For minor/patch subchart updates, keep patch (no change needed)
+      else
+        # For direct dependencies: major -> major, minor -> minor, patch -> patch
+        case "$DEP_BUMP_TYPE" in
+          major)
+            HIGHEST_BUMP="major"
+            ;;
+          minor)
+            if [ "$HIGHEST_BUMP" != "major" ]; then
+              HIGHEST_BUMP="minor"
+            fi
+            ;;
+          # patch stays as default
+        esac
+      fi
+    done <<< "$VERSION_INFO"
+  else
+    # Try to extract update type from PR labels (passed via PR_LABELS env var)
+    # or from PR title (Renovate format)
+    if [ -n "$PR_LABELS" ]; then
+      echo "Checking PR labels: $PR_LABELS"
+      if echo "$PR_LABELS" | grep -qi "major"; then
+        HIGHEST_BUMP="major"
+      elif echo "$PR_LABELS" | grep -qi "minor"; then
+        HIGHEST_BUMP="minor"
+      fi
+    fi
+    
+    # Fallback to PR title check
+    if [ "$HIGHEST_BUMP" = "patch" ]; then
+      if echo "$PR_TITLE" | grep -qi "major"; then
+        HIGHEST_BUMP="major"
+      elif echo "$PR_TITLE" | grep -qi "minor"; then
+        HIGHEST_BUMP="minor"
+      fi
+    fi
+  fi
+  
+  echo "Determined chart bump type: $HIGHEST_BUMP"
+  
+  # Calculate new version
+  NEW_VERSION=$(bump_version "$CURRENT_VERSION" "$HIGHEST_BUMP")
+  echo "New version: $NEW_VERSION"
   
   # Update version in Chart.yaml
   sed -i.bak "s/^version: .*/version: $NEW_VERSION/" "$CHART_YAML"
