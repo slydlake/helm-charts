@@ -5,6 +5,7 @@ type: application
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 version: 1.0.0
 =======
 version: 0.8.0-beta3
@@ -15,6 +16,9 @@ version: 0.8.0-beta8
 =======
 version: 0.8.0-rc.2
 >>>>>>> 3ba5e20 (wordpress 0.8.0-rc.2)
+=======
+version: 0.7.4
+>>>>>>> 4b06e5e (cleared image registry names in value.yaml to allow better update handling by Renovate)
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -38,6 +42,7 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
+<<<<<<< HEAD
     - kind: added
       description: "Added Grafana Dashboard auto-deployment feature for WordPress metrics (metrics.wordpress.grafanaDashboard) with automatic discovery via grafana_dashboard label and optional folder organization"
     - kind: added
@@ -76,6 +81,10 @@ annotations:
 >>>>>>> 98bd789 (beta8)
 =======
 >>>>>>> 3ba5e20 (wordpress 0.8.0-rc.2)
+=======
+    - kind: changed
+       description: "cleared image registry names in value.yaml to allow better update handling by Renovate"
+>>>>>>> 4b06e5e (cleared image registry names in value.yaml to allow better update handling by Renovate)
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.8.3-php8.1-apache
