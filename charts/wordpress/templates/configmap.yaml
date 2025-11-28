@@ -1104,8 +1104,8 @@ data:
     COMPOSER_PLUGINS_TO_UPDATE=()
     
     {{- range .Values.wordpress.plugins }}
-    # Plugin: {{ .name }}
-    PLUGIN_NAME="{{ .name }}"
+    # Plugin: {{ .name | lower }}
+    PLUGIN_NAME="{{ .name | lower }}"
     
     # Validate package name before processing
     if ! validate_package_name "$PLUGIN_NAME"; then
@@ -1132,7 +1132,7 @@ data:
         {{- end }}
       else
         {{- if .version }}
-        COMPOSER_PLUGINS_TO_INSTALL+=("{{ .name }}:{{ .version }}")
+        COMPOSER_PLUGINS_TO_INSTALL+=("{{ .name | lower }}:{{ .version }}")
         {{- else }}
         COMPOSER_PLUGINS_TO_INSTALL+=("$PLUGIN_NAME")
         {{- end }}
@@ -1154,16 +1154,16 @@ data:
       # Named plugin - add to batch processing
       if ! echo "$INSTALLED_PLUGINS" | grep -q "^${PLUGIN_NAME}$"; then
         {{- if .version }}
-        PLUGINS_TO_INSTALL+=("{{ .name }}:{{ .version }}")
+        PLUGINS_TO_INSTALL+=("{{ .name | lower }}:{{ .version }}")
         {{- else }}
-        PLUGINS_TO_INSTALL+=("{{ .name }}")
+        PLUGINS_TO_INSTALL+=("{{ .name | lower }}")
         {{- end }}
       fi
       {{- if .activate }}
-      PLUGINS_TO_ACTIVATE+=("{{ .name }}")
+      PLUGINS_TO_ACTIVATE+=("{{ .name | lower }}")
       {{- end }}
       {{- if .autoupdate }}
-      PLUGINS_TO_AUTOUPDATE+=("{{ .name }}")
+      PLUGINS_TO_AUTOUPDATE+=("{{ .name | lower }}")
       {{- end }}
     fi
     {{- end }}
@@ -1298,23 +1298,23 @@ data:
     COMPOSER_THEME_PACKAGES_TO_KEEP=()
     {{- if .Values.wordpress.plugins }}
     {{- range $index, $plugin := .Values.wordpress.plugins }}
-    {{- $name := $plugin.name }}
+    {{- $name := $plugin.name | lower }}
     {{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
     # Composer package: {{ $name }}
     COMPOSER_PACKAGES_TO_KEEP+=("{{ $name }}")
     {{- else }}
     # Regular plugin: {{ $name }}
     {{- if eq $index 0 }}
-    EXCLUDE_PLUGINS="{{ $plugin.name }}"
+    EXCLUDE_PLUGINS="{{ $name }}"
     {{- else }}
-    EXCLUDE_PLUGINS="${EXCLUDE_PLUGINS},{{ $plugin.name }}"
+    EXCLUDE_PLUGINS="${EXCLUDE_PLUGINS},{{ $name }}"
     {{- end }}
     {{- end }}
     {{- end }}
     {{- end }}
     {{- if .Values.wordpress.themes }}
     {{- range .Values.wordpress.themes }}
-    {{- $name := .name }}
+    {{- $name := .name | lower }}
     {{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
     # Composer theme package: {{ $name }}
     COMPOSER_THEME_PACKAGES_TO_KEEP+=("{{ $name }}")
@@ -1403,7 +1403,7 @@ data:
     COMPOSER_THEMES_TO_UPDATE=()
     
     {{- range .Values.wordpress.themes }}
-    THEME_NAME="{{ .name }}"
+    THEME_NAME="{{ .name | lower }}"
     
     # Validate package name before processing
     if ! validate_package_name "$THEME_NAME"; then
@@ -1430,7 +1430,7 @@ data:
         {{- end }}
       else
         {{- if .version }}
-        COMPOSER_THEMES_TO_INSTALL+=("{{ .name }}:{{ .version }}")
+        COMPOSER_THEMES_TO_INSTALL+=("{{ .name | lower }}:{{ .version }}")
         {{- else }}
         COMPOSER_THEMES_TO_INSTALL+=("$THEME_NAME")
         {{- end }}
@@ -1440,13 +1440,13 @@ data:
       COMPOSER_THEME_TO_ACTIVATE="$COMPOSER_THEME_SLUG"
       {{- end }}
     else
-      THEME_SLUG=$(get_theme_slug "{{ .name }}")
+      THEME_SLUG=$(get_theme_slug "{{ .name | lower }}")
 
       if ! echo "$INSTALLED_THEMES" | grep -q "^${THEME_SLUG}$"; then
         {{- if .version }}
-        THEMES_TO_INSTALL+=("{{ .name }}:{{ .version }}")
+        THEMES_TO_INSTALL+=("{{ .name | lower }}:{{ .version }}")
         {{- else }}
-        THEMES_TO_INSTALL+=("{{ .name }}")
+        THEMES_TO_INSTALL+=("{{ .name | lower }}")
         {{- end }}
       fi
       {{- if .activate }}
@@ -1570,7 +1570,7 @@ data:
     THEMES_TO_KEEP=()
     {{- if .Values.wordpress.themes }}
     {{- range .Values.wordpress.themes }}
-    {{- $name := .name }}
+    {{- $name := .name | lower }}
     {{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
     # Composer theme package: {{ $name }}
     # Extract theme slug from Composer package name (e.g., wpackagist-theme/astra -> astra)
@@ -1578,7 +1578,7 @@ data:
     THEMES_TO_KEEP+=("$THEME_SLUG")
     {{- else }}
     # Regular theme: {{ $name }}
-    THEME_SLUG=$(get_theme_slug "{{ .name }}")
+    THEME_SLUG=$(get_theme_slug "{{ $name }}")
     THEMES_TO_KEEP+=("$THEME_SLUG")
     {{- end }}
     {{- end }}
@@ -1793,37 +1793,87 @@ data:
       fi
       echo "Composer dependencies installed!"
       
-      # Also run composer install in each plugin/theme directory that has a composer.json
+      # Also run composer install in each Composer-installed plugin/theme directory that has a composer.json
       # This is needed for packages like humanmade/s3-uploads that require their own vendor directory
+      # We only do this for plugins that were installed via Composer (not regular WP plugins that happen to have a composer.json)
+      
+      # Build list of Composer-installed plugin slugs from the require list
+      COMPOSER_PLUGIN_SLUGS=""
+      if [ -f composer.json ]; then
+        COMPOSER_PLUGIN_SLUGS=$(php -r '
+          $json = json_decode(file_get_contents("composer.json"), true);
+          if (isset($json["require"])) {
+            foreach ($json["require"] as $package => $version) {
+              // Only process packages with vendor prefix (composer packages)
+              if (strpos($package, "/") !== false && $package !== "composer/installers") {
+                // Extract the slug (part after /)
+                $slug = substr($package, strrpos($package, "/") + 1);
+                echo $slug . "\n";
+              }
+            }
+          }
+        ' 2>/dev/null || echo "")
+      fi
+      
       echo "Installing plugin-specific Composer dependencies..."
       for plugin_dir in ${WP_PLUGINS_DIR}/*/; do
         if [ -f "${plugin_dir}composer.json" ]; then
           PLUGIN_NAME=$(basename "$plugin_dir")
-          echo "Running composer install in plugin: $PLUGIN_NAME"
-          cd "$plugin_dir" || continue
-          if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
-            cat /tmp/composer-error.txt
-            echo "Warning: Could not install dependencies for plugin: $PLUGIN_NAME"
+          
+          # Only run composer install if this plugin was installed via Composer
+          if echo "$COMPOSER_PLUGIN_SLUGS" | grep -q "^${PLUGIN_NAME}$"; then
+            echo "Running composer install in plugin: $PLUGIN_NAME"
+            cd "$plugin_dir" || continue
+            if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
+              cat /tmp/composer-error.txt
+              echo "Warning: Could not install dependencies for plugin: $PLUGIN_NAME"
+            else
+              echo "Successfully installed dependencies for plugin: $PLUGIN_NAME"
+            fi
+            cd /var/www/html || handle_error "Cannot return to WordPress root directory"
           else
-            echo "Successfully installed dependencies for plugin: $PLUGIN_NAME"
+            [ "${DEBUG}" = "true" ] && echo "DEBUG: Skipping $PLUGIN_NAME - not a Composer-installed plugin" >&2
           fi
-          cd /var/www/html || handle_error "Cannot return to WordPress root directory"
         fi
       done
+      
+      # Build list of Composer-installed theme slugs from the require list
+      COMPOSER_THEME_SLUGS=""
+      if [ -f composer.json ]; then
+        COMPOSER_THEME_SLUGS=$(php -r '
+          $json = json_decode(file_get_contents("composer.json"), true);
+          if (isset($json["require"])) {
+            foreach ($json["require"] as $package => $version) {
+              // Only process theme packages
+              if (strpos($package, "wpackagist-theme/") === 0 || 
+                  (strpos($package, "/") !== false && strpos($package, "theme") !== false)) {
+                $slug = substr($package, strrpos($package, "/") + 1);
+                echo $slug . "\n";
+              }
+            }
+          }
+        ' 2>/dev/null || echo "")
+      fi
       
       echo "Installing theme-specific Composer dependencies..."
       for theme_dir in ${WP_THEMES_DIR}/*/; do
         if [ -f "${theme_dir}composer.json" ]; then
           THEME_NAME=$(basename "$theme_dir")
-          echo "Running composer install in theme: $THEME_NAME"
-          cd "$theme_dir" || continue
-          if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
-            cat /tmp/composer-error.txt
-            echo "Warning: Could not install dependencies for theme: $THEME_NAME"
+          
+          # Only run composer install if this theme was installed via Composer
+          if echo "$COMPOSER_THEME_SLUGS" | grep -q "^${THEME_NAME}$"; then
+            echo "Running composer install in theme: $THEME_NAME"
+            cd "$theme_dir" || continue
+            if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
+              cat /tmp/composer-error.txt
+              echo "Warning: Could not install dependencies for theme: $THEME_NAME"
+            else
+              echo "Successfully installed dependencies for theme: $THEME_NAME"
+            fi
+            cd /var/www/html || handle_error "Cannot return to WordPress root directory"
           else
-            echo "Successfully installed dependencies for theme: $THEME_NAME"
+            [ "${DEBUG}" = "true" ] && echo "DEBUG: Skipping $THEME_NAME - not a Composer-installed theme" >&2
           fi
-          cd /var/www/html || handle_error "Cannot return to WordPress root directory"
         fi
       done
       
