@@ -36,18 +36,18 @@ annotations:
     - name: metrics-apache
       image: docker.io/lusotycoon/apache-exporter:v1.0.11
     - name: mariadb
-      image: docker.io/mariadb:12.0.2-noble
+      image: docker.io/mariadb:12.1.2-noble
     - name: memcached
       image: docker.io/memcached:1.6.39
 dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.7.0
+    version: 0.7.1
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.7.0
+    version: 0.8.0
 keywords:
   - wordpress
   - blog
