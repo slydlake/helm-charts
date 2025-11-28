@@ -320,6 +320,7 @@ data:
   # Contains: wp(), run(), handle_error(), retry_command(), validate_package_name(), assert()
   # Used by: init.sh
   lib-core.sh: |
+<<<<<<< HEAD
     #!/bin/bash
     # WordPress Helm Chart - Core Library
     # Provides essential utility functions for the init script
@@ -710,17 +711,26 @@ data:
       composer "$@"
     }
   init.sh: |
+=======
+>>>>>>> 98bd789 (beta8)
     #!/bin/bash
-    set -e
+    # WordPress Helm Chart - Core Library
+    # Provides essential utility functions for the init script
 
     # ============================================================================
-    # WordPress Helm Chart Init Script
+    # Test Mode Support
     # ============================================================================
+    # When TEST_MODE=true, enables assert() for validation
+    # Usage: TEST_MODE=true ./init.sh
+
+    # Assert function for testing - validates conditions
+    # Only active when TEST_MODE=true
     #
-    # Purpose:
-    #   Initializes WordPress installation with plugins, themes, and configuration.
-    #   Ensures safe multi-pod deployment using distributed database locking.
+    # Args:
+    #   $1 - Description of assertion
+    #   $2 - Condition to evaluate (must return 0 for success)
     #
+<<<<<<< HEAD
     # Features:
 <<<<<<< HEAD
     #   - Modular library architecture for maintainability
@@ -770,10 +780,52 @@ data:
     #   1 - Fatal error (database, lock timeout, invalid input, network failure)
     #
     # ============================================================================
+=======
+    # Example:
+    #   assert "wp command exists" "command -v wp"
+    #   assert "plugins directory exists" "[ -d wp-content/plugins ]"
+    assert() {
+      local description="$1"
+      shift
+      local condition="$@"
+>>>>>>> 98bd789 (beta8)
 
-    echo "Starting init script..."
+      if [ "${TEST_MODE}" != "true" ]; then
+        return 0
+      fi
+
+      if eval "$condition"; then
+        echo "✓ PASS: $description"
+        return 0
+      else
+        echo "✗ FAIL: $description"
+        echo "  Condition: $condition"
+        ASSERT_FAILURES=$((${ASSERT_FAILURES:-0} + 1))
+        return 1
+      fi
+    }
+
+    # Print test summary - call at end of script when TEST_MODE=true
+    test_summary() {
+      if [ "${TEST_MODE}" != "true" ]; then
+        return 0
+      fi
+
+      echo ""
+      echo "========================================="
+      echo "Test Summary"
+      echo "========================================="
+      if [ "${ASSERT_FAILURES:-0}" -eq 0 ]; then
+        echo "All assertions passed!"
+        return 0
+      else
+        echo "FAILED: ${ASSERT_FAILURES} assertion(s) failed"
+        return 1
+      fi
+    }
 
     # ============================================================================
+<<<<<<< HEAD
     # Load Libraries
     # ============================================================================
     # Libraries are copied to /tmp/lib by the base init container
@@ -795,8 +847,14 @@ data:
 
     # ============================================================================
     # Configuration Constants
+=======
+    # DRY_RUN Mode Support
+>>>>>>> 98bd789 (beta8)
     # ============================================================================
+    # When DRY_RUN=true, commands are printed but not executed
+    # Useful for testing what would happen without making changes
 
+<<<<<<< HEAD
     # Database lock configuration
     readonly CHECK_INTERVAL=5
     readonly STALE_LOCK_THRESHOLD=120  # Consider lock stale after 2 minutes (handles pod deletion)
@@ -817,14 +875,158 @@ data:
     COMPOSER_PACKAGES_MODIFIED=false
     COMPOSER_PLUGINS_PENDING_ACTIVATION=()
     ASSERT_FAILURES=0
+=======
+    # Execute a command, respecting DRY_RUN mode
+    # In DRY_RUN mode, prints the command instead of executing
+    #
+    # Args:
+    #   $@ - Command and arguments to execute
+    execute() {
+      if [ "${DRY_RUN}" = "true" ]; then
+        echo "[DRY_RUN] Would execute: $*"
+        return 0
+      fi
+      "$@"
+    }
+>>>>>>> 98bd789 (beta8)
 
 <<<<<<< HEAD
     # Setup exit trap for lock release
 =======
     # ============================================================================
-    # Database Lock Functions
-    # Uses WordPress options table as distributed lock across all pods
+    # Core Helper Functions
     # ============================================================================
+
+    # WP-CLI wrapper with optional debug output
+    # Uses global DEBUG flag to control verbosity
+    #
+    # Args: All arguments are passed through to wp-cli
+    #
+    # Performance Note:
+    #   Each wp call loads WordPress core - can be slow
+    #   Use batch operations where possible (e.g., install multiple plugins at once)
+    wp() {
+      if [ "${DRY_RUN}" = "true" ]; then
+        echo "[DRY_RUN] wp $*"
+        return 0
+      fi
+      if [ "${DEBUG}" = "true" ]; then
+        command wp --path="${WORDPRESS_PATH}" --debug "$@"
+      else
+        command wp --path="${WORDPRESS_PATH}" "$@"
+      fi
+    }
+
+    # Run commands with optional output suppression based on DEBUG flag
+    #
+    # Args: Command and arguments to execute
+    run() {
+      if [ "${DRY_RUN}" = "true" ]; then
+        echo "[DRY_RUN] $*"
+        return 0
+      fi
+      if [ "${DEBUG}" = "true" ]; then
+        "$@"
+      else
+        "$@" >/dev/null 2>&1
+      fi
+    }
+
+    # Standardized error handler
+    # Logs error message and exits with code 1
+    #
+    # Args:
+    #   $1 - Error message to display
+    handle_error() {
+      echo "ERROR: $1" >&2
+      exit 1
+    }
+
+    # Warning handler for non-fatal errors
+    # Logs warning but allows script to continue
+    #
+    # Args:
+    #   $1 - Warning message to display
+    warn_and_continue() {
+      echo "WARNING: $1" >&2
+      return 0
+    }
+
+    # Retry wrapper for network operations with exponential backoff
+    # Retries failed commands up to MAX_RETRIES times with increasing delays
+    #
+    # Args:
+    #   $@ - Command and arguments to execute
+    #
+    # Returns:
+    #   0 - Command succeeded (possibly after retries)
+    #   1 - Command failed after all retries exhausted
+    retry_command() {
+      local max_retries=${MAX_RETRIES:-3}
+      local retry_delay=${RETRY_DELAY:-2}
+      local attempt=1
+      local exit_code=0
+
+      while [ $attempt -le $max_retries ]; do
+        if "$@"; then
+          return 0
+        fi
+        exit_code=$?
+
+        if [ $attempt -lt $max_retries ]; then
+          local wait_time=$((retry_delay * attempt))
+          echo "Command failed (attempt $attempt/$max_retries), retrying in ${wait_time}s..." >&2
+          sleep $wait_time
+        fi
+
+        attempt=$((attempt + 1))
+      done
+
+      echo "Command failed after $max_retries attempts" >&2
+      return $exit_code
+    }
+
+    # Validate package name to prevent injection attacks
+    # Checks for dangerous characters and patterns
+    #
+    # Args:
+    #   $1 - Package name to validate
+    #
+    # Returns:
+    #   0 - Package name is valid
+    #   1 - Package name contains invalid characters
+    validate_package_name() {
+      local name="$1"
+
+      # Check for empty name
+      if [ -z "$name" ]; then
+        echo "ERROR: Package name cannot be empty" >&2
+        return 1
+      fi
+
+      # Check for dangerous characters (backticks, semicolons, pipes, etc.)
+      if echo "$name" | grep -qE '[`;|&$()<>]'; then
+        echo "ERROR: Package name contains invalid characters: $name" >&2
+        return 1
+      fi
+
+      # Check for path traversal attempts
+      if echo "$name" | grep -q '\.\.'; then
+        echo "ERROR: Package name contains path traversal: $name" >&2
+        return 1
+      fi
+
+      return 0
+    }
+  # ============================================================================
+  # Library: Database Lock Functions (lib-lock.sh)
+  # ============================================================================
+  # Contains: claim_lock_db(), release_lock()
+  # Provides distributed locking using WordPress options table
+  lib-lock.sh: |
+    #!/bin/bash
+    # WordPress Helm Chart - Database Lock Library
+    # Provides distributed locking for multi-pod deployments
 
     # Attempt to claim distributed database lock for initialization
     # Ensures only one pod performs WordPress configuration at a time
@@ -842,7 +1044,6 @@ data:
       CURRENT_TIME=$(date +%s)
       POD_ID="$$-$(hostname)"
 
-      # Use cached TABLE_PREFIX (set at script start)
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Using table prefix: $TABLE_PREFIX" >&2
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Attempting to claim lock with POD_ID=$POD_ID-$CURRENT_TIME" >&2
 
@@ -853,7 +1054,6 @@ data:
       fi
 
       # Atomic lock claim using INSERT...ON DUPLICATE KEY UPDATE
-      # This prevents race conditions where two pods try to claim simultaneously
       wp db query "
         INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload)
         VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no')
@@ -891,10 +1091,10 @@ data:
     # Called automatically via trap on script exit
     # Safe to call even if lock doesn't exist (|| true)
     release_lock() {
-      # Use cached TABLE_PREFIX (set at script start)
       wp db query "DELETE FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
       echo "Database lock released"
     }
+<<<<<<< HEAD
 
 >>>>>>> 1003169 (beta3)
     trap release_lock EXIT
@@ -1093,6 +1293,17 @@ data:
 
       return 0
     }
+=======
+  # ============================================================================
+  # Library: Composer Functions (lib-composer.sh)
+  # ============================================================================
+  # Contains: ensure_composer(), composer_exec()
+  # Handles Composer installation and package management
+  lib-composer.sh: |
+    #!/bin/bash
+    # WordPress Helm Chart - Composer Library
+    # Provides Composer package management utilities
+>>>>>>> 98bd789 (beta8)
 
     # Install Composer on-demand to temporary directory
     # Downloads, verifies checksum, and installs to COMPOSER_INSTALL_DIR
@@ -1102,11 +1313,6 @@ data:
     #   - Downloads only happen once per pod lifetime
     #   - Uses retry logic for network resilience
     #   - Checksum verification prevents corrupted downloads
-    #
-    # Troubleshooting:
-    #   - "Failed to download Composer installer": Check network/firewall
-    #   - "Invalid Composer installer checksum": Retry or check getcomposer.org
-    #   - "Cannot access Composer install directory": Check pod permissions
     ensure_composer() {
       # Set Composer home to writable directory
       export COMPOSER_HOME="${COMPOSER_HOME_DIR}"
@@ -1134,7 +1340,7 @@ data:
           handle_error "Invalid Composer installer checksum"
         fi
 
-        # Install Composer to temporary location - suppress output
+        # Install Composer to temporary location
         php composer-setup.php --quiet --install-dir="${COMPOSER_INSTALL_DIR}" --filename=composer 2>&1 | grep -v "PHP version" | grep -v "diagnose" || true
         rm composer-setup.php
 
@@ -1144,6 +1350,116 @@ data:
         echo "Composer installed successfully: $(composer --version 2>&1 | head -n1)"
       fi
     }
+
+    # Execute composer command with proper environment
+    # Wraps composer with DRY_RUN support
+    #
+    # Args:
+    #   $@ - Composer command and arguments
+    composer_exec() {
+      if [ "${DRY_RUN}" = "true" ]; then
+        echo "[DRY_RUN] composer $*"
+        return 0
+      fi
+      composer "$@"
+    }
+  init.sh: |
+    #!/bin/bash
+    set -e
+
+    # ============================================================================
+    # WordPress Helm Chart Init Script
+    # ============================================================================
+    #
+    # Purpose:
+    #   Initializes WordPress installation with plugins, themes, and configuration.
+    #   Ensures safe multi-pod deployment using distributed database locking.
+    #
+    # Features:
+    #   - Modular library architecture for maintainability
+    #   - Atomic database lock prevents concurrent initialization
+    #   - Composer package management for plugins/themes
+    #   - Automatic dependency installation and autoloading
+    #   - Network retry logic with exponential backoff
+    #   - Input validation and injection protection
+    #   - Performance optimizations (caching, batch operations)
+    #   - DRY_RUN mode for testing without changes
+    #   - TEST_MODE with assertions for validation
+    #
+    # Libraries:
+    #   - lib-core.sh: Core utilities (wp, run, handle_error, retry_command, assert)
+    #   - lib-lock.sh: Database locking (claim_lock_db, release_lock)
+    #   - lib-composer.sh: Composer management (ensure_composer, composer_exec)
+    #
+    # Environment Variables:
+    #   WP_INIT - Enable/disable WordPress core installation
+    #   WP_URL - WordPress site URL
+    #   WP_TITLE - Site title
+    #   WP_ADMIN_USER - Admin username
+    #   WP_ADMIN_PASSWORD - Admin password
+    #   WP_ADMIN_EMAIL - Admin email
+    #   WP_LOCALE - WordPress language locale
+    #   DEBUG - Enable verbose debug output (true/false)
+    #   DRY_RUN - Print commands without executing (true/false)
+    #   TEST_MODE - Enable assertions for testing (true/false)
+    #   MAX_RETRIES - Network operation retry count (default: 3)
+    #   RETRY_DELAY - Base retry delay in seconds (default: 2)
+    #
+    # Exit Codes:
+    #   0 - Successful initialization
+    #   1 - Fatal error (database, lock timeout, invalid input, network failure)
+    #
+    # ============================================================================
+
+    echo "Starting init script..."
+
+    # ============================================================================
+    # Load Libraries
+    # ============================================================================
+    # Libraries are copied to /tmp/lib by the base init container
+
+    LIB_DIR="/tmp/lib"
+
+    # Source libraries with error handling
+    for lib in lib-core.sh lib-lock.sh lib-composer.sh; do
+      if [ -f "$LIB_DIR/$lib" ]; then
+        # shellcheck source=/dev/null
+        source "$LIB_DIR/$lib"
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Loaded library: $lib" >&2
+      else
+        echo "ERROR: Required library not found: $LIB_DIR/$lib" >&2
+        echo "Make sure the base init container has prepared the libraries." >&2
+        exit 1
+      fi
+    done
+
+    # ============================================================================
+    # Configuration Constants
+    # ============================================================================
+
+    # Database lock configuration
+    readonly CHECK_INTERVAL=5
+    readonly STALE_LOCK_THRESHOLD=120  # Consider lock stale after 2 minutes (handles pod deletion)
+    readonly MAX_WAIT=$((STALE_LOCK_THRESHOLD + 30))  # Wait a bit longer than stale threshold
+    readonly DB_CHECK_RETRY_INTERVAL=15  # Seconds between database connection checks
+
+    # WordPress paths
+    readonly WP_PLUGINS_DIR="wp-content/plugins"
+    readonly WP_THEMES_DIR="wp-content/themes"
+    readonly WP_MU_PLUGINS_DIR="wp-content/mu-plugins"
+
+    # Composer configuration
+    readonly COMPOSER_HOME_DIR="/tmp/.composer"
+    readonly COMPOSER_INSTALL_DIR="/tmp"
+
+    # Runtime variables
+    WAIT_TIME=0
+    COMPOSER_PACKAGES_MODIFIED=false
+    COMPOSER_PLUGINS_PENDING_ACTIVATION=()
+    ASSERT_FAILURES=0
+
+    # Setup exit trap for lock release
+    trap release_lock EXIT
 
     # ============================================================================
 >>>>>>> aae887d (beta2)
@@ -2119,9 +2435,13 @@ data:
 
     # Activate Composer plugins
 <<<<<<< HEAD
+<<<<<<< HEAD
     # NOTE: This may fail if composer install hasn't run yet - will be retried after composer install
 =======
 >>>>>>> aae887d (beta2)
+=======
+    # NOTE: This may fail if composer install hasn't run yet - will be retried after composer install
+>>>>>>> 98bd789 (beta8)
     if [ ${#COMPOSER_PLUGINS_TO_ACTIVATE[@]} -gt 0 ]; then
       COMPOSER_PLUGINS_NEED_ACTIVATION=()
       for plugin in "${COMPOSER_PLUGINS_TO_ACTIVATE[@]}"; do
@@ -2133,6 +2453,9 @@ data:
       if [ ${#COMPOSER_PLUGINS_NEED_ACTIVATION[@]} -gt 0 ]; then
         echo "Activating ${#COMPOSER_PLUGINS_NEED_ACTIVATION[@]} Composer plugin(s)..."
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 98bd789 (beta8)
         # Don't fail here - plugins may not exist yet if composer install hasn't run
         # They will be activated after composer install runs
         if ! run wp plugin activate "${COMPOSER_PLUGINS_NEED_ACTIVATION[@]}"; then
@@ -2141,10 +2464,13 @@ data:
         else
           ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
         fi
+<<<<<<< HEAD
 =======
         run wp plugin activate "${COMPOSER_PLUGINS_NEED_ACTIVATION[@]}"
         ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
 >>>>>>> aae887d (beta2)
+=======
+>>>>>>> 98bd789 (beta8)
       fi
     fi
 
@@ -3008,12 +3334,14 @@ data:
     #   - We also create a global autoloader for WordPress to load all dependencies
     #
     # Performance:
-    #   - Only runs if COMPOSER_PACKAGES_MODIFIED=true
+    #   - Only runs if COMPOSER_PACKAGES_MODIFIED=true OR vendor/ doesn't exist
     #   - Uses --quiet flag to suppress verbose output
     #   - Batch processes all plugins/themes in single pass
     #
     # This ensures packages like s3-uploads get their dependencies (e.g., AWS SDK)
-    if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ]; then
+    # Also run if vendor/ directory is missing (e.g., fresh install or after PVC wipe)
+    if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ! -d /var/www/html/vendor ]; then
+      [ ! -d /var/www/html/vendor ] && echo "Vendor directory missing, running composer install..."
       echo ""
       echo "========================================="
       echo "Installing Composer dependencies..."
@@ -3083,6 +3411,23 @@ data:
     }
     MUEOF
       echo "Composer autoloader MU-Plugin created!"
+
+      # Activate Composer plugins that couldn't be activated before (they didn't exist yet)
+      if [ ${#COMPOSER_PLUGINS_PENDING_ACTIVATION[@]:-0} -gt 0 ]; then
+        echo "Activating Composer plugins after composer install..."
+        # Refresh active plugins list
+        ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
+        PLUGINS_STILL_NEED_ACTIVATION=()
+        for plugin in "${COMPOSER_PLUGINS_PENDING_ACTIVATION[@]}"; do
+          if ! echo "$ACTIVE_PLUGINS" | grep -q "^${plugin}$"; then
+            PLUGINS_STILL_NEED_ACTIVATION+=("$plugin")
+          fi
+        done
+        if [ ${#PLUGINS_STILL_NEED_ACTIVATION[@]} -gt 0 ]; then
+          echo "Activating ${#PLUGINS_STILL_NEED_ACTIVATION[@]} Composer plugin(s)..."
+          run wp plugin activate "${PLUGINS_STILL_NEED_ACTIVATION[@]}" || echo "Warning: Some plugins could not be activated"
+        fi
+      fi
     fi
 
     echo "WordPress initialization completed!"
