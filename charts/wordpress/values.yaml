@@ -17,7 +17,7 @@ image:
   repository: docker.io/wordpress
   ## @param image.tag string Overrides the image tag whose default is the chart appVersion
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "6.8.3-php8.1-apache@sha256:ed5d7a7ee660c2cc88dde9fe23b20935499ae06785e547b4b8179f4b6a45a3c9"
+  tag: "6.8.3-php8.1-apache@sha256:10aa97f001107e3043aa68e2cba4e6851c633c7c90f68d4846a31edbda728840"
   ## @param image.pullPolicy string Image pull policy
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
@@ -940,7 +940,7 @@ mariadb:
     ## @param mariadb.image.repository string MariaDB image repository
     repository: mariadb
     ## @param mariadb.image.tag string MariaDB image tag
-    tag: "12.0.2-noble@sha256:607835cd628b78e2876f6a586d0ec37b296c47683b31ef750002d3d17d3d8f7a"
+    tag: "12.1.2-noble@sha256:e1bcd6f85781f4a875abefb11c4166c1d79e4237c23de597bf0df81fec225b40"
     ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
     imagePullPolicy: IfNotPresent
 
