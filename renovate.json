@@ -84,6 +84,9 @@
                 "dependencies",
                 "renovate"
             ],
+            "addLabels": [
+                "{{#if isMajor}}major{{/if}}{{#if isMinor}}minor{{/if}}{{#if isPatch}}patch{{/if}}{{#if isDigest}}digest{{/if}}"
+            ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
             "commitMessageAction": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}} chore(deps): updates",
@@ -115,6 +118,9 @@
                 "dependencies",
                 "renovate",
                 "helm-chart"
+            ],
+            "addLabels": [
+                "{{#if isMajor}}major{{/if}}{{#if isMinor}}minor{{/if}}{{#if isPatch}}patch{{/if}}"
             ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
