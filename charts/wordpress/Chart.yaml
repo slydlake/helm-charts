@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.8.0-beta7
+version: 0.8.0-beta8
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -48,6 +48,10 @@ annotations:
       description: "Changed samples/customInit.values.yaml and muPlugins.values.yaml with fixed nodePort for easier testing"
     - kind: fixed
       description: "Better startupProbe and livenessProbe initial delays and periods for more reliable container health checking"
+    - kind: added
+      description: "Refactored init scripts into modular libraries (lib-core.sh, lib-lock.sh, lib-composer.sh) for better maintainability and testability"
+    - kind: added
+      description: "Added DRY_RUN and TEST_MODE support with assert() function for testing init scripts without making changes"
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.8.3-php8.1-apache

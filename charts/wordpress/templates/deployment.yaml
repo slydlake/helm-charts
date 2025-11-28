@@ -161,33 +161,32 @@ spec:
           - -c
           - |
             # copy your base.sh and run it
-            cp /tmp/base.sh.readonly /tmp/base.sh
+            cp /scripts/base.sh /tmp/base.sh
             chmod +x /tmp/base.sh
             /tmp/base.sh
             
             # copy and run htaccess-setup.sh
-            cp /tmp/scripts/htaccess-setup.sh /tmp/htaccess-setup.sh
+            cp /scripts/htaccess-setup.sh /tmp/htaccess-setup.sh
             chmod +x /tmp/htaccess-setup.sh
             /tmp/htaccess-setup.sh
+            
+            # Prepare library scripts for init container
+            mkdir -p /tmp/lib
+            cp /scripts/lib-core.sh /tmp/lib/lib-core.sh
+            cp /scripts/lib-composer.sh /tmp/lib/lib-composer.sh
+            cp /scripts/lib-lock.sh /tmp/lib/lib-lock.sh
+            chmod +x /tmp/lib/*.sh
           volumeMounts:
             - name: tmp
               mountPath: /tmp
             - name: {{ include "wordpress.fullname" . }}
               mountPath: /tmp/wordpress
+            # Mount ConfigMap outside of /tmp to avoid being hidden by emptyDir
             - name: {{ include "wordpress.fullname" . }}-init
-              mountPath: /tmp/base.sh.readonly
-              subPath: base.sh
-            - name: {{ include "wordpress.fullname" . }}-init
-              mountPath: /tmp/scripts/htaccess-setup.sh
-              subPath: htaccess-setup.sh
-            - name: {{ include "wordpress.fullname" . }}-init
-              mountPath: /tmp/scripts/htaccess-inject.sh
-              subPath: htaccess-inject.sh
-            - name: {{ include "wordpress.fullname" . }}-init
-              mountPath: /tmp/scripts/wordpress-rewrite-rules.txt
-              subPath: wordpress-rewrite-rules.txt
+              mountPath: /scripts
+              readOnly: true
             - name: {{ include "wordpress.fullname" . }}-configfiles
-              mountPath: /tmp/configfiles
+              mountPath: /configfiles
             {{- range .Values.wordpress.muPluginsConfigMaps }}
             - name: mu-plugins-{{ .name }}
               mountPath: /tmp/mu-plugins-{{ .name }}
@@ -203,8 +202,9 @@ spec:
             - sh
             - -c
             - |
-              # copy your init.sh and run it
-              cp /tmp/init.sh.readonly /tmp/init.sh
+              # Libraries are prepared by base container in /tmp/lib/
+              # Copy and run init.sh from ConfigMap
+              cp /scripts/init.sh /tmp/init.sh
               chmod +x /tmp/init.sh
               /tmp/init.sh
           env:
@@ -313,9 +313,10 @@ spec:
               mountPath: /var/www/html
             - name: tmp
               mountPath: /tmp
+            # Mount ConfigMap outside of /tmp
             - name: {{ include "wordpress.fullname" . }}-init
-              mountPath: /tmp/init.sh.readonly
-              subPath: init.sh
+              mountPath: /scripts
+              readOnly: true
             {{- if .Values.wordpress.init.customInitConfigMap.name }}
             - name: custom-init-commands
               mountPath: /tmp/custom-init-commands
@@ -631,6 +632,12 @@ spec:
               path: htaccess-inject.sh
             - key: wordpress-rewrite-rules.txt
               path: wordpress-rewrite-rules.txt
+            - key: lib-core.sh
+              path: lib-core.sh
+            - key: lib-composer.sh
+              path: lib-composer.sh
+            - key: lib-lock.sh
+              path: lib-lock.sh
       {{- if .Values.externalDatabase.existingSecret }}
       - name: {{ .Values.externalDatabase.existingSecret }}
         secret:
