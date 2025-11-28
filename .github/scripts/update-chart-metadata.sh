@@ -39,19 +39,16 @@ MANUAL_CHART="$3"
 get_version_bump_type() {
   local old_version="$1"
   local new_version="$2"
-
   # Extract major.minor.patch - handle versions with prefixes like v1.2.3
   local old_major=$(echo "$old_version" | sed 's/^v//' | cut -d. -f1)
   local old_minor=$(echo "$old_version" | sed 's/^v//' | cut -d. -f2)
   local new_major=$(echo "$new_version" | sed 's/^v//' | cut -d. -f1)
   local new_minor=$(echo "$new_version" | sed 's/^v//' | cut -d. -f2)
-
   # Handle non-numeric versions gracefully
   if ! [[ "$old_major" =~ ^[0-9]+$ ]] || ! [[ "$new_major" =~ ^[0-9]+$ ]]; then
     echo "patch"
     return
   fi
-
   if [ "$new_major" -gt "$old_major" ] 2>/dev/null; then
     echo "major"
   elif [ "$new_minor" -gt "$old_minor" ] 2>/dev/null; then
@@ -218,7 +215,6 @@ for CHART_DIR in $CHANGED_CHARTS; do
           IS_SUBCHART=true
         fi
       fi
-
       # Determine bump type based on update type from Renovate
       if [ -n "$update_type" ]; then
         DEP_BUMP_TYPE="$update_type"
@@ -278,7 +274,6 @@ for CHART_DIR in $CHANGED_CHARTS; do
         HIGHEST_BUMP="minor"
       fi
     fi
-
     # Fallback to PR title check
     if [ "$HIGHEST_BUMP" = "patch" ]; then
       if echo "$PR_TITLE" | grep -qi "major"; then
