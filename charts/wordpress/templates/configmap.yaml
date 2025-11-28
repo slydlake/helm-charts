@@ -1219,20 +1219,41 @@ data:
     
     # Update Composer plugins (auto-update for packages without fixed version)
     if [ ${#COMPOSER_PLUGINS_TO_UPDATE[@]} -gt 0 ]; then
-      echo "Updating ${#COMPOSER_PLUGINS_TO_UPDATE[@]} Composer plugin(s)..."
+      echo "Checking for Composer plugin updates..."
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
       
+      # Get list of outdated packages once (performance optimization)
+      OUTDATED_PACKAGES=$(composer outdated --direct --format=json 2>/dev/null | php -r '
+        $json = json_decode(file_get_contents("php://stdin"), true);
+        if (isset($json["installed"])) {
+          foreach ($json["installed"] as $pkg) {
+            echo $pkg["name"] . "\n";
+          }
+        }
+      ' 2>/dev/null || echo "")
+      
+      PLUGINS_UPDATED=0
       for package in "${COMPOSER_PLUGINS_TO_UPDATE[@]}"; do
-        echo "Updating Composer package: $package"
-        # Capture output and only show on error, with retry logic
-        if ! COMPOSER_OUTPUT=$(retry_command composer update "$package" --no-interaction 2>&1); then
-          echo "$COMPOSER_OUTPUT"
-          handle_error "Error updating Composer package: $package (failed after retries)"
+        # Check if package has an available update
+        if echo "$OUTDATED_PACKAGES" | grep -q "^${package}$"; then
+          echo "Updating Composer package: $package"
+          # Capture output and only show on error, with retry logic
+          if ! COMPOSER_OUTPUT=$(retry_command composer update "$package" --no-interaction 2>&1); then
+            echo "$COMPOSER_OUTPUT"
+            handle_error "Error updating Composer package: $package (failed after retries)"
+          fi
+          PLUGINS_UPDATED=$((PLUGINS_UPDATED + 1))
+        else
+          [ "${DEBUG}" = "true" ] && echo "DEBUG: Package $package is already up to date" >&2
         fi
       done
       
-      echo "Composer plugins updated!"
-      COMPOSER_PACKAGES_MODIFIED=true
+      if [ $PLUGINS_UPDATED -gt 0 ]; then
+        echo "$PLUGINS_UPDATED Composer plugin(s) updated!"
+        COMPOSER_PACKAGES_MODIFIED=true
+      else
+        echo "All Composer plugins are already up to date."
+      fi
     fi
 
     # Install all Composer dependencies will be done after themes processing
@@ -1518,20 +1539,44 @@ data:
     
     # Update Composer themes (auto-update for packages without fixed version)
     if [ ${#COMPOSER_THEMES_TO_UPDATE[@]} -gt 0 ]; then
-      echo "Updating ${#COMPOSER_THEMES_TO_UPDATE[@]} Composer theme(s)..."
+      echo "Checking for Composer theme updates..."
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
       
+      # Get list of outdated packages once (performance optimization)
+      # Re-use existing OUTDATED_PACKAGES if already fetched, otherwise fetch now
+      if [ -z "$OUTDATED_PACKAGES" ]; then
+        OUTDATED_PACKAGES=$(composer outdated --direct --format=json 2>/dev/null | php -r '
+          $json = json_decode(file_get_contents("php://stdin"), true);
+          if (isset($json["installed"])) {
+            foreach ($json["installed"] as $pkg) {
+              echo $pkg["name"] . "\n";
+            }
+          }
+        ' 2>/dev/null || echo "")
+      fi
+      
+      THEMES_UPDATED=0
       for package in "${COMPOSER_THEMES_TO_UPDATE[@]}"; do
-        echo "Updating Composer theme package: $package"
-        # Capture output and only show on error, with retry logic
-        if ! COMPOSER_OUTPUT=$(retry_command composer update "$package" --no-interaction 2>&1); then
-          echo "$COMPOSER_OUTPUT"
-          handle_error "Error updating Composer theme package: $package (failed after retries)"
+        # Check if package has an available update
+        if echo "$OUTDATED_PACKAGES" | grep -q "^${package}$"; then
+          echo "Updating Composer theme package: $package"
+          # Capture output and only show on error, with retry logic
+          if ! COMPOSER_OUTPUT=$(retry_command composer update "$package" --no-interaction 2>&1); then
+            echo "$COMPOSER_OUTPUT"
+            handle_error "Error updating Composer theme package: $package (failed after retries)"
+          fi
+          THEMES_UPDATED=$((THEMES_UPDATED + 1))
+        else
+          [ "${DEBUG}" = "true" ] && echo "DEBUG: Theme package $package is already up to date" >&2
         fi
       done
       
-      echo "Composer themes updated!"
-      COMPOSER_PACKAGES_MODIFIED=true
+      if [ $THEMES_UPDATED -gt 0 ]; then
+        echo "$THEMES_UPDATED Composer theme(s) updated!"
+        COMPOSER_PACKAGES_MODIFIED=true
+      else
+        echo "All Composer themes are already up to date."
+      fi
     fi
 
     # Activate theme
