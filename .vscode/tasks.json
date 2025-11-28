@@ -22,6 +22,15 @@
             "problemMatcher": []
         },
         {
+            "label": "Upgrade test chart",
+            "type": "shell",
+            "command": "helm upgrade ${input:chart} -n ${input:namespace} . --values ./samples/${input:valuesFile}",
+            "options": {
+                "cwd": "${workspaceFolder}/charts/${input:chart}"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Uninstall test chart",
             "type": "shell",
             "command": "helm uninstall ${input:chart} -n ${input:namespace}; kubectl delete pvc -n ${input:namespace} -l app.kubernetes.io/instance=${input:chart}; kubectl get pvc -n ${input:namespace} -o json | jq -r '.items[] | select(.metadata.annotations[\"meta.helm.sh/release-name\"] == \"'${input:chart}'\") | .metadata.name' | xargs -r kubectl delete pvc -n ${input:namespace}",
