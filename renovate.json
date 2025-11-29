@@ -38,18 +38,10 @@
                 "image: docker\\.io/(?<depName>[^:]+):(?<currentValue>[^\\s]+)"
             ],
             "datasourceTemplate": "docker",
-            "versioningTemplate": "docker",
-            "registryUrlTemplate": "https://index.docker.io"
+            "versioningTemplate": "docker"
         }
     ],
     "packageRules": [
-        {
-            "matchPackagePatterns": [
-                "^docker\\.io/.+$"
-            ],
-            "groupName": "{{{ replace 'docker.io/' '' packageName }}}",
-            "description": "Group docker.io/* packages with their non-prefixed counterparts"
-        },
         {
             "matchUpdateTypes": [
                 "digest"
