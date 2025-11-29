@@ -141,7 +141,12 @@ jobs:
           # Check if this version already exists in the registry
           if helm pull "oci://ghcr.io/slybase/charts/$chart_name" --version "$chart_version" 2>/dev/null; then
             echo "Chart $chart_name:$chart_version already exists in registry"
-            echo "skip=true" >> $GITHUB_OUTPUT
+            if [ "${{ github.event.inputs.force }}" == "true" ]; then
+              echo "Force flag set - will overwrite existing version"
+              echo "skip=false" >> $GITHUB_OUTPUT
+            else
+              echo "skip=true" >> $GITHUB_OUTPUT
+            fi
           else
             echo "Chart $chart_name:$chart_version does not exist, will publish"
             echo "skip=false" >> $GITHUB_OUTPUT
