@@ -1090,9 +1090,10 @@ data:
     # Release database lock by deleting the lock row
     # Called automatically via trap on script exit
     # Safe to call even if lock doesn't exist (|| true)
+    # IMPORTANT: Must return 0 to not affect script exit code
     release_lock() {
-      wp db query "DELETE FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
-      echo "Database lock released"
+      wp db query "DELETE FROM ${TABLE_PREFIX:-wp_}options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
+      return 0
     }
 <<<<<<< HEAD
 
@@ -1323,11 +1324,13 @@ data:
         cd "${COMPOSER_INSTALL_DIR}" || handle_error "Cannot access Composer install directory"
 
         # Download Composer installer with retry logic
+        echo "  Downloading Composer installer..."
         if ! retry_command php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"; then
           handle_error "Failed to download Composer installer after retries"
         fi
 
         # Download and verify checksum with retry logic
+        echo "  Verifying checksum..."
         if ! EXPECTED_CHECKSUM="$(retry_command php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"; then
           rm -f composer-setup.php
           handle_error "Failed to download Composer checksum after retries"
@@ -1341,13 +1344,14 @@ data:
         fi
 
         # Install Composer to temporary location
+        echo "  Running installer..."
         php composer-setup.php --quiet --install-dir="${COMPOSER_INSTALL_DIR}" --filename=composer 2>&1 | grep -v "PHP version" | grep -v "diagnose" || true
         rm composer-setup.php
 
         # Add to PATH for this session
         export PATH="${COMPOSER_INSTALL_DIR}:$PATH"
 
-        echo "Composer installed successfully: $(composer --version 2>&1 | head -n1)"
+        echo "  Composer installed!"
       fi
     }
 
@@ -1656,10 +1660,10 @@ data:
     COMPOSERJSON
         echo "composer.json created!"
       else
-        echo "composer.json already exists"
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: composer.json already exists"
         {{- if .Values.wordpress.composer }}
         # Update repositories in existing composer.json
-        echo "Updating custom repositories in composer.json..."
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Updating custom repositories..."
 
         # Build JSON array of custom repositories
         CUSTOM_REPOS='[{{- range $index, $repo := .Values.wordpress.composer.repositories }}{{- if $index }},{{- end }}{{ $repo | toJson }}{{- end }}]'
@@ -1707,7 +1711,7 @@ data:
         ')
 
         echo "$TEMP_JSON" > composer.json
-        echo "Custom repositories updated!"
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Custom repositories updated!"
         {{- end }}
       fi
 
@@ -2096,8 +2100,12 @@ data:
     # Handle custom plugins
     {{- if .Values.wordpress.plugins }}
     echo "========================================="
+<<<<<<< HEAD
     echo "Installing custom plugins..."
 >>>>>>> aae887d (beta2)
+=======
+    echo "Processing plugins..."
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     echo "========================================="
 
     PLUGINS_TO_INSTALL=()
@@ -2122,6 +2130,7 @@ data:
     # Check if it's a Composer package
     if is_composer_package "$PLUGIN_NAME"; then
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Detected Composer package: $PLUGIN_NAME"
+<<<<<<< HEAD
       COMPOSER_SLUG=$(get_composer_slug "$PLUGIN_NAME")
 
       # Check if already installed via composer.json AND plugin directory exists
@@ -2161,20 +2170,29 @@ data:
     # Check if it's a Composer package
     if is_composer_package "$PLUGIN_NAME"; then
       echo "Detected Composer package: $PLUGIN_NAME"
+=======
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
       COMPOSER_SLUG=$(get_composer_slug "$PLUGIN_NAME")
 
-      # Check if already installed via composer.json
+      # Check if already installed via composer.json AND plugin directory exists
+      # Plugin might be in composer.json but files deleted (e.g., after pruning)
       if [ -f /var/www/html/composer.json ] && grep -q "\"$PLUGIN_NAME\"" /var/www/html/composer.json 2>/dev/null; then
-        echo "Composer package $PLUGIN_NAME already in composer.json"
+        if [ -d "/var/www/html/${WP_PLUGINS_DIR}/${COMPOSER_SLUG}" ]; then
+          [ "${DEBUG}" = "true" ] && echo "DEBUG: Composer package $PLUGIN_NAME already installed"
 
-        {{- if .autoupdate }}
-        {{- if not .version }}
-        # Auto-update only works for packages without fixed version AND already installed
-        COMPOSER_PLUGINS_TO_UPDATE+=("$PLUGIN_NAME")
-        {{- else }}
-        echo "Note: Auto-update skipped for $PLUGIN_NAME (fixed version specified)"
-        {{- end }}
-        {{- end }}
+          {{- if .autoupdate }}
+          {{- if not .version }}
+          # Auto-update only works for packages without fixed version AND already installed
+          COMPOSER_PLUGINS_TO_UPDATE+=("$PLUGIN_NAME")
+          {{- else }}
+          echo "Note: Auto-update skipped for $PLUGIN_NAME (fixed version specified)"
+          {{- end }}
+          {{- end }}
+        else
+          # Package in composer.json but files missing - need to run composer install
+          echo "Composer package $PLUGIN_NAME in composer.json but plugin directory missing - will reinstall"
+          COMPOSER_PACKAGES_MODIFIED=true
+        fi
       else
         {{- if .version }}
         COMPOSER_PLUGINS_TO_INSTALL+=("{{ .name }}:{{ .version }}")
@@ -2286,6 +2304,9 @@ data:
     # Update Composer plugins (auto-update for packages without fixed version)
     if [ ${#COMPOSER_PLUGINS_TO_UPDATE[@]} -gt 0 ]; then
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Checking for Composer plugin updates..."
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
@@ -2488,6 +2509,7 @@ data:
         run wp plugin auto-updates enable "${PLUGINS_NEED_AUTOUPDATE[@]}"
       fi
     fi
+<<<<<<< HEAD
     {{- end }}
 
     {{- if .Values.wordpress.pluginsPrune }}
@@ -2554,6 +2576,8 @@ data:
         wp plugin delete --all >/dev/null 2>&1 || true
       fi
     fi
+=======
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     {{- end }}
 
     {{- if .Values.wordpress.pluginsPrune }}
@@ -2562,24 +2586,38 @@ data:
     # ============================================================================
 
     # Build comma-separated list of plugins to exclude from deletion
+    # Includes both regular plugins and slugs extracted from Composer packages
     EXCLUDE_PLUGINS=""
     COMPOSER_PACKAGES_TO_KEEP=()
     COMPOSER_THEME_PACKAGES_TO_KEEP=()
+    {{- $excludeList := list }}
     {{- if .Values.wordpress.plugins }}
+<<<<<<< HEAD
     {{- range $index, $plugin := .Values.wordpress.plugins }}
     {{- $name := $plugin.name }}
+=======
+    {{- range $plugin := .Values.wordpress.plugins }}
+    {{- $name := $plugin.name | lower }}
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     {{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
-    # Composer package: {{ $name }}
+    # Composer package: {{ $name }} -> slug: {{ $name | splitList "/" | last }}
     COMPOSER_PACKAGES_TO_KEEP+=("{{ $name }}")
+    {{- $excludeList = append $excludeList ($name | splitList "/" | last) }}
     {{- else }}
     # Regular plugin: {{ $name }}
+<<<<<<< HEAD
     {{- if eq $index 0 }}
     EXCLUDE_PLUGINS="{{ $plugin.name }}"
     {{- else }}
     EXCLUDE_PLUGINS="${EXCLUDE_PLUGINS},{{ $plugin.name }}"
+=======
+    {{- $excludeList = append $excludeList $name }}
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     {{- end }}
     {{- end }}
     {{- end }}
+    {{- if $excludeList }}
+    EXCLUDE_PLUGINS="{{ $excludeList | join "," }}"
     {{- end }}
     {{- if .Values.wordpress.themes }}
     {{- range .Values.wordpress.themes }}
@@ -2601,14 +2639,22 @@ data:
     {{- end }}
 
     # Delete all plugins except those in the exclude list
+    # Only show output if plugins are actually deleted
     if [ -n "$EXCLUDE_PLUGINS" ]; then
-      echo "Pruning plugins not in the defined list..."
-      echo "Keeping plugins: $EXCLUDE_PLUGINS"
-      run wp plugin delete --all --exclude="$EXCLUDE_PLUGINS"
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Keeping plugins: $EXCLUDE_PLUGINS"
+      PLUGINS_BEFORE=$(wp plugin list --field=name 2>/dev/null | wc -l || echo "0")
+      wp plugin delete --all --exclude="$EXCLUDE_PLUGINS" >/dev/null 2>&1 || true
+      PLUGINS_AFTER=$(wp plugin list --field=name 2>/dev/null | wc -l || echo "0")
+      PRUNED_COUNT=$((PLUGINS_BEFORE - PLUGINS_AFTER))
+      if [ "$PRUNED_COUNT" -gt 0 ]; then
+        echo "Pruned $PRUNED_COUNT plugin(s)"
+      fi
     else
-      echo "Pruning plugins not in the defined list..."
-      echo "Deleting all plugins..."
-      run wp plugin delete --all
+      PLUGINS_COUNT=$(wp plugin list --field=name 2>/dev/null | wc -l || echo "0")
+      if [ "$PLUGINS_COUNT" -gt 0 ]; then
+        echo "Pruning all $PLUGINS_COUNT plugin(s)..."
+        wp plugin delete --all >/dev/null 2>&1 || true
+      fi
     fi
     {{- end }}
 
@@ -2646,8 +2692,12 @@ data:
 =======
 >>>>>>> 1003169 (beta3)
     echo "========================================="
+<<<<<<< HEAD
     echo "Installing custom themes..."
 >>>>>>> aae887d (beta2)
+=======
+    echo "Processing themes..."
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     echo "========================================="
 
     # Cache all theme data upfront
@@ -2697,6 +2747,7 @@ data:
     # Check if it's a Composer package
     if is_composer_package "$THEME_NAME"; then
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Detected Composer theme package: $THEME_NAME"
+<<<<<<< HEAD
       COMPOSER_THEME_SLUG=$(get_composer_slug "$THEME_NAME")
 
       # Check if already installed via composer.json AND theme directory exists
@@ -2733,20 +2784,29 @@ data:
     # Check if it's a Composer package
     if is_composer_package "$THEME_NAME"; then
       echo "Detected Composer theme package: $THEME_NAME"
+=======
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
       COMPOSER_THEME_SLUG=$(get_composer_slug "$THEME_NAME")
 
-      # Check if already installed via composer.json
+      # Check if already installed via composer.json AND theme directory exists
+      # Theme might be in composer.json but files deleted (e.g., after pruning)
       if [ -f /var/www/html/composer.json ] && grep -q "\"$THEME_NAME\"" /var/www/html/composer.json 2>/dev/null; then
-        echo "Composer theme package $THEME_NAME already in composer.json"
+        if [ -d "/var/www/html/${WP_THEMES_DIR}/${COMPOSER_THEME_SLUG}" ]; then
+          [ "${DEBUG}" = "true" ] && echo "DEBUG: Composer theme package $THEME_NAME already installed"
 
-        {{- if .autoupdate }}
-        {{- if not .version }}
-        # Auto-update only works for packages without fixed version AND already installed
-        COMPOSER_THEMES_TO_UPDATE+=("$THEME_NAME")
-        {{- else }}
-        echo "Note: Auto-update skipped for theme $THEME_NAME (fixed version specified)"
-        {{- end }}
-        {{- end }}
+          {{- if .autoupdate }}
+          {{- if not .version }}
+          # Auto-update only works for packages without fixed version AND already installed
+          COMPOSER_THEMES_TO_UPDATE+=("$THEME_NAME")
+          {{- else }}
+          echo "Note: Auto-update skipped for theme $THEME_NAME (fixed version specified)"
+          {{- end }}
+          {{- end }}
+        else
+          # Package in composer.json but files missing - need to run composer install
+          echo "Composer theme package $THEME_NAME in composer.json but theme directory missing - will reinstall"
+          COMPOSER_PACKAGES_MODIFIED=true
+        fi
       else
         {{- if .version }}
         COMPOSER_THEMES_TO_INSTALL+=("{{ .name }}:{{ .version }}")
@@ -2869,6 +2929,9 @@ data:
     # Update Composer themes (auto-update for packages without fixed version)
     if [ ${#COMPOSER_THEMES_TO_UPDATE[@]} -gt 0 ]; then
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Checking for Composer theme updates..."
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
@@ -3063,6 +3126,7 @@ data:
     # Delete all themes in one command for better performance
     if [ ${#THEMES_TO_DELETE[@]} -gt 0 ]; then
 <<<<<<< HEAD
+<<<<<<< HEAD
       echo "Pruning ${#THEMES_TO_DELETE[@]} theme(s): ${THEMES_TO_DELETE[*]}"
       wp theme delete "${THEMES_TO_DELETE[@]}" 2>/dev/null || true
 =======
@@ -3071,6 +3135,10 @@ data:
       echo "Removing ${#THEMES_TO_DELETE[@]} theme(s): ${THEMES_TO_DELETE[*]}"
       run wp theme delete "${THEMES_TO_DELETE[@]}"
 >>>>>>> aae887d (beta2)
+=======
+      echo "Pruning ${#THEMES_TO_DELETE[@]} theme(s): ${THEMES_TO_DELETE[*]}"
+      wp theme delete "${THEMES_TO_DELETE[@]}" 2>/dev/null || true
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     fi
 
     # Remove Composer packages (plugins & themes) not in the keep lists
@@ -3413,7 +3481,7 @@ data:
       echo "Composer autoloader MU-Plugin created!"
 
       # Activate Composer plugins that couldn't be activated before (they didn't exist yet)
-      if [ ${#COMPOSER_PLUGINS_PENDING_ACTIVATION[@]:-0} -gt 0 ]; then
+      if [ ${#COMPOSER_PLUGINS_PENDING_ACTIVATION[@]} -gt 0 ]; then
         echo "Activating Composer plugins after composer install..."
         # Refresh active plugins list
         ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
@@ -3430,9 +3498,12 @@ data:
       fi
     fi
 
+<<<<<<< HEAD
     echo "WordPress initialization completed!"
 >>>>>>> aae887d (beta2)
 
+=======
+>>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     # ============================================================================
     # Custom Init Commands
     # ============================================================================
