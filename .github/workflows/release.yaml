@@ -2,7 +2,7 @@ name: Release Charts (DEPRECATED - Use OCI Registry)
 
 # DEPRECATED: This workflow is disabled. All releases now go to OCI registry only.
 # See: .github/workflows/oci-release.yaml
-on:
+on: # yamllint disable-line rule:truthy
   workflow_dispatch: # Only manual trigger, no automatic releases
     inputs:
       confirm:
@@ -13,9 +13,9 @@ on:
         options:
           - "no"
           - "yes"
-  # push:  # DISABLED - was previously auto-triggering
-  #   branches:
-  #     - main
+# push:  # DISABLED - was previously auto-triggering
+#   branches:
+#     - main
 
 jobs:
   release:
@@ -66,52 +66,52 @@ jobs:
           # Process each release
           echo "$releases" | jq -r '.[].tagName' | while read tag; do
             echo "Processing release: $tag"
-            
+
             # Get release assets for this tag
             assets=$(gh release view "$tag" --repo ${{ github.repository }} --json assets)
-            
+
             # Check if release has any assets
             if ! echo "$assets" | jq -e '.assets | length > 0' > /dev/null; then
               echo "No assets found for release $tag, skipping..."
               continue
             fi
-            
+
             # Get chart assets (.tgz files) for this release
             chart_assets=$(echo "$assets" | jq -r '.assets[] | select(.name | endswith(".tgz")) | .name')
-            
+
             if [ -z "$chart_assets" ]; then
               echo "No chart files found for release $tag, skipping..."
               continue
             fi
-            
+
             for chart_file in $chart_assets; do
               echo "Checking chart: $chart_file"
-              
+
               # Check if signature already exists
               bundle_file="${chart_file}.cosign.bundle"
               if echo "$assets" | jq -e ".assets[] | select(.name == \"$bundle_file\")" > /dev/null; then
                 echo "Signature already exists for $chart_file, skipping..."
                 continue
               fi
-              
+
               echo "Signing $chart_file..."
-              
+
               # Create temp directory
               mkdir -p ./temp-signing
-              
+
               # Download the chart file
               gh release download "$tag" --repo ${{ github.repository }} --pattern "$chart_file" --dir ./temp-signing
-              
+
               # Sign the chart and create bundle
               cosign sign-blob ./temp-signing/"$chart_file" \
                 --bundle ./temp-signing/"$bundle_file" \
                 --yes
-              
+
               # Upload the signature bundle to the release
               gh release upload "$tag" ./temp-signing/"$bundle_file" --repo ${{ github.repository }}
-              
+
               echo "Signed and uploaded bundle for $chart_file"
-              
+
               # Cleanup
               rm -f ./temp-signing/"$chart_file" ./temp-signing/"$bundle_file"
             done
