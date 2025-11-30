@@ -18,6 +18,12 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "registry": {
+          "title": "Image registry",
+          "type": "string",
+          "description": "Container image registry (e.g. docker.io).",
+          "default": "docker.io"
+        },
         "repository": {
           "title": "Image repository",
           "type": "string",
@@ -96,6 +102,17 @@
         "type": "object",
         "additionalProperties": true
       }
+    },
+    "dnsPolicy": {
+      "type": "string",
+      "title": "DNS Policy",
+      "description": "Pod dnsPolicy. Defaults to ClusterFirst. Use None to supply custom dnsConfig.",
+      "enum": [
+        "ClusterFirst",
+        "None",
+        "ClusterFirstWithHostNet",
+        "Default"
+      ]
     },
     "dnsConfig": {
       "type": "object",
@@ -721,7 +738,33 @@
       "properties": {
         "enabled": {
           "title": "Enable liveness probe",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
+        },
+        "initialDelaySeconds": {
+          "type": "integer",
+          "title": "Initial Delay (s)",
+          "default": 5
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period (s)",
+          "default": 10
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout (s)",
+          "default": 1
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold",
+          "default": 3
+        },
+        "successThreshold": {
+          "type": "integer",
+          "title": "Success Threshold",
+          "default": 1
         }
       },
       "additionalProperties": true
@@ -732,7 +775,33 @@
       "properties": {
         "enabled": {
           "title": "Enable readiness probe",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
+        },
+        "initialDelaySeconds": {
+          "type": "integer",
+          "title": "Initial Delay (s)",
+          "default": 5
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period (s)",
+          "default": 10
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout (s)",
+          "default": 1
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold",
+          "default": 3
+        },
+        "successThreshold": {
+          "type": "integer",
+          "title": "Success Threshold",
+          "default": 1
         }
       },
       "additionalProperties": true
@@ -743,7 +812,33 @@
       "properties": {
         "enabled": {
           "title": "Enable startup probe",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
+        },
+        "initialDelaySeconds": {
+          "type": "integer",
+          "title": "Initial Delay (s)",
+          "default": 15
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "title": "Period (s)",
+          "default": 10
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "title": "Timeout (s)",
+          "default": 1
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "title": "Failure Threshold",
+          "default": 10
+        },
+        "successThreshold": {
+          "type": "integer",
+          "title": "Success Threshold",
+          "default": 1
         }
       },
       "additionalProperties": true
@@ -790,6 +885,12 @@
           "type": "integer",
           "minimum": 1,
           "description": "Average CPU utilization percentage target for the HPA."
+        },
+        "targetMemoryUtilizationPercentage": {
+          "title": "Target Memory utilization (%)",
+          "type": "integer",
+          "minimum": 1,
+          "description": "Average Memory utilization percentage target for the HPA."
         }
       },
       "required": []

@@ -1,293 +1,430 @@
-# Default values for wg-easy.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+## @section General configuration
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+## @param replicaCount int Number of replicas for the deployment
 replicaCount: 1
 
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+## @section Image configuration
 image:
-  repository: ghcr.io/wg-easy/wg-easy
-  # This sets the pull policy for images.
+  ## @param image.registry string WG-Easy container image registry
+  registry: ghcr.io
+  ## @param image.repository string WG-Easy container image repository
+  repository: wg-easy/wg-easy
+  ## @param image.pullPolicy string Pull policy for the container image
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  # recommended to use higher then 15 because of new environment variables and database change
+  ## @param image.tag string Image tag (recommended v15+ for new env vars and database changes)
   tag: "15.1.0@sha256:bb8152762c36f824eb42bb2f3c5ab8ad952818fbef677d584bc69ec513b251b0"
 
-# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+## @param imagePullSecrets list Secrets for pulling images from a private repository
 imagePullSecrets: []
-# This is to override the chart name.
+## @param nameOverride string Override the chart name
 nameOverride: ""
+## @param fullnameOverride string Override the full chart name
 fullnameOverride: ""
 
-# DNS policy and configuration of the pod
-# E.g.
-# dnsPolicy: None
-# dnsConfig:
-#   searchers:
-#     - svc.cluster.local
-#     - cluster.local
-#   nameservers:
-#     - 1.1.1.1
-#     - 8.8.8.8
+## @section DNS configuration
+## @descriptionStart
+## DNS policy and configuration of the pod.
+## E.g.
+## ```yaml
+## dnsPolicy: None
+## dnsConfig:
+##   searches:
+##     - svc.cluster.local
+##     - cluster.local
+##   nameservers:
+##     - 1.1.1.1
+##     - 8.8.8.8
+## ```
+## @descriptionEnd
 
-# dnsPolicy: ClusterFirst
-# dnsConfig: {}
+## @extra dnsPolicy string DNS policy for the pod (ClusterFirst, None, ClusterFirstWithHostNet, Default)
+## @extra dnsConfig object DNS configuration for the pod (nameservers, searches, options)
 
-# Expose the service on the host network
-# hostNetwork: true
+## @section Host Network
+## @descriptionStart
+## Expose the pod on the host network.
+## E.g.
+## ```yaml
+## hostNetwork: true
+## ```
+## @descriptionEnd
 
-# deployment strategy type
-# NOTE: Set it to `Recreate` if you use a PersistentVolume that cannot be mounted on multiple pods
-# E.g.
-# updateStrategy:
-#   rollingUpdate:
-#     maxSurge: 25%
-#     maxUnavailable: 25%
-#   type: RollingUpdate
+## @extra hostNetwork bool Use the host's network namespace
+
+## @section Deployment strategy
+## @descriptionStart
+## NOTE: Set it to `Recreate` if you use a PersistentVolume that cannot be mounted on multiple pods.
+## E.g.
+## ```yaml
+## updateStrategy:
+##   type: Recreate
+## ```
+## @descriptionEnd
 updateStrategy:
+  ## @param updateStrategy.type string Deployment strategy type (RollingUpdate or Recreate)
   type: RollingUpdate
 
-# Init containers
-# initContainers:
-#   - name: do-something
-#     image: busybox
-#     command: ['do', 'something']
+## @section Init and Sidecar Containers
+## @descriptionStart
+## Add init containers or sidecars to the pod.
+## E.g.
+## ```yaml
+## initContainers:
+##   - name: init-sysctl
+##     image: busybox
+##     command: ["sysctl", "-w", "net.ipv4.ip_forward=1"]
+##     securityContext:
+##       privileged: true
+##
+## sidecars:
+##   - name: logging
+##     image: fluentd:latest
+## ```
+## @descriptionEnd
+
+## @param initContainers list Init containers to add to the pod
 initContainers: []
 
-# Sidecar containers
-# E.g.
-#  sidecars:
-#   - name: container-name
-#     image: image-name
-#     imagePullPolicy: Always
+## @param sidecars list Sidecar containers to add to the pod
 sidecars: []
 
-# persistent volume claim for wireguard configuration
+## @section Storage configuration
 storage:
-  # Name of an existing PVC to use
+  ## @param storage.existingClaim string Name of an existing PVC to use
   existingClaim: ""
-  # storageClass is required when using a new PVC
+  ## @param storage.storageClass string Storage class for a new PVC (required when not using existingClaim)
   storageClass: ""
-  # size is required when using a new PVC
+  ## @param storage.size string Size of the PVC (required when not using existingClaim)
   size: 100Mi
-  # accessModes is required when using a new PVC
+  ## @param storage.accessModes list Access modes for the PVC
   accessModes:
     - ReadWriteOnce
-  # annotations to add to the PVC
+  ## @param storage.annotations object Annotations to add to the PVC
   annotations: {}
-  # labels to add to the PVC
+  ## @param storage.labels object Labels to add to the PVC
   labels: {}
-  # selector to add to the PVC
+  ## @param storage.selector object Selector for the PVC
   selector: {}
-  # resource policy of the PVC
+  ## @param storage.resourcePolicy string Resource policy of the PVC (keep or delete)
   resourcePolicy: keep
 
+## @section WG-Easy configuration
+## @descriptionStart
+## For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/config/optional-config/
+## @descriptionEnd
 config:
-  # Optional configuration,
-  # For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/config/optional-config/
-
-  # IP address web UI binds to. E.g. 0.0.0.0 or localhost
+  ## @param config.host string IP address web UI binds to (e.g. 0.0.0.0 or localhost)
   host: 0.0.0.0
-  # If access over http is allowed
-  # Use this if you don't have a valid https certificate
+  ## @param config.insecure bool Allow access over http (use if you don't have a valid https certificate)
   insecure: true
-  # If IPv6 support should be disabled
+  ## @param config.disable_ipv6 bool Disable IPv6 support
   disable_ipv6: true
 
-  # for unattended setup
-  # For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/config/unattended-setup/
+  ## @section Unattended setup configuration
+  ## @descriptionStart
+  ## For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/config/unattended-setup/
+  ## @descriptionEnd
   init:
-    # Enables the below env vars
+    ## @param config.init.enabled bool Enable unattended setup with below env vars
     enabled: true
-    # Must contain the keys "username" and "password"
+    ## @param config.init.existingSecret string Existing secret with keys "username" and "password"
     existingSecret: ""
 
-    # Hardly recommended to use a secret instead of username and password
-    # Sets admin username
-    # username: "admin"
-    # Sets admin password
-    # password: "Sup3rSe!ureP%ssw"
-    # Host clients will connect to
+    ## @extra config.init.username string Admin username (recommended: use existingSecret instead)
+    ## @extra config.init.password string Admin password (recommended: use existingSecret instead)
+
+    ## @param config.init.host string Host clients will connect to
     host: "vpn.example.com"
-    # Sets global dns setting
+    ## @param config.init.dns string Global DNS setting for clients
     dns: "1.1.1.1,8.8.8.8"
 
-    # Sets IPv4 cidr
+    ## @param config.init.ipv4_cidr string IPv4 CIDR for WireGuard network
     ipv4_cidr: "10.8.0.0/24"
-    # Sets IPv6 cidr
+    ## @param config.init.ipv6_cidr string IPv6 CIDR for WireGuard network
     ipv6_cidr: "2001:0DB8::/32"
 
-# extra environment variables to set in the wireguard container
-# E.g.
+## @section Extra Environment Variables
+## @descriptionStart
+## Additional environment variables for the WG-Easy container.
+## E.g.
+## ```yaml
 ## extraEnvVars:
-# - name: MY_ENV_VAR
-#   value: my-value
+##   - name: WG_DEFAULT_DNS
+##     value: "1.1.1.1"
+##   - name: WG_ALLOWED_IPS
+##     value: "0.0.0.0/0"
+## ```
+## @descriptionEnd
+
+## @param extraEnvVars list Extra environment variables for the WG-Easy container
 extraEnvVars: []
 
-# Name of the existing Secret containing extra env vars for wireguard container
+## @param extraEnvVarsSecret string Name of existing Secret containing extra env vars
 extraEnvVarsSecret: ""
 
-# Name of the existing ConfigMap containing extra env vars for wireguard container
+## @param extraEnvVarsCM string Name of existing ConfigMap containing extra env vars
 extraEnvVarsCM: ""
 
-# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+## @section ServiceAccount configuration
 serviceAccount:
-  # Specifies whether a service account should be created
+  ## @param serviceAccount.create bool Specifies whether a service account should be created
   create: true
-  # Automatically mount a ServiceAccount's API credentials?
+  ## @param serviceAccount.automount bool Automatically mount ServiceAccount API credentials
   automount: true
-  # Annotations to add to the service account
+  ## @param serviceAccount.annotations object Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
+  ## @param serviceAccount.name string Name of the service account. If not set and create is true, a name is generated
   name: ""
 
-# ServiceMonitor configuration for prometheus
-# For more information see: https://wg-easy.github.io/wg-easy/latest/advanced/metrics/prometheus/
+## @section ServiceMonitor configuration
+## @descriptionStart
+## For Prometheus monitoring. See: https://wg-easy.github.io/wg-easy/latest/advanced/metrics/prometheus/
+## NOTE: You also need to enable Prometheus in the WebUI: Admin Panel > General
+## @descriptionEnd
 serviceMonitor:
-  # Specifies whether a ServiceMonitor should be created
-  # Additionally you have to enable it in the WebUI: Go to Admin Panel > General and enable Prometheus
+  ## @param serviceMonitor.create bool Specifies whether a ServiceMonitor should be created
   create: false
-  # Annotations to add to the ServiceMonitor
+  ## @param serviceMonitor.annotations object Annotations to add to the ServiceMonitor
   annotations: {}
-  # Labels to add to the ServiceMonitor
+  ## @param serviceMonitor.labels object Labels to add to the ServiceMonitor
   labels: {}
-  # Selector to use for the ServiceMonitor
+  ## @param serviceMonitor.selector object Selector to use for the ServiceMonitor
   selector: {}
-  # Interval at which to scrape metrics
+  ## @param serviceMonitor.interval string Interval at which to scrape metrics
   interval: 30s
-  # Path to scrape metrics from
+  ## @param serviceMonitor.metricsPath string Path to scrape metrics from
   metricsPath: /metrics/prometheus
-  # Name of the namespace to create the ServiceMonitor in. Defaults to the release namespace.
+  ## @param serviceMonitor.namespace string Namespace to create the ServiceMonitor in (defaults to release namespace)
   namespace: ""
-  # Name of the existing secret to use for the ServiceMonitor, if used in the WebUI
+  ## @param serviceMonitor.existingSecret string Existing secret for ServiceMonitor authentication
   existingSecret: ""
-  # Key within the existing secret to use for the ServiceMonitor
+  ## @param serviceMonitor.existingSecretKey string Key within the existing secret
   existingSecretKey: ""
 
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+## @param podAnnotations object Annotations to add to the pod
 podAnnotations: {}
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+## @param podLabels object Labels to add to the pod
 podLabels: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
+## @section Security Context
+## @descriptionStart
+## Security context configuration for pod and container.
+## Note: WG-Easy typically requires privileged mode for WireGuard kernel module.
+## E.g.
+## ```yaml
+## podSecurityContext:
+##   fsGroup: 1000
+##
+## securityContext:
+##   privileged: true
+##   capabilities:
+##     add:
+##       - NET_ADMIN
+##       - SYS_MODULE
+## ```
+## @descriptionEnd
 
+## @param podSecurityContext object Security context for the pod
+podSecurityContext: {}
+
+## @param securityContext object Security context for the container
 securityContext:
   privileged: true
 
-# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+## @section Service configuration
 service:
+  ## @section UI Service
   ui:
-    # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+    ## @param service.ui.type string Service type (NodePort, LoadBalancer, ClusterIP)
     type: NodePort
-    # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+    ## @param service.ui.port int Web UI port
     port: 51821
-    # This sets the nodeport
+    ## @param service.ui.nodePort int NodePort for the UI service
     nodePort: 30201
-    # Annotations to add to the service
+    ## @param service.ui.annotations object Annotations to add to the UI service
     annotations: {}
+  ## @section WireGuard Service
   wireguard:
-    # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+    ## @param service.wireguard.type string Service type (NodePort, LoadBalancer, ClusterIP)
     type: NodePort
-    # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+    ## @param service.wireguard.port int WireGuard UDP port
     port: 51820
-    # This sets the nodeport
+    ## @param service.wireguard.nodePort int NodePort for the WireGuard service
     nodePort: 30200
-    # Annotations to add to the service
+    ## @param service.wireguard.annotations object Annotations to add to the WireGuard service
     annotations: {}
-    # External IPs to bind the LoadBalancer service to (if using LoadBalancer type)
+    ## @param service.wireguard.externalIPs list External IPs for LoadBalancer service
     externalIPs: []
 
-# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+## @section Ingress configuration
+## @descriptionStart
+## Ingress configuration for the WG-Easy web UI.
+## E.g.
+## ```yaml
+## ingress:
+##   enabled: true
+##   className: nginx
+##   annotations:
+##     cert-manager.io/cluster-issuer: letsencrypt
+##   hosts:
+##     - host: wg-easy.example.com
+##       paths:
+##         - path: /
+##           pathType: Prefix
+##   tls:
+##     - secretName: wg-easy-tls
+##       hosts:
+##         - wg-easy.example.com
+## ```
+## @descriptionEnd
 ingress:
+  ## @param ingress.enabled bool Enable ingress for the UI
   enabled: false
+  ## @param ingress.className string Ingress class name
   className: ""
+  ## @param ingress.annotations object Annotations to add to the ingress
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  ## @param ingress.hosts list Ingress hosts configuration
   hosts:
     - host: wg-easy.local
       paths:
         - path: /
           pathType: ImplementationSpecific
+  ## @param ingress.tls list TLS configuration for the ingress
   tls: []
-  #  - secretName: wg-easy-tls
-  #    hosts:
-  #      - wg-easy.local
 
+## @param resources object Resource limits and requests for the container
+## E.g.
+## ```yaml
+## resources:
+##   limits:
+##     cpu: 200m
+##     memory: 256Mi
+##   requests:
+##     cpu: 100m
+##     memory: 128Mi
+## ```
 resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
 
-# This is to setup the startup, liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+## @section Probes configuration
 livenessProbe:
+  ## @param livenessProbe.enabled bool Enable liveness probe
   enabled: true
+  ## @param livenessProbe.initialDelaySeconds int Initial delay before starting liveness probe
   initialDelaySeconds: 5
+  ## @param livenessProbe.periodSeconds int Period between liveness probes
   periodSeconds: 10
+  ## @param livenessProbe.timeoutSeconds int Timeout for liveness probe
   timeoutSeconds: 1
+  ## @param livenessProbe.failureThreshold int Failure threshold for liveness probe
   failureThreshold: 3
+  ## @param livenessProbe.successThreshold int Success threshold for liveness probe
   successThreshold: 1
 
 readinessProbe:
+  ## @param readinessProbe.enabled bool Enable readiness probe
   enabled: true
+  ## @param readinessProbe.initialDelaySeconds int Initial delay before starting readiness probe
   initialDelaySeconds: 5
+  ## @param readinessProbe.periodSeconds int Period between readiness probes
   periodSeconds: 10
+  ## @param readinessProbe.timeoutSeconds int Timeout for readiness probe
   timeoutSeconds: 1
+  ## @param readinessProbe.failureThreshold int Failure threshold for readiness probe
   failureThreshold: 3
+  ## @param readinessProbe.successThreshold int Success threshold for readiness probe
   successThreshold: 1
 
 startupProbe:
+  ## @param startupProbe.enabled bool Enable startup probe
   enabled: true
+  ## @param startupProbe.initialDelaySeconds int Initial delay before starting startup probe
   initialDelaySeconds: 15
+  ## @param startupProbe.periodSeconds int Period between startup probes
   periodSeconds: 10
+  ## @param startupProbe.timeoutSeconds int Timeout for startup probe
   timeoutSeconds: 1
+  ## @param startupProbe.failureThreshold int Failure threshold for startup probe
   failureThreshold: 10
+  ## @param startupProbe.successThreshold int Success threshold for startup probe
   successThreshold: 1
 
-# override default livness probe for wireguard
+## @param customLivenessProbe object Override default liveness probe
 customLivenessProbe: {}
 
-# override default readiness probe for wireguard
+## @param customReadinessProbe object Override default readiness probe
 customReadinessProbe: {}
 
-# override default startup probe for wireguard
+## @param customStartupProbe object Override default startup probe
 customStartupProbe: {}
 
-# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+## @section Autoscaling configuration
 autoscaling:
+  ## @param autoscaling.enabled bool Enable horizontal pod autoscaling
   enabled: false
+  ## @param autoscaling.minReplicas int Minimum number of replicas
   minReplicas: 1
+  ## @param autoscaling.maxReplicas int Maximum number of replicas
   maxReplicas: 100
+  ## @param autoscaling.targetCPUUtilizationPercentage int Target CPU utilization percentage
   targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+  ## @extra autoscaling.targetMemoryUtilizationPercentage int Target memory utilization percentage
 
-# Additional volumes on the output Deployment definition.
+## @section Extra Volumes
+## @descriptionStart
+## Additional volumes and volume mounts for the deployment.
+## E.g.
+## ```yaml
+## extraVolumes:
+##   - name: custom-config
+##     configMap:
+##       name: wg-easy-config
+##
+## extraVolumeMounts:
+##   - name: custom-config
+##     mountPath: /etc/wireguard/custom
+##     readOnly: true
+## ```
+## @descriptionEnd
+
+## @param extraVolumes list Additional volumes for the deployment
 extraVolumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
 
-# Additional volumeMounts on the output Deployment definition.
+## @param extraVolumeMounts list Additional volume mounts for the container
 extraVolumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
 
+## @section Scheduling
+## @descriptionStart
+## Node selection, tolerations, and affinity rules for pod scheduling.
+## E.g.
+## ```yaml
+## nodeSelector:
+##   kubernetes.io/os: linux
+##   node-role.kubernetes.io/vpn: "true"
+##
+## tolerations:
+##   - key: "dedicated"
+##     operator: "Equal"
+##     value: "vpn"
+##     effect: "NoSchedule"
+##
+## affinity:
+##   nodeAffinity:
+##     requiredDuringSchedulingIgnoredDuringExecution:
+##       nodeSelectorTerms:
+##         - matchExpressions:
+##             - key: topology.kubernetes.io/zone
+##               operator: In
+##               values:
+##                 - eu-west-1a
+## ```
+## @descriptionEnd
+
+## @param nodeSelector object Node selector for pod assignment
 nodeSelector: {}
 
+## @param tolerations list Tolerations for pod assignment
 tolerations: []
 
+## @param affinity object Affinity rules for pod assignment
 affinity: {}

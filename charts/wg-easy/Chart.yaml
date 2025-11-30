@@ -2,7 +2,7 @@ apiVersion: v2
 name: wg-easy
 description: Using the offical wg-easy/wg-easy image with almost any environment variables for K8s. Supporting Init Mode.
 type: application
-version: 0.2.1
+version: 0.3.0
 appVersion: 15.1.0
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
 home: https://github.com/slydlake/helm-charts
@@ -22,8 +22,12 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
+    - kind: added
+      description: "Registry value added. Added functionality to _helpers.tpl to support it."
     - kind: changed
-      description: "Provided better samples for the first start. Readme help a lot more for first installation."
+      description: "Better comments for documentation in values.yaml."
+    - kind: added
+      description: "Added missing values in values.schema.yaml."
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wg-easy
