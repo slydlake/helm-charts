@@ -30,7 +30,7 @@ wordpress:
     - name: "wpackagist-plugin/wordpress-seo"
       version: "22.0"
       activate: true
-    # autoupdate ignored when version is specified
+      # autoupdate ignored when version is specified
 
   # Example Composer themes
   themes:
@@ -55,15 +55,15 @@ wordpress:
     #
     # Example:
     repositories: []
-      # Real-world examples you can test:
+    # Real-world examples you can test:
 
-      # WPackagist Extra - Alternative repository for WordPress plugins/themes
-      # This is safe to test as it doesn't require authentication
-      # - type: "composer"
-      #   url: "https://wpackagist.org"
-      #   options:
-      #     ssl:
-      #       verify_peer: true
+    # WPackagist Extra - Alternative repository for WordPress plugins/themes
+    # This is safe to test as it doesn't require authentication
+    # - type: "composer"
+    #   url: "https://wpackagist.org"
+    #   options:
+    #     ssl:
+    #       verify_peer: true
 
   pluginsPrune: true
   themesPrune: true

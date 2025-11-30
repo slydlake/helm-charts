@@ -20,8 +20,8 @@ wordpress:
     # Copy only a specific key from a ConfigMap
     - name: wordpress-mu-plugins-extra
       key: custom-analytics.php
-    # Or copy all files from another ConfigMap:
-    # - name: wordpress-mu-plugins-extra
+      # Or copy all files from another ConfigMap:
+      # - name: wordpress-mu-plugins-extra
 service:
   nodePorts:
     http: 30111

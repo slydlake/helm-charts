@@ -1,5 +1,5 @@
-# Default values for wordpress.
 # This is a YAML-formatted file.
+# Default values for wordpress.
 # Declare variables to be passed into your templates.
 
 ## @section Global parameters
@@ -13,8 +13,10 @@ replicaCount: 1
 ## @param image object Container image configuration
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
+  ## @param image.registry string WordPress container image registry
+  registry: docker.io
   ## @param image.repository string WordPress container image repository
-  repository: docker.io/wordpress
+  repository: wordpress
   ## @param image.tag string Overrides the image tag whose default is the chart appVersion
   # Overrides the image tag whose default is the chart appVersion.
   tag: "6.8.3-php8.1-apache@sha256:ed5d7a7ee660c2cc88dde9fe23b20935499ae06785e547b4b8179f4b6a45a3c9"
@@ -136,9 +138,11 @@ wordpress:
   init:
     ## @section Image parameters
     image:
+      ## @param wordpress.init.image.registry string Container image registry for init container
+      registry: docker.io
       ## @param wordpress.init.repository object Container image configuration for init container
       # NOTE: This image is always needed because of the inital setup of WordPress
-      repository: docker.io/wordpress
+      repository: wordpress
       ## @param wordpress.init.image.tag string Image tag for init container
       tag: "cli-2.12.0-php8.1"
       ## @param wordpress.init.image.pullPolicy string Image pull policy for init container
@@ -573,8 +577,8 @@ ingress:
   className: ""
   ## @param ingress.annotations object Ingress annotations
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
   ## @param ingress.hosts array Ingress hosts configuration
   hosts:
     - host: wordpress.local
@@ -607,25 +611,25 @@ ingress:
 
 ## @section Resource parameters
 resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+# We usually recommend not to specify default resources and to leave this as a conscious
+# choice for the user. This also increases chances charts run on environments with little
+# resources, such as Minikube. If you do want to specify resources, uncomment the following
+# lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+# limits:
+#   cpu: 100m
+#   memory: 128Mi
+# requests:
+#   cpu: 100m
+#   memory: 128Mi
 
-  ## @section Health Check parameters
+## @section Health Check parameters
 
-  ## @param livenessProbe.enabled boolean Enable liveness probe
-  ## @param livenessProbe.initialDelaySeconds integer Initial delay seconds for liveness probe
-  ## @param livenessProbe.periodSeconds integer Period seconds for liveness probe
-  ## @param livenessProbe.timeoutSeconds integer Timeout seconds for liveness probe
-  ## @param livenessProbe.failureThreshold integer Failure threshold for liveness probe
-  ## @param livenessProbe.successThreshold integer Success threshold for liveness probe
+## @param livenessProbe.enabled boolean Enable liveness probe
+## @param livenessProbe.initialDelaySeconds integer Initial delay seconds for liveness probe
+## @param livenessProbe.periodSeconds integer Period seconds for liveness probe
+## @param livenessProbe.timeoutSeconds integer Timeout seconds for liveness probe
+## @param livenessProbe.failureThreshold integer Failure threshold for liveness probe
+## @param livenessProbe.successThreshold integer Success threshold for liveness probe
 livenessProbe:
   enabled: true
   initialDelaySeconds: 10
@@ -729,10 +733,10 @@ revisionHistoryLimit:
 ## @section podDisruptionBudget object Pod disruption budget configuration
 ## Pod disruption budget
 podDisruptionBudget: {}
-  ## Minimum number of pods that must be available after eviction
-  # minAvailable:
-  ## Maximum number of pods that can be unavailable after eviction
-  # maxUnavailable:
+## Minimum number of pods that must be available after eviction
+# minAvailable:
+## Maximum number of pods that can be unavailable after eviction
+# maxUnavailable:
 
 ## @section Metrics for Apache and WordPress
 metrics:
@@ -827,8 +831,10 @@ metrics:
     ## @param metrics.apache.image object Container image configuration
     # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
     image:
+      ## @param metrics.apache.image.registry string Container image registry
+      registry: docker.io
       ## @param metrics.apache.image.repository string WordPress container image repository
-      repository: docker.io/lusotycoon/apache-exporter
+      repository: lusotycoon/apache-exporter
       ## @param metrics.apache.image.pullPolicy string Image pull policy
       # This sets the pull policy for images.
       pullPolicy: IfNotPresent

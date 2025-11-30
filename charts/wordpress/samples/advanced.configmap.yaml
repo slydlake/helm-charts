@@ -52,8 +52,6 @@ data:
     </filesmatch>
     </ifmodule>
 
-
-
     # BEGIN htpw (.htaccess to protect WordPress)
     #
     # htpw was made with ♥ by Andrea Draghetti
@@ -171,7 +169,7 @@ data:
 
       # Disable PHP in Themes
       # RewriteRule ^wp\-content/themes/.*\.(?:php[1-8]?|pht|phtml?|phps)\.?$ - [NC,F]
-      
+
       # Block Malicious or Suspicious User Agent
       RewriteCond %{HTTP_USER_AGENT} "^360Spider" [NC,OR]
       RewriteCond %{HTTP_USER_AGENT} "^arachni" [NC,OR]
@@ -179,7 +177,7 @@ data:
       RewriteCond %{HTTP_USER_AGENT} "^dirbuster" [NC,OR]
       RewriteCond %{HTTP_USER_AGENT} "^havij" [NC,OR]
       RewriteCond %{HTTP_USER_AGENT} "^nessus" [NC,OR]
-      RewriteCond %{HTTP_USER_AGENT} "^Nikto" [NC,OR]	
+      RewriteCond %{HTTP_USER_AGENT} "^Nikto" [NC,OR]
       RewriteCond %{HTTP_USER_AGENT} "^Nmap" [NC,OR]
       RewriteCond %{HTTP_USER_AGENT} "^Nuclei" [NC,OR]
       RewriteCond %{HTTP_USER_AGENT} "^openvas" [NC,OR]

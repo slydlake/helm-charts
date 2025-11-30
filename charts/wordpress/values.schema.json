@@ -10,10 +10,15 @@
         "image": {
             "type": "object",
             "properties": {
+                "registry": {
+                    "type": "string",
+                    "description": "WordPress container image registry",
+                    "default": "docker.io"
+                },
                 "repository": {
                     "type": "string",
                     "description": "WordPress container image repository",
-                    "default": "docker.io/wordpress"
+                    "default": "wordpress"
                 },
                 "pullPolicy": {
                     "type": "string",
@@ -204,10 +209,15 @@
                         "image": {
                             "type": "object",
                             "properties": {
+                                "registry": {
+                                    "type": "string",
+                                    "description": "WordPress CLI container image registry",
+                                    "default": "docker.io"
+                                },
                                 "repository": {
                                     "type": "string",
                                     "description": "WordPress CLI container image repository",
-                                    "default": "docker.io/wordpress"
+                                    "default": "wordpress"
                                 },
                                 "tag": {
                                     "type": "string",
@@ -1244,6 +1254,11 @@
                         "image": {
                             "type": "object",
                             "properties": {
+                                "registry": {
+                                    "type": "string",
+                                    "description": "Apache exporter image registry",
+                                    "default": "docker.io"
+                                },
                                 "repository": {
                                     "type": "string",
                                     "description": "Apache exporter image repository",
