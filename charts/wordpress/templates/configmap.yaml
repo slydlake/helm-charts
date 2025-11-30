@@ -1326,7 +1326,82 @@ data:
       fi
     fi
 
-    # Install all Composer dependencies will be done after themes processing
+    # Install Composer dependencies for plugins NOW (before theme installation)
+    # This ensures plugins like s3-uploads have their dependencies (e.g., AWS SDK)
+    # available before WordPress loads them during theme installation
+    if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ${#COMPOSER_PLUGINS_TO_INSTALL[@]} -gt 0 ]; then
+      echo ""
+      echo "========================================="
+      echo "Installing plugin Composer dependencies..."
+      echo "========================================="
+      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
+      
+      # Run composer install for main project first
+      if ! COMPOSER_OUTPUT=$(retry_command composer install --no-interaction 2>&1 | grep -v "suggest" | grep -v "funding"); then
+        echo "$COMPOSER_OUTPUT"
+        handle_error "Error installing Composer dependencies (failed after retries)"
+      fi
+      
+      # Build list of Composer-installed plugin slugs
+      COMPOSER_PLUGIN_SLUGS=""
+      if [ -f composer.json ]; then
+        COMPOSER_PLUGIN_SLUGS=$(php -r '
+          $json = json_decode(file_get_contents("composer.json"), true);
+          if (isset($json["require"])) {
+            foreach ($json["require"] as $package => $version) {
+              if (strpos($package, "/") !== false && $package !== "composer/installers") {
+                $slug = substr($package, strrpos($package, "/") + 1);
+                echo $slug . "\n";
+              }
+            }
+          }
+        ' 2>/dev/null || echo "")
+      fi
+      
+      # Install dependencies for each Composer-installed plugin
+      for plugin_dir in ${WP_PLUGINS_DIR}/*/; do
+        if [ -f "${plugin_dir}composer.json" ]; then
+          PLUGIN_NAME=$(basename "$plugin_dir")
+          
+          if echo "$COMPOSER_PLUGIN_SLUGS" | grep -q "^${PLUGIN_NAME}$"; then
+            echo "Running composer install in plugin: $PLUGIN_NAME"
+            cd "$plugin_dir" || continue
+            if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
+              cat /tmp/composer-error.txt
+              echo "Warning: Could not install dependencies for plugin: $PLUGIN_NAME"
+            else
+              echo "Successfully installed dependencies for plugin: $PLUGIN_NAME"
+            fi
+            cd /var/www/html || handle_error "Cannot return to WordPress root directory"
+          fi
+        fi
+      done
+      
+      # Create MU-Plugin for Composer autoloader support early
+      echo "Creating MU-Plugin for Composer autoloader support..."
+      mkdir -p "${WP_MU_PLUGINS_DIR}"
+      cat > "${WP_MU_PLUGINS_DIR}/composer-autoloader.php" << 'MUEOF'
+    <?php
+    /**
+     * Plugin Name: Composer Autoloader
+     * Description: Automatically loads Composer autoloaders from plugins and themes
+     * Author: Helm Chart
+     * Version: 1.0.0
+     */
+    
+    // Load Composer autoloaders from all plugins
+    foreach ( glob( WP_CONTENT_DIR . '/plugins/*/vendor/autoload.php' ) as $autoloader ) {
+    	require_once $autoloader;
+    }
+    
+    // Load Composer autoloaders from all themes
+    foreach ( glob( WP_CONTENT_DIR . '/themes/*/vendor/autoload.php' ) as $autoloader ) {
+    	require_once $autoloader;
+    }
+    MUEOF
+      echo "Composer autoloader MU-Plugin created!"
+      echo "Plugin dependencies installed!"
+    fi
 
     # Batch activate plugins
     if [ ${#PLUGINS_TO_ACTIVATE[@]} -gt 0 ]; then
@@ -1901,76 +1976,26 @@ data:
     fi
     {{- end }}
 
-    # Install all Composer dependencies once after all packages are installed/updated
+    # Install Composer theme dependencies after theme installation
+    # Plugin dependencies were already installed before theme processing
     # 
-    # Why this is necessary:
-    #   - Some packages (e.g., humanmade/s3-uploads) have their own composer.json
-    #   - These packages need dependencies installed in their vendor/ directory
-    #   - We also create a global autoloader for WordPress to load all dependencies
+    # This section handles:
+    #   - Running composer install for themes with their own composer.json
+    #   - Activating Composer plugins that couldn't be activated before
     # 
-    # Performance:
-    #   - Only runs if COMPOSER_PACKAGES_MODIFIED=true OR vendor/ doesn't exist
-    #   - Uses --quiet flag to suppress verbose output
-    #   - Batch processes all plugins/themes in single pass
-    # 
-    # This ensures packages like s3-uploads get their dependencies (e.g., AWS SDK)
-    # Also run if vendor/ directory is missing (e.g., fresh install or after PVC wipe)
+    # Note: Main composer install and plugin dependencies were already done
+    # before theme installation to prevent loading errors (e.g., s3-uploads AWS SDK)
     if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ! -d /var/www/html/vendor ]; then
-      [ ! -d /var/www/html/vendor ] && echo "Vendor directory missing, running composer install..."
-      echo ""
-      echo "========================================="
-      echo "Installing Composer dependencies..."
-      echo "========================================="
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
-      if ! COMPOSER_OUTPUT=$(retry_command composer install --no-interaction 2>&1 | grep -v "suggest" | grep -v "funding"); then
-        echo "$COMPOSER_OUTPUT"
-        handle_error "Error installing Composer dependencies (failed after retries)"
-      fi
-      echo "Composer dependencies installed!"
       
-      # Also run composer install in each Composer-installed plugin/theme directory that has a composer.json
-      # This is needed for packages like humanmade/s3-uploads that require their own vendor directory
-      # We only do this for plugins that were installed via Composer (not regular WP plugins that happen to have a composer.json)
-      
-      # Build list of Composer-installed plugin slugs from the require list
-      COMPOSER_PLUGIN_SLUGS=""
-      if [ -f composer.json ]; then
-        COMPOSER_PLUGIN_SLUGS=$(php -r '
-          $json = json_decode(file_get_contents("composer.json"), true);
-          if (isset($json["require"])) {
-            foreach ($json["require"] as $package => $version) {
-              // Only process packages with vendor prefix (composer packages)
-              if (strpos($package, "/") !== false && $package !== "composer/installers") {
-                // Extract the slug (part after /)
-                $slug = substr($package, strrpos($package, "/") + 1);
-                echo $slug . "\n";
-              }
-            }
-          }
-        ' 2>/dev/null || echo "")
-      fi
-      
-      echo "Installing plugin-specific Composer dependencies..."
-      for plugin_dir in ${WP_PLUGINS_DIR}/*/; do
-        if [ -f "${plugin_dir}composer.json" ]; then
-          PLUGIN_NAME=$(basename "$plugin_dir")
-          
-          # Only run composer install if this plugin was installed via Composer
-          if echo "$COMPOSER_PLUGIN_SLUGS" | grep -q "^${PLUGIN_NAME}$"; then
-            echo "Running composer install in plugin: $PLUGIN_NAME"
-            cd "$plugin_dir" || continue
-            if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
-              cat /tmp/composer-error.txt
-              echo "Warning: Could not install dependencies for plugin: $PLUGIN_NAME"
-            else
-              echo "Successfully installed dependencies for plugin: $PLUGIN_NAME"
-            fi
-            cd /var/www/html || handle_error "Cannot return to WordPress root directory"
-          else
-            [ "${DEBUG}" = "true" ] && echo "DEBUG: Skipping $PLUGIN_NAME - not a Composer-installed plugin" >&2
-          fi
+      # Ensure vendor directory exists (may have been created during plugin dependency install)
+      if [ ! -d /var/www/html/vendor ]; then
+        echo "Vendor directory missing, running composer install..."
+        if ! COMPOSER_OUTPUT=$(retry_command composer install --no-interaction 2>&1 | grep -v "suggest" | grep -v "funding"); then
+          echo "$COMPOSER_OUTPUT"
+          handle_error "Error installing Composer dependencies (failed after retries)"
         fi
-      done
+      fi
       
       # Build list of Composer-installed theme slugs from the require list
       COMPOSER_THEME_SLUGS=""
@@ -1990,13 +2015,15 @@ data:
         ' 2>/dev/null || echo "")
       fi
       
-      echo "Installing theme-specific Composer dependencies..."
+      # Install theme-specific Composer dependencies
+      THEMES_WITH_DEPS=0
       for theme_dir in ${WP_THEMES_DIR}/*/; do
         if [ -f "${theme_dir}composer.json" ]; then
           THEME_NAME=$(basename "$theme_dir")
           
           # Only run composer install if this theme was installed via Composer
           if echo "$COMPOSER_THEME_SLUGS" | grep -q "^${THEME_NAME}$"; then
+            [ $THEMES_WITH_DEPS -eq 0 ] && echo "Installing theme-specific Composer dependencies..."
             echo "Running composer install in theme: $THEME_NAME"
             cd "$theme_dir" || continue
             if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
@@ -2006,41 +2033,16 @@ data:
               echo "Successfully installed dependencies for theme: $THEME_NAME"
             fi
             cd /var/www/html || handle_error "Cannot return to WordPress root directory"
+            THEMES_WITH_DEPS=$((THEMES_WITH_DEPS + 1))
           else
             [ "${DEBUG}" = "true" ] && echo "DEBUG: Skipping $THEME_NAME - not a Composer-installed theme" >&2
           fi
         fi
       done
       
-      # Create MU-Plugin to auto-load Composer autoloaders from plugins/themes
-      # This ensures dependencies like AWS SDK are available to plugins
-      echo "Creating MU-Plugin for Composer autoloader support..."
-      mkdir -p "${WP_MU_PLUGINS_DIR}"
-      cat > "${WP_MU_PLUGINS_DIR}/composer-autoloader.php" << 'MUEOF'
-    <?php
-    /**
-     * Plugin Name: Composer Autoloader
-     * Description: Automatically loads Composer autoloaders from plugins and themes
-     * Author: Helm Chart
-     * Version: 1.0.0
-     */
-    
-    // Load Composer autoloaders from all plugins
-    foreach ( glob( WP_CONTENT_DIR . '/plugins/*/vendor/autoload.php' ) as $autoloader ) {
-    	require_once $autoloader;
-    }
-    
-    // Load Composer autoloaders from all themes
-    foreach ( glob( WP_CONTENT_DIR . '/themes/*/vendor/autoload.php' ) as $autoloader ) {
-    	require_once $autoloader;
-    }
-    MUEOF
-      echo "Composer autoloader MU-Plugin created!"
-      
-      # Activate Composer plugins that couldn't be activated before (they didn't exist yet)
+      # Activate Composer plugins that couldn't be activated before (dependencies were missing)
       if [ ${#COMPOSER_PLUGINS_PENDING_ACTIVATION[@]} -gt 0 ]; then
-        echo "Activating Composer plugins after composer install..."
-        # Refresh active plugins list
+        echo "Activating Composer plugins after dependency installation..."
         ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
         PLUGINS_STILL_NEED_ACTIVATION=()
         for plugin in "${COMPOSER_PLUGINS_PENDING_ACTIVATION[@]}"; do
