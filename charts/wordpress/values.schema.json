@@ -826,7 +826,7 @@
                 },
                 "clusterIP": {
                     "type": [
-                        "integer",
+                        "string",
                         "null"
                     ],
                     "description": "Static cluster IP"
@@ -853,11 +853,6 @@
                 "className": {
                     "type": "string",
                     "description": "Ingress class name"
-                },
-                "maxBodySize": {
-                    "type": "string",
-                    "description": "Maximum body size for uploads",
-                    "default": "64m"
                 },
                 "annotations": {
                     "type": "object",
@@ -941,17 +936,17 @@
                 "initialDelaySeconds": {
                     "type": "integer",
                     "description": "Initial delay for liveness probe",
-                    "default": 5
+                    "default": 10
                 },
                 "periodSeconds": {
                     "type": "integer",
                     "description": "Period for liveness probe",
-                    "default": 10
+                    "default": 20
                 },
                 "timeoutSeconds": {
                     "type": "integer",
                     "description": "Timeout for liveness probe",
-                    "default": 1
+                    "default": 5
                 },
                 "failureThreshold": {
                     "type": "integer",
@@ -976,7 +971,7 @@
                 "initialDelaySeconds": {
                     "type": "integer",
                     "description": "Initial delay for readiness probe",
-                    "default": 30
+                    "default": 5
                 },
                 "periodSeconds": {
                     "type": "integer",
@@ -1011,12 +1006,12 @@
                 "initialDelaySeconds": {
                     "type": "integer",
                     "description": "Initial delay for startup probe",
-                    "default": 60
+                    "default": 10
                 },
                 "periodSeconds": {
                     "type": "integer",
                     "description": "Period for startup probe",
-                    "default": 30
+                    "default": 10
                 },
                 "timeoutSeconds": {
                     "type": "integer",
@@ -1026,7 +1021,7 @@
                 "failureThreshold": {
                     "type": "integer",
                     "description": "Failure threshold for startup probe",
-                    "default": 20
+                    "default": 30
                 },
                 "successThreshold": {
                     "type": "integer",
@@ -1458,6 +1453,11 @@
                         "containerSecurityContext": {
                             "type": "object",
                             "properties": {
+                                "seLinuxOptions": {
+                                    "type": "object",
+                                    "description": "SELinux options",
+                                    "default": {}
+                                },
                                 "runAsUser": {
                                     "type": "integer",
                                     "description": "User ID to run containers",
@@ -1653,7 +1653,7 @@
                             "description": "MariaDB image tag",
                             "default": "12.0.2-noble"
                         },
-                        "pullPolicy": {
+                        "imagePullPolicy": {
                             "type": "string",
                             "enum": [
                                 "IfNotPresent",

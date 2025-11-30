@@ -147,7 +147,7 @@ spec:
       {{- end }}
       initContainers:
         - name: {{ .Chart.Name }}-base
-          image: {{ include "common.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
+          image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
           {{- with .Values.containerSecurityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
@@ -192,7 +192,7 @@ spec:
               mountPath: /tmp/mu-plugins-{{ .name }}
             {{- end }}
         - name: {{ .Chart.Name }}-init
-          image: {{ include "common.image" (dict "image" .Values.wordpress.init.image) }}
+          image: {{ include "slycharts.image" (dict "image" .Values.wordpress.init.image) }}
           {{- with .Values.containerSecurityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
@@ -330,7 +330,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: {{ include "common.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
+          image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
           env:
           {{- if .Values.extraEnvVars }}
@@ -497,7 +497,7 @@ spec:
               subPath: custom.ini
         {{- if .Values.metrics.apache.enabled}}
         - name: metrics-apache
-          image: {{ include "common.image" (dict "image" .Values.metrics.apache.image) }}
+          image: {{ include "slycharts.image" (dict "image" .Values.metrics.apache.image) }}
           imagePullPolicy: {{ .Values.metrics.apache.image.pullPolicy | quote }}
           command: 
             - sh

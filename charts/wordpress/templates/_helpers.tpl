@@ -142,8 +142,8 @@ If release name contains chart name it will be used as a full name.
 
 {{/*
 Build a full image reference from registry, repository and tag.
-Usage: {{ include "common.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
-or:    {{ include "common.image" (dict "image" .Values.wordpress.init.image) }}
+Usage: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
+or:    {{ include "slycharts.image" (dict "image" .Values.wordpress.init.image) }}
 
 The image dict should contain:
   - registry: (optional) e.g. "docker.io", "ghcr.io"
@@ -152,7 +152,7 @@ The image dict should contain:
 
 Returns: registry/repository:tag (e.g. "docker.io/wordpress:6.8.3-php8.1-apache")
 */}}
-{{- define "common.image" -}}
+{{- define "slycharts.image" -}}
 {{- $registry := .image.registry | default "" -}}
 {{- $repository := .image.repository -}}
 {{- $tag := .image.tag | default .defaultTag | default "latest" -}}
