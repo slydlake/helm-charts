@@ -138,10 +138,35 @@ jobs:
             echo "Detected stable version: $chart_version"
           fi
 
+          # Branch-based release policy (can be overridden with force flag):
+          # - main branch: only stable versions (no -alpha, -beta, -rc)
+          # - prerelease branch: only prerelease versions (with -alpha, -beta, -rc)
+          current_branch="${{ github.ref_name }}"
+          is_prerelease_version=$(echo "$chart_version" | grep -qE '\-(alpha|beta|rc)' && echo "true" || echo "false")
+
+          if [ "${{ github.event.inputs.force }}" != "true" ]; then
+            if [ "$current_branch" == "main" ] && [ "$is_prerelease_version" == "true" ]; then
+              echo "⏭️ Skipping: Prerelease version $chart_version not allowed on main branch (use force to override)"
+              echo "skip=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            if [ "$current_branch" == "prerelease" ] && [ "$is_prerelease_version" == "false" ]; then
+              echo "⏭️ Skipping: Stable version $chart_version not allowed on prerelease branch (use force to override)"
+              echo "skip=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
           # Check if this version already exists in the registry
           if helm pull "oci://ghcr.io/slybase/charts/$chart_name" --version "$chart_version" 2>/dev/null; then
             echo "Chart $chart_name:$chart_version already exists in registry"
-            echo "skip=true" >> $GITHUB_OUTPUT
+            if [ "${{ github.event.inputs.force }}" == "true" ]; then
+              echo "Force flag set - will overwrite existing version"
+              echo "skip=false" >> $GITHUB_OUTPUT
+            else
+              echo "skip=true" >> $GITHUB_OUTPUT
+            fi
           else
             echo "Chart $chart_name:$chart_version does not exist, will publish"
             echo "skip=false" >> $GITHUB_OUTPUT
