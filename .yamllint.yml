@@ -1,0 +1,42 @@
+# yamllint configuration
+# Relaxed rules for Helm charts
+
+extends: default
+
+rules:
+  # Allow long lines (common in Helm templates)
+  line-length:
+    max: 200
+    level: warning
+
+  # Enforce consistent indentation
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+
+  # Allow comments without space (common in Helm)
+  comments:
+    min-spaces-from-content: 1
+
+  # Truthy values - be flexible
+  truthy:
+    allowed-values: ["true", "false", "yes", "no"]
+
+  # Don't require document start markers
+  document-start: disable
+
+  # Brackets and braces
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+ignore: |
+  # Ignore Helm template files (they contain Go templates, not valid YAML)
+  charts/*/templates/
+  # Ignore chart dependencies
+  charts/*/charts/
