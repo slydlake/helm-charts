@@ -10,6 +10,12 @@
       "title": "Container Image Settings",
       "description": "Settings for the container image used.",
       "properties": {
+        "registry": {
+          "type": "string",
+          "title": "Image Registry",
+          "description": "Container image registry (e.g. docker.io).",
+          "default": "docker.io"
+        },
         "repository": {
           "type": "string",
           "title": "Image Repository",
@@ -539,6 +545,15 @@
           "type": "integer",
           "title": "NodePort",
           "description": "Fixed NodePort (only for service type NodePort)."
+        },
+        "externalIPs": {
+          "type": "array",
+          "title": "External IPs",
+          "description": "External IPs to bind the LoadBalancer service to.",
+          "items": {
+            "type": "string"
+          },
+          "default": []
         }
       }
     },
@@ -554,27 +569,33 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "title": "Enabled"
+          "title": "Enabled",
+          "default": true
         },
         "initialDelaySeconds": {
           "type": "integer",
-          "title": "Initial Delay (s)"
+          "title": "Initial Delay (s)",
+          "default": 5
         },
         "periodSeconds": {
           "type": "integer",
-          "title": "Period (s)"
+          "title": "Period (s)",
+          "default": 10
         },
         "timeoutSeconds": {
           "type": "integer",
-          "title": "Timeout (s)"
+          "title": "Timeout (s)",
+          "default": 1
         },
         "failureThreshold": {
           "type": "integer",
-          "title": "Failure Threshold"
+          "title": "Failure Threshold",
+          "default": 3
         },
         "successThreshold": {
           "type": "integer",
-          "title": "Success Threshold"
+          "title": "Success Threshold",
+          "default": 1
         }
       }
     },
@@ -585,27 +606,33 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "title": "Enabled"
+          "title": "Enabled",
+          "default": true
         },
         "initialDelaySeconds": {
           "type": "integer",
-          "title": "Initial Delay (s)"
+          "title": "Initial Delay (s)",
+          "default": 5
         },
         "periodSeconds": {
           "type": "integer",
-          "title": "Period (s)"
+          "title": "Period (s)",
+          "default": 10
         },
         "timeoutSeconds": {
           "type": "integer",
-          "title": "Timeout (s)"
+          "title": "Timeout (s)",
+          "default": 1
         },
         "failureThreshold": {
           "type": "integer",
-          "title": "Failure Threshold"
+          "title": "Failure Threshold",
+          "default": 3
         },
         "successThreshold": {
           "type": "integer",
-          "title": "Success Threshold"
+          "title": "Success Threshold",
+          "default": 1
         }
       }
     },
@@ -616,27 +643,33 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "title": "Enabled"
+          "title": "Enabled",
+          "default": true
         },
         "initialDelaySeconds": {
           "type": "integer",
-          "title": "Initial Delay (s)"
+          "title": "Initial Delay (s)",
+          "default": 15
         },
         "periodSeconds": {
           "type": "integer",
-          "title": "Period (s)"
+          "title": "Period (s)",
+          "default": 10
         },
         "timeoutSeconds": {
           "type": "integer",
-          "title": "Timeout (s)"
+          "title": "Timeout (s)",
+          "default": 1
         },
         "failureThreshold": {
           "type": "integer",
-          "title": "Failure Threshold"
+          "title": "Failure Threshold",
+          "default": 10
         },
         "successThreshold": {
           "type": "integer",
-          "title": "Success Threshold"
+          "title": "Success Threshold",
+          "default": 1
         }
       }
     },
@@ -748,6 +781,7 @@
     {
       "anyOf": [
         {
+          "description": "Server mode enabled",
           "properties": {
             "wireguard": {
               "properties": {
@@ -763,6 +797,7 @@
           }
         },
         {
+          "description": "Client mode enabled",
           "properties": {
             "wireguard": {
               "properties": {
@@ -770,6 +805,29 @@
                   "properties": {
                     "enabled": {
                       "const": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "Default unconfigured state - user must enable either server or client mode",
+          "properties": {
+            "wireguard": {
+              "properties": {
+                "server": {
+                  "properties": {
+                    "enabled": {
+                      "const": false
+                    }
+                  }
+                },
+                "client": {
+                  "properties": {
+                    "enabled": {
+                      "const": false
                     }
                   }
                 }
