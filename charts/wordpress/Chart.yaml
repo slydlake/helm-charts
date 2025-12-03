@@ -3,22 +3,10 @@ name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
 <<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
+version: 0.7.6
+=======
 version: 1.0.0
-=======
-version: 0.8.0-beta3
->>>>>>> 1003169 (beta3)
-=======
-version: 0.8.0-beta8
->>>>>>> 98bd789 (beta8)
-=======
-version: 0.8.0-rc.2
->>>>>>> 3ba5e20 (wordpress 0.8.0-rc.2)
-=======
-version: 0.7.4
->>>>>>> 4b06e5e (cleared image registry names in value.yaml to allow better update handling by Renovate)
+>>>>>>> fb158ed (wordpress 1.0.0)
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts

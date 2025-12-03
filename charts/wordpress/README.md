@@ -78,6 +78,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 ### Metrics and Monitoring
 - **WordPress Metrics**: Automatically install a WordPress Plugin for Prometheus metrics.
   - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics]
+  - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics]
 - **Apache Metrics**: Sidecar container for Apache metrics.
   - See details on GitHub Repo of (apache exporter from Lusitaniae)[https://github.com/Lusitaniae/apache_exporter]
 - **Grafana Dashboard**: Automatically deploy Grafana dashboard for WordPress metrics visualization.
@@ -244,8 +245,8 @@ wordpress:
       activate: true
 ```
 
-## Support
->>>>>>> aae887d (beta2)
+### Composer Packages
+Install plugins and themes via Composer that aren't available in WordPress.org. See `samples/composer.values.yaml`.
 
 ```bash
 helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/composer.values.yaml
