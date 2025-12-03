@@ -7,7 +7,7 @@ if [ -n "$GITHUB_TOKEN" ]; then
 fi
 
 # Script to update Chart.yaml metadata after Renovate updates
-# Updates: 
+# Updates:
 #   - version (major/minor/patch based on dependency update type)
 #   - artifacthub.io/changes
 #
@@ -16,6 +16,9 @@ fi
 #     - major update -> chart gets major bump
 #     - minor update -> chart gets minor bump
 #     - patch/digest update -> chart gets patch bump
+#   - WordPress special case:
+#     - minor update (e.g., 6.8 -> 6.9) -> chart gets major bump
+#       (WordPress treats minor versions as major releases)
 #   - Helm subchart dependencies:
 #     - major update -> chart gets minor bump
 #     - minor/patch update -> chart gets patch bump
@@ -36,19 +39,19 @@ MANUAL_CHART="$3"
 get_version_bump_type() {
   local old_version="$1"
   local new_version="$2"
-  
+
   # Extract major.minor.patch - handle versions with prefixes like v1.2.3
   local old_major=$(echo "$old_version" | sed 's/^v//' | cut -d. -f1)
   local old_minor=$(echo "$old_version" | sed 's/^v//' | cut -d. -f2)
   local new_major=$(echo "$new_version" | sed 's/^v//' | cut -d. -f1)
   local new_minor=$(echo "$new_version" | sed 's/^v//' | cut -d. -f2)
-  
+
   # Handle non-numeric versions gracefully
   if ! [[ "$old_major" =~ ^[0-9]+$ ]] || ! [[ "$new_major" =~ ^[0-9]+$ ]]; then
     echo "patch"
     return
   fi
-  
+
   if [ "$new_major" -gt "$old_major" ] 2>/dev/null; then
     echo "major"
   elif [ "$new_minor" -gt "$old_minor" ] 2>/dev/null; then
@@ -63,11 +66,11 @@ get_version_bump_type() {
 bump_version() {
   local current="$1"
   local bump_type="$2"
-  
+
   local major=$(echo "$current" | cut -d. -f1)
   local minor=$(echo "$current" | cut -d. -f2)
   local patch=$(echo "$current" | cut -d. -f3)
-  
+
   case "$bump_type" in
     major)
       echo "$((major + 1)).0.0"
@@ -96,26 +99,26 @@ echo "$CHANGED_CHARTS"
 
 for CHART_DIR in $CHANGED_CHARTS; do
   CHART_YAML="$CHART_DIR/Chart.yaml"
-  
+
   if [ ! -f "$CHART_YAML" ]; then
     echo "Skipping $CHART_DIR - no Chart.yaml found"
     continue
   fi
-  
+
   echo "Processing $CHART_YAML..."
-  
+
   # Get current version
   CURRENT_VERSION=$(grep '^version:' "$CHART_YAML" | awk '{print $2}')
   echo "Current version: $CURRENT_VERSION"
-  
+
   # Extract all dependency changes from commit messages
   # Renovate commits have format: "chore(deps): update <name> to <version>"
   DEPENDENCY_CHANGES=$(git log --oneline origin/main..HEAD | grep "chore(deps): update" | grep " to " | sed 's/.*chore(deps): update //' | sed 's/ to / /')
-  
+
   # Initialize variables for version detection
   VERSION_INFO=""
   UPDATE_TYPE_INFO=""
-  
+
   if [ -z "$DEPENDENCY_CHANGES" ]; then
     # Try to get from PR commits using gh CLI
     PR_NUMBER=$(echo "$PR_URL" | sed 's|.*/pull/||')
@@ -127,7 +130,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
       if [ -n "$PR_COMMITS" ]; then
         DEPENDENCY_CHANGES=$(echo "$PR_COMMITS" | grep "chore(deps): update" | grep " to " | sed 's/.*chore(deps): update //' | sed 's/ to / /')
       fi
-      
+
       # If still no changes, try parsing PR body for the update table
       if [ -z "$DEPENDENCY_CHANGES" ]; then
         echo "Trying to parse PR body for updates..."
@@ -154,7 +157,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
             DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
           fi
         fi
-        
+
         # If still no changes, try the first comment
         if [ -z "$DEPENDENCY_CHANGES" ]; then
           echo "Trying to parse first PR comment for updates..."
@@ -185,28 +188,28 @@ for CHART_DIR in $CHANGED_CHARTS; do
       echo "gh CLI not available"
     fi
   fi
-  
+
   if [ -z "$DEPENDENCY_CHANGES" ]; then
     # Fallback
     DEPENDENCY_CHANGES="Update dependencies"
   fi
-  
+
   echo "Dependency changes for $CHART_DIR:"
   echo "$DEPENDENCY_CHANGES"
-  
+
   # Determine the highest bump type needed
   # Priority: major > minor > patch
   HIGHEST_BUMP="patch"
-  
+
   if [ -n "$VERSION_INFO" ]; then
     echo "Analyzing version changes..."
     echo "$VERSION_INFO"
-    
+
     while IFS='|' read -r pkg_name old_ver new_ver update_type; do
       [ -z "$pkg_name" ] && continue
-      
+
       echo "  Package: $pkg_name, Old: $old_ver, New: $new_ver, Type: $update_type"
-      
+
       # Check if this is a Helm subchart dependency (listed in Chart.yaml dependencies)
       IS_SUBCHART=false
       if grep -q "name: $pkg_name" "$CHART_YAML" 2>/dev/null; then
@@ -215,7 +218,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
           IS_SUBCHART=true
         fi
       fi
-      
+
       # Determine bump type based on update type from Renovate
       if [ -n "$update_type" ]; then
         DEP_BUMP_TYPE="$update_type"
@@ -223,9 +226,19 @@ for CHART_DIR in $CHANGED_CHARTS; do
         # Fallback: calculate from version numbers
         DEP_BUMP_TYPE=$(get_version_bump_type "$old_ver" "$new_ver")
       fi
-      
+
       echo "  Detected bump type: $DEP_BUMP_TYPE, Is subchart: $IS_SUBCHART"
-      
+
+      # Special case: WordPress minor updates (e.g., 6.8 -> 6.9) should trigger a major chart bump
+      # WordPress treats minor versions as major releases with potentially breaking changes
+      IS_WORDPRESS_MINOR_UPDATE=false
+      if echo "$pkg_name" | grep -qi "wordpress"; then
+        if [ "$DEP_BUMP_TYPE" = "minor" ]; then
+          IS_WORDPRESS_MINOR_UPDATE=true
+          echo "  WordPress minor update detected - treating as major for chart bump"
+        fi
+      fi
+
       if [ "$IS_SUBCHART" = true ]; then
         # For Helm subcharts: major -> minor, minor/patch -> patch
         if [ "$DEP_BUMP_TYPE" = "major" ]; then
@@ -236,17 +249,22 @@ for CHART_DIR in $CHANGED_CHARTS; do
         # For minor/patch subchart updates, keep patch (no change needed)
       else
         # For direct dependencies: major -> major, minor -> minor, patch -> patch
-        case "$DEP_BUMP_TYPE" in
-          major)
-            HIGHEST_BUMP="major"
-            ;;
-          minor)
-            if [ "$HIGHEST_BUMP" != "major" ]; then
-              HIGHEST_BUMP="minor"
-            fi
-            ;;
-          # patch stays as default
-        esac
+        # Exception: WordPress minor updates -> major chart bump
+        if [ "$IS_WORDPRESS_MINOR_UPDATE" = true ]; then
+          HIGHEST_BUMP="major"
+        else
+          case "$DEP_BUMP_TYPE" in
+            major)
+              HIGHEST_BUMP="major"
+              ;;
+            minor)
+              if [ "$HIGHEST_BUMP" != "major" ]; then
+                HIGHEST_BUMP="minor"
+              fi
+              ;;
+            # patch stays as default
+          esac
+        fi
       fi
     done <<< "$VERSION_INFO"
   else
@@ -260,7 +278,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
         HIGHEST_BUMP="minor"
       fi
     fi
-    
+
     # Fallback to PR title check
     if [ "$HIGHEST_BUMP" = "patch" ]; then
       if echo "$PR_TITLE" | grep -qi "major"; then
@@ -270,23 +288,23 @@ for CHART_DIR in $CHANGED_CHARTS; do
       fi
     fi
   fi
-  
+
   echo "Determined chart bump type: $HIGHEST_BUMP"
-  
+
   # Calculate new version
   NEW_VERSION=$(bump_version "$CURRENT_VERSION" "$HIGHEST_BUMP")
   echo "New version: $NEW_VERSION"
-  
+
   # Update version in Chart.yaml
   sed -i.bak "s/^version: .*/version: $NEW_VERSION/" "$CHART_YAML"
-  
+
   # Note: appVersion is now managed by Renovate directly via regex manager
   # This ensures the full version tags (e.g., 1.0.20250521-r0-ls88) are preserved
-  
+
   # Create new changelog entry - replace old entries with new one
   # We'll use a simple approach: find the changes section and replace everything until the next annotation
   TMP_FILE=$(mktemp)
-  
+
   python3 - "$CHART_YAML" "$DEPENDENCY_CHANGES" "$PR_URL" "$TMP_FILE" <<'PYTHON_SCRIPT'
 import sys
 import re
@@ -316,7 +334,7 @@ for change in changes_list:
             description = f"Update {name} to {version}"
         else:
             description = f"Update {change}"
-        
+
         changelog_entries.append(f"""    - kind: changed
       description: "{description}"
       links:
@@ -342,7 +360,7 @@ PYTHON_SCRIPT
 
   # Replace original file with updated content
   mv "$TMP_FILE" "$CHART_YAML"
-  
+
   echo "✅ Updated $CHART_YAML with version $NEW_VERSION"
 done
 
