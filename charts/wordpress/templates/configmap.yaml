@@ -81,39 +81,79 @@ metadata:
 data:
   base.sh: |
     #!/bin/bash
-    # Check if WordPress files exist; if not copy them but exclude wp-content.
-    if [ ! -e /tmp/wordpress/index.php ] && [ ! -e /tmp/wordpress/wp-includes/version.php ]; then
-        echo "WordPress not found in /tmp/wordpress - copying now..."
-        # Use a for loop to copy everything except wp-content
-        mkdir -p /tmp/wordpress
-        cd /usr/src/wordpress || exit 0
-        for item in *; do
-          if [ "$item" != "wp-content" ]; then
-            cp -r "$item" /tmp/wordpress/ || exit 1
-          fi
-          # Handle wp-config-docker.php
-          if [ "$item" = "wp-config-docker.php" ] && [ ! -s /tmp/wordpress/wp-config.php ]; then
-            awk '
-              /put your unique phrase here/ {
-                cmd = "head -c1m /dev/urandom | sha1sum | cut -d\\  -f1"
-                cmd | getline str
-                close(cmd)
-                gsub("put your unique phrase here", str)
-              }
-              { print }
-            ' "$item" > /tmp/wordpress/wp-config.php
-          fi
-        done
-        
-        # Also try to copy any existing wp-content from /var/www/html if present
-        if [ ! -d /tmp/wordpress/wp-content ]; then
-            cp -r /var/www/html/wp-content /tmp/wordpress/wp-content 2>/dev/null || true
+
+    # Helper function to extract WordPress version from version.php
+    get_wp_version() {
+      local version_file="$1"
+      if [ -f "$version_file" ]; then
+        grep "^\$wp_version" "$version_file" | sed "s/.*'\([^']*\)'.*/\1/"
+      else
+        echo ""
+      fi
+    }
+
+    # Helper function to copy WordPress core files (excludes wp-content)
+    copy_wp_core() {
+      echo "Copying WordPress core files..."
+      cd /usr/src/wordpress || exit 1
+      for item in *; do
+        if [ "$item" != "wp-content" ]; then
+          cp -r "$item" /tmp/wordpress/ || exit 1
         fi
-        echo "Complete! WordPress has been successfully copied to /tmp/wordpress"
+      done
+      echo "WordPress core files copied successfully!"
+    }
+
+    # Get versions from image and PVC
+    IMAGE_VERSION=$(get_wp_version "/usr/src/wordpress/wp-includes/version.php")
+    PVC_VERSION=$(get_wp_version "/tmp/wordpress/wp-includes/version.php")
+
+    echo "========================================="
+    echo "WordPress Version Check"
+    echo "========================================="
+    echo "Image version: ${IMAGE_VERSION:-'not found'}"
+    echo "PVC version:   ${PVC_VERSION:-'not installed'}"
+    echo "========================================="
+
+    # Check if WordPress needs to be installed or updated
+    if [ -z "$PVC_VERSION" ]; then
+        echo "WordPress not found in /tmp/wordpress - fresh installation..."
+        mkdir -p /tmp/wordpress
+        copy_wp_core
+
+        # Handle wp-config-docker.php for fresh install
+        if [ -f "/usr/src/wordpress/wp-config-docker.php" ] && [ ! -s /tmp/wordpress/wp-config.php ]; then
+          awk '
+            /put your unique phrase here/ {
+              cmd = "head -c1m /dev/urandom | sha1sum | cut -d\\  -f1"
+              cmd | getline str
+              close(cmd)
+              gsub("put your unique phrase here", str)
+            }
+            { print }
+          ' /usr/src/wordpress/wp-config-docker.php > /tmp/wordpress/wp-config.php
+        fi
+
+        # Copy wp-content skeleton if not present
+        if [ ! -d /tmp/wordpress/wp-content ]; then
+            cp -r /usr/src/wordpress/wp-content /tmp/wordpress/wp-content 2>/dev/null || true
+        fi
+        echo "Complete! WordPress has been successfully installed to /tmp/wordpress"
+
+    elif [ "$IMAGE_VERSION" != "$PVC_VERSION" ]; then
+        echo "WordPress version mismatch detected!"
+        echo "Updating core files from $PVC_VERSION to $IMAGE_VERSION..."
+        echo "Note: wp-content directory will be preserved."
+        copy_wp_core
+        echo "Complete! WordPress core has been updated to $IMAGE_VERSION"
+
+        # Mark that a core update happened (used by init.sh to disable auto-updates)
+        touch /tmp/wordpress/.wp-core-updated
+
     else
-        echo "WordPress already present in /tmp/wordpress - skipping copy"
+        echo "WordPress version matches - no update needed."
     fi
-    
+
     # ============================================================================
     # Setup MU-Plugins from ConfigMaps
     # ============================================================================
@@ -121,12 +161,12 @@ data:
     echo ""
     echo "Setting up MU-Plugins from ConfigMaps..."
     echo "========================================="
-    
+
     # Create mu-plugins directory if it doesn't exist
     mkdir -p /tmp/wordpress/wp-content/mu-plugins
     chown www-data:www-data /tmp/wordpress/wp-content/mu-plugins
     chmod 755 /tmp/wordpress/wp-content/mu-plugins
-    
+
     {{- range .Values.wordpress.muPluginsConfigMaps }}
     # Copy files from ConfigMap: {{ .name }}
     if [ -d "/tmp/mu-plugins-{{ .name }}" ]; then
@@ -154,12 +194,12 @@ data:
       echo "Warning: MU-Plugin ConfigMap mount {{ .name }} not found"
     fi
     {{- end }}
-    
+
     echo "MU-Plugins setup completed!"
     {{- else }}
     echo "No MU-Plugins ConfigMaps configured."
     {{- end }}
-    
+
     # ============================================================================
     # Custom Init Commands ConfigMap Info
     # ============================================================================
@@ -167,7 +207,7 @@ data:
     echo ""
     echo "Custom init commands ConfigMap detected: {{ .Values.wordpress.init.customInitConfigMap.name }}"
     {{- end }}
-    
+
     echo "========================================="
     echo "Base script completed!"
     echo "========================================="
@@ -175,43 +215,43 @@ data:
     #!/bin/sh
     # Script to setup .htaccess on persistent volume
     # This runs in the base init container
-    
+
     echo "Starting .htaccess setup..."
-    
+
     # Copy and make injection script executable once
     cp /tmp/scripts/htaccess-inject.sh /tmp/htaccess-inject.sh
     chmod +x /tmp/htaccess-inject.sh
-    
+
     # Check if .htaccess already exists on persistent volume
     if [ ! -f /tmp/wordpress/.htaccess ]; then
       echo ".htaccess not found on persistent volume, creating from ConfigMap..."
-      
+
       # Copy .htaccess from ConfigMap and inject WordPress rules
       /tmp/htaccess-inject.sh \
         /tmp/configfiles/.htaccess \
         /tmp/wordpress/.htaccess \
         /tmp/scripts/wordpress-rewrite-rules.txt
-      
+
       # Set correct ownership and permissions
       chown www-data:www-data /tmp/wordpress/.htaccess
       chmod 664 /tmp/wordpress/.htaccess
       echo "WordPress rewrite rules successfully injected and written to persistent volume!"
     else
       echo ".htaccess already exists on persistent volume."
-      
+
       # Extract WordPress block content from existing file (if it exists)
       if grep -q "# BEGIN WordPress" /tmp/wordpress/.htaccess; then
         echo "Extracting WordPress block content from existing .htaccess..."
-        
+
         # Extract ONLY the content between markers (excluding the markers themselves)
         awk '/# BEGIN WordPress/,/# END WordPress/{if (!/# BEGIN WordPress/ && !/# END WordPress/) print}' /tmp/wordpress/.htaccess > /tmp/wp-block-content.txt
-        
+
         # Start with fresh ConfigMap .htaccess and inject the existing WordPress block content
         /tmp/htaccess-inject.sh \
           /tmp/configfiles/.htaccess \
           /tmp/htaccess-new \
           /tmp/wp-block-content.txt
-        
+
         # Replace old .htaccess with updated one
         mv /tmp/htaccess-new /tmp/wordpress/.htaccess
         chown www-data:www-data /tmp/wordpress/.htaccess
@@ -219,13 +259,13 @@ data:
         echo "ConfigMap .htaccess updated with existing WordPress block content!"
       else
         echo "No WordPress block found in existing .htaccess."
-        
+
         # Inject default WordPress rules into fresh ConfigMap .htaccess
         /tmp/htaccess-inject.sh \
           /tmp/configfiles/.htaccess \
           /tmp/htaccess-new \
           /tmp/scripts/wordpress-rewrite-rules.txt
-        
+
         # Replace old .htaccess with updated one
         mv /tmp/htaccess-new /tmp/wordpress/.htaccess
         chown www-data:www-data /tmp/wordpress/.htaccess
@@ -233,7 +273,7 @@ data:
         echo "ConfigMap .htaccess applied with default WordPress rules!"
       fi
     fi
-    
+
     echo "========================================="
     echo ".htaccess setup completed!"
     echo "========================================="
@@ -251,13 +291,13 @@ data:
     #!/bin/sh
     # Script to inject WordPress rewrite rules into .htaccess
     # Usage: htaccess-inject.sh <source-htaccess> <output-htaccess> <rules-file>
-    
+
     SOURCE_FILE="$1"
     OUTPUT_FILE="$2"
     RULES_FILE="$3"
-    
+
     awk -v rules_file="$RULES_FILE" '
-    BEGIN { 
+    BEGIN {
         in_wp=0
         wp_done=0
         # Read rules from file
@@ -266,7 +306,7 @@ data:
         }
         close(rules_file)
     }
-    /# BEGIN WordPress/ { 
+    /# BEGIN WordPress/ {
         print
         printf "%s", rules
         in_wp=1
@@ -279,9 +319,9 @@ data:
   init.sh: |
     #!/bin/bash
     set -e
-    
+
     echo "Starting init script..."
-    
+
     # ============================================================================
     # Configuration
     # ============================================================================
@@ -289,41 +329,41 @@ data:
     STALE_LOCK_THRESHOLD=120  # Consider lock stale after 2 minutes (handles pod deletion)
     MAX_WAIT=$((STALE_LOCK_THRESHOLD + 30))  # Wait a bit longer than stale threshold
     WAIT_TIME=0
-    
+
     # ============================================================================
     # Database Lock Functions
     # Uses WordPress options table as distributed lock across all pods
     # ============================================================================
-    
+
     claim_lock_db() {
       CURRENT_TIME=$(date +%s)
       POD_ID="$$-$(hostname)"
-      
+
       # Get table prefix dynamically
       TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Using table prefix: $TABLE_PREFIX" >&2
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Attempting to claim lock with POD_ID=$POD_ID-$CURRENT_TIME" >&2
-      
+
       # Check if wp_options table exists - if not, it's a fresh install
       if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
         [ "${DEBUG}" = "true" ] && echo "DEBUG: wp_options table doesn't exist yet, claiming lock for fresh install" >&2
         return 0
       fi
-      
+
       # Try to insert lock row - ignore error if already exists
       wp db query "INSERT IGNORE INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no');" >/dev/null 2>&1
       INSERT_RESULT=$?
       [ "${DEBUG}" = "true" ] && echo "DEBUG: INSERT result: $INSERT_RESULT" >&2
-      
+
       # Check if we actually got the lock
       LOCK_OWNER=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Current lock owner: $LOCK_OWNER" >&2
-      
+
       if [[ "$LOCK_OWNER" == "$POD_ID-$CURRENT_TIME" ]]; then
         [ "${DEBUG}" = "true" ] && echo "DEBUG: Successfully claimed lock!" >&2
         return 0
       fi
-      
+
       # Check for stale lock (older than threshold)
       LOCK_TIME=$(echo "$LOCK_OWNER" | awk -F'-' '{print $NF}')
       if [[ "$LOCK_TIME" =~ ^[0-9]+$ ]]; then
@@ -337,22 +377,22 @@ data:
       else
         [ "${DEBUG}" = "true" ] && echo "DEBUG: Lock time is not numeric: $LOCK_TIME" >&2
       fi
-      
+
       return 1
     }
-    
+
     release_lock() {
       TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
       wp db query "DELETE FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
       echo "Lock released"
     }
-    
+
     trap release_lock EXIT
-    
+
     # ============================================================================
     # Helper Functions
     # ============================================================================
-    
+
     # WP-CLI wrapper with optional debug output
     wp() {
       if [ "${DEBUG}" = "true" ]; then
@@ -370,21 +410,21 @@ data:
         "$@" >/dev/null 2>&1
       fi
     }
-    
+
     # ============================================================================
     # Wait for Database
     # ============================================================================
-    
+
     echo "Waiting for database..."
     until run wp db check; do
       echo "Database not ready yet, waiting 15 seconds..."
       sleep 15
     done
-    
+
     # ============================================================================
     # WordPress Installation (First-Time Only)
     # ============================================================================
-    
+
     if [ "${WP_INIT}" = "true" ]; then
       if ! run wp core is-installed --url="${WP_URL}"; then
         echo "Setting up WordPress..."
@@ -402,7 +442,7 @@ data:
     else
       # WP_INIT is false - check if WordPress is already installed
       TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
-      
+
       # Check if wp_options table exists
       if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
         echo "========================================="
@@ -425,27 +465,27 @@ data:
         echo "========================================="
         exit 1
       fi
-      
+
       echo "WordPress tables found, continuing with configuration..."
     fi
-    
+
     # ============================================================================
     # Acquire Database Lock
     # Ensures only one pod performs initialization at a time
     # ============================================================================
-    
+
     echo "Acquiring database lock for initialization..."
     while ! claim_lock_db; do
       if [ $WAIT_TIME -ge $MAX_WAIT ]; then
         echo "Timeout waiting for database lock after ${MAX_WAIT}s"
-        
+
         # Final attempt to forcefully claim the lock
         POD_ID="$$-$(hostname)"
         CURRENT_TIME=$(date +%s)
         TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
         wp db query "UPDATE ${TABLE_PREFIX}options SET option_value='$POD_ID-$CURRENT_TIME' WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || \
         wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no');" >/dev/null 2>&1
-        
+
         # Verify we actually got it
         sleep 1
         LOCK_OWNER=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
@@ -457,30 +497,54 @@ data:
           exit 1
         fi
       fi
-      
+
       echo "Another pod is currently running init process, waiting... (${WAIT_TIME}s/${MAX_WAIT}s)"
       sleep $CHECK_INTERVAL
       WAIT_TIME=$((WAIT_TIME + CHECK_INTERVAL))
     done
 
     echo "Database lock acquired, proceeding with initialization..."
-    
+
+    # ============================================================================
+    # Disable WordPress Core Auto-Updates (managed by Helm chart via image updates)
+    # ============================================================================
+
+    # Read current auto-update settings in one query
+    AUTO_UPDATE_SETTINGS=$(wp db query "SELECT option_name, option_value FROM ${TABLE_PREFIX:-wp_}options WHERE option_name IN ('auto_update_core_dev', 'auto_update_core_minor', 'auto_update_core_major');" --skip-column-names 2>/dev/null || echo "")
+
+    # Check and update each setting only if not already disabled
+    for setting in auto_update_core_dev auto_update_core_minor auto_update_core_major; do
+      current_value=$(echo "$AUTO_UPDATE_SETTINGS" | grep "^$setting" | awk '{print $2}')
+      if [ "$current_value" != "disabled" ]; then
+        echo "Disabling $setting..."
+        wp option update "$setting" disabled
+      fi
+    done
+
     # ============================================================================
     # WordPress Configuration (Localization, Permalinks, User Metadata)
     # ============================================================================
-    
+
     if [ "${WP_INIT}" = "true" ]; then
       # Set language
       if [ -n "${WP_LOCALE}" ]; then
-        LANG_STATUS=$(wp language core list --language=${WP_LOCALE} --field=status)
+        LANG_STATUS=$(wp language core list --language=${WP_LOCALE} --field=status 2>/dev/null || echo "uninstalled")
         case $LANG_STATUS in
           "uninstalled")
+            echo "Installing language pack: ${WP_LOCALE}..."
             wp language core install ${WP_LOCALE} --activate
             ;;
           "installed")
             wp site switch-language ${WP_LOCALE}
             ;;
         esac
+
+        # Check if language pack update is available
+        LANG_UPDATE=$(wp language core list --language=${WP_LOCALE} --field=update 2>/dev/null || echo "none")
+        if [ "$LANG_UPDATE" = "available" ]; then
+          echo "Updating language pack for ${WP_LOCALE}..."
+          wp language core update || true
+        fi
       fi
 
       # Set permalinks
@@ -506,15 +570,15 @@ data:
         fi
       fi
     fi
-    
+
     # ============================================================================
     # Create Custom Users
     # ============================================================================
-    
+
     {{- if .Values.wordpress.users }}
     echo "Creating custom users..."
     EXISTING_USERS=$(wp user list --field=user_login 2>/dev/null || echo "")
-    
+
     {{- range .Values.wordpress.users }}
     if ! echo "$EXISTING_USERS" | grep -q "^{{ .username }}$"; then
       echo "Creating user {{ .username }}..."
@@ -531,11 +595,11 @@ data:
     {{- else }}
     echo "No custom users specified."
     {{- end }}
-    
+
     # ============================================================================
     # Plugin Management
     # ============================================================================
-    
+
     # Cache all plugin data upfront for performance
     INSTALLED_PLUGINS=$(wp plugin list --field=name 2>/dev/null || echo "")
     ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
@@ -574,15 +638,15 @@ data:
     # Handle custom plugins
     {{- if .Values.wordpress.plugins }}
     echo "Installing custom plugins..."
-    
+
     PLUGINS_TO_INSTALL=()
     PLUGINS_TO_ACTIVATE=()
     PLUGINS_TO_AUTOUPDATE=()
-    
+
     {{- range .Values.wordpress.plugins }}
     # Plugin: {{ .name }}
     PLUGIN_NAME="{{ .name }}"
-    
+
     # Check if it's a URL (at runtime, not template time)
     if [[ "$PLUGIN_NAME" == http://* ]] || [[ "$PLUGIN_NAME" == https://* ]]; then
       echo "Installing URL plugin: $PLUGIN_NAME"
@@ -613,10 +677,10 @@ data:
     # Batch install plugins
     if [ ${#PLUGINS_TO_INSTALL[@]} -gt 0 ]; then
       echo "Installing ${#PLUGINS_TO_INSTALL[@]} plugin(s)..."
-      
+
       PLUGINS_NO_VERSION=()
       PLUGINS_WITH_VERSION=()
-      
+
       for plugin_spec in "${PLUGINS_TO_INSTALL[@]}"; do
         if [[ "$plugin_spec" == *":"* ]]; then
           PLUGINS_WITH_VERSION+=("$plugin_spec")
@@ -624,17 +688,17 @@ data:
           PLUGINS_NO_VERSION+=("$plugin_spec")
         fi
       done
-      
+
       if [ ${#PLUGINS_NO_VERSION[@]} -gt 0 ]; then
         wp plugin install "${PLUGINS_NO_VERSION[@]}" --force
       fi
-      
+
       for plugin_spec in "${PLUGINS_WITH_VERSION[@]}"; do
         PLUGIN_NAME="${plugin_spec%%:*}"
         PLUGIN_VERSION="${plugin_spec##*:}"
         wp plugin install "${PLUGIN_NAME}" --version="${PLUGIN_VERSION}" --force
       done
-      
+
       INSTALLED_PLUGINS=$(wp plugin list --field=name 2>/dev/null || echo "")
       ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
     fi
@@ -647,7 +711,7 @@ data:
           PLUGINS_NEED_ACTIVATION+=("$plugin")
         fi
       done
-      
+
       if [ ${#PLUGINS_NEED_ACTIVATION[@]} -gt 0 ]; then
         echo "Activating ${#PLUGINS_NEED_ACTIVATION[@]} plugin(s)..."
         run wp plugin activate "${PLUGINS_NEED_ACTIVATION[@]}"
@@ -663,7 +727,7 @@ data:
           PLUGINS_NEED_AUTOUPDATE+=("$plugin")
         fi
       done
-      
+
       if [ ${#PLUGINS_NEED_AUTOUPDATE[@]} -gt 0 ]; then
         echo "Enabling auto-updates for ${#PLUGINS_NEED_AUTOUPDATE[@]} plugin(s)..."
         run wp plugin auto-updates enable "${PLUGINS_NEED_AUTOUPDATE[@]}"
@@ -672,19 +736,19 @@ data:
     {{- else }}
     echo "No custom plugins specified."
     {{- end }}
-    
+
     # ============================================================================
     # Theme Management
     # ============================================================================
-    
+
     {{- if .Values.wordpress.themes }}
     echo "Installing custom themes..."
-    
+
     # Cache all theme data upfront
     INSTALLED_THEMES=$(wp theme list --field=name 2>/dev/null || echo "")
     ACTIVE_THEME=$(wp theme list --status=active --field=name 2>/dev/null || echo "")
     AUTOUPDATE_ENABLED_THEMES=$(wp theme list --fields=name,auto_update --format=csv 2>/dev/null | grep ",on$" | cut -d',' -f1 || echo "")
-    
+
     # Extract theme slug from name/URL
     get_theme_slug() {
       local theme_name="$1"
@@ -694,11 +758,11 @@ data:
         echo "$theme_name"
       fi
     }
-    
+
     THEMES_TO_INSTALL=()
     THEME_TO_ACTIVATE=""
     THEMES_TO_AUTOUPDATE=()
-    
+
     {{- range .Values.wordpress.themes }}
     THEME_SLUG=$(get_theme_slug "{{ .name }}")
 
@@ -720,11 +784,11 @@ data:
     # Batch install themes
     if [ ${#THEMES_TO_INSTALL[@]} -gt 0 ]; then
       echo "Installing ${#THEMES_TO_INSTALL[@]} theme(s)..."
-      
+
       THEMES_SIMPLE=()
       THEMES_URLS=()
       THEMES_WITH_VERSION=()
-      
+
       for theme_spec in "${THEMES_TO_INSTALL[@]}"; do
         if [[ "$theme_spec" == http://* ]] || [[ "$theme_spec" == https://* ]]; then
           THEMES_URLS+=("$theme_spec")
@@ -734,23 +798,23 @@ data:
           THEMES_SIMPLE+=("$theme_spec")
         fi
       done
-      
+
       if [ ${#THEMES_SIMPLE[@]} -gt 0 ]; then
         wp theme install "${THEMES_SIMPLE[@]}" --force
       fi
-      
+
       for theme_url in "${THEMES_URLS[@]}"; do
         echo "Installing theme from URL: $theme_url"
         wp theme install "$theme_url" --force
       done
-      
+
       for theme_spec in "${THEMES_WITH_VERSION[@]}"; do
         THEME_NAME="${theme_spec%%:*}"
         THEME_VERSION="${theme_spec##*:}"
         echo "Installing theme ${THEME_NAME} version ${THEME_VERSION}..."
         wp theme install "${THEME_NAME}" --version="${THEME_VERSION}" --force
       done
-      
+
       INSTALLED_THEMES=$(wp theme list --field=name 2>/dev/null || echo "")
       ACTIVE_THEME=$(wp theme list --status=active --field=name 2>/dev/null || echo "")
     fi
@@ -769,7 +833,7 @@ data:
           THEMES_NEED_AUTOUPDATE+=("$theme")
         fi
       done
-      
+
       if [ ${#THEMES_NEED_AUTOUPDATE[@]} -gt 0 ]; then
         echo "Enabling auto-updates for ${#THEMES_NEED_AUTOUPDATE[@]} theme(s)..."
         run wp theme auto-updates enable "${THEMES_NEED_AUTOUPDATE[@]}"
@@ -779,12 +843,12 @@ data:
     echo "No custom themes specified."
     {{- end }}
     echo "WordPress initialization completed!"
-    
+
     # ============================================================================
     # Custom Init Commands
     # ============================================================================
     {{- if .Values.wordpress.init.customInitConfigMap.name }}
-    
+
     echo "Running custom init commands from ConfigMap..."
     echo "========================================="
     if [ -f /tmp/custom-init-commands/{{ .Values.wordpress.init.customInitConfigMap.key | default "commands.sh" }} ]; then
@@ -798,10 +862,10 @@ data:
     {{- else }}
     echo "No custom init commands configured."
     {{- end }}
-    
+
     # ============================================================================
     # Release Lock and Complete
     # ============================================================================
-    
+
     # Lock will be released automatically via trap on EXIT
     echo "Init script completed!"
