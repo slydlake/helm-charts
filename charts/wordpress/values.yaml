@@ -909,9 +909,9 @@ mariadb:
   ## @section MariaDB Image
   image:
     ## @param mariadb.image.registry string MariaDB image registry
-    registry: ""
+    registry: docker.io
     ## @param mariadb.image.repository string MariaDB image repository
-    repository: "docker.io/mariadb"
+    repository: mariadb
     ## @param mariadb.image.tag string MariaDB image tag
     tag: "12.0.2-noble@sha256:607835cd628b78e2876f6a586d0ec37b296c47683b31ef750002d3d17d3d8f7a"
     ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
@@ -1003,9 +1003,9 @@ memcached:
   ## @section Memcached Image
   image:
     ## @param memcached.image.registry string Memcached image registry
-    registry: ""
+    registry: docker.io
     ## @param memcached.image.repository string Memcached image repository
-    repository: docker.io/memcached
+    repository: memcached
     ## @param memcached.image.tag string Memcached image tag
     tag: "1.6.39@sha256:4737e17016e4d65ad8007408ec1816096c4ebec04cfa89a5265a3edd3f4ca552"
     ## @param memcached.image.pullPolicy string Memcached image pull policy

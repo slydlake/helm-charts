@@ -78,7 +78,6 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 ### Metrics and Monitoring
 - **WordPress Metrics**: Automatically install a WordPress Plugin for Prometheus metrics.
   - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics]
-  - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics]
 - **Apache Metrics**: Sidecar container for Apache metrics.
   - See details on GitHub Repo of (apache exporter from Lusitaniae)[https://github.com/Lusitaniae/apache_exporter]
 - **Grafana Dashboard**: Automatically deploy Grafana dashboard for WordPress metrics visualization.
@@ -203,46 +202,6 @@ Deploy Must-Use Plugins that are automatically activated. See `samples/muPlugins
 ```bash
 kubectl apply -f ./samples/muPlugins.configmap.yaml
 helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/muPlugins.values.yaml
-```
-
-### Composer Packages
-Install plugins and themes via Composer that aren't available in WordPress.org. See `samples/composer.values.yaml`.
-<<<<<<< HEAD
-=======
-
-```bash
-helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/composer.values.yaml
-```
-
-**Examples:**
-- **Plugins**: `humanmade/s3-uploads`, `wpackagist-plugin/wordpress-seo`
-- **Themes**: `wpackagist-theme/astra`
-- **Auto-Update**: Works for packages without fixed version (always installs latest)
-- **Pruning**: Compatible with `pluginsPrune` and `themesPrune`
-
-#### Custom Composer Repositories
-By default, only **wpackagist.org** is configured, which mirrors all WordPress.org plugins and themes.
-
-Add custom repositories for private/premium packages:
-
-```yaml
-wordpress:
-  composer:
-    repositories:
-      - type: "vcs"
-        url: "https://github.com/mycompany/private-plugin"
-      - type: "composer"
-        url: "https://my-satis-server.com"
-      - type: "package"
-        package:
-          name: "vendor/premium-plugin"
-          version: "1.0.0"
-          dist:
-            url: "https://example.com/premium-plugin.zip"
-            type: "zip"
-  plugins:
-    - name: "mycompany/private-plugin"
-      activate: true
 ```
 
 ### Composer Packages

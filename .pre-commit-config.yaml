@@ -9,7 +9,6 @@ repos:
     rev: v0.1.23
     hooks:
       - id: helmlint
-<<<<<<< HEAD
 
   # Validate ArtifactHub annotations in Chart.yaml files
   # Catches: invalid YAML in annotations, wrong 'kind' values, missing required fields,
@@ -22,5 +21,3 @@ repos:
         language: python
         files: Chart\.yaml$
         additional_dependencies: [pyyaml]
-=======
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)

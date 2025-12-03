@@ -320,13 +320,11 @@ data:
   # Contains: wp(), run(), handle_error(), retry_command(), validate_package_name(), assert()
   # Used by: init.sh
   lib-core.sh: |
-<<<<<<< HEAD
     #!/bin/bash
     # WordPress Helm Chart - Core Library
     # Provides essential utility functions for the init script
 
     # ============================================================================
-<<<<<<< HEAD
     # Test Mode Support
     # ============================================================================
     # When TEST_MODE=true, enables assert() for validation
@@ -380,29 +378,6 @@ data:
         return 1
       fi
     }
-=======
-    # Configuration Constants
-    # ============================================================================
-
-    # Database lock configuration
-    readonly CHECK_INTERVAL=5
-    readonly STALE_LOCK_THRESHOLD=120  # Consider lock stale after 2 minutes (handles pod deletion)
-    readonly MAX_WAIT=$((STALE_LOCK_THRESHOLD + 30))  # Wait a bit longer than stale threshold
-    readonly DB_CHECK_RETRY_INTERVAL=15  # Seconds between database connection checks
-
-    # WordPress paths
-    readonly WP_PLUGINS_DIR="wp-content/plugins"
-    readonly WP_THEMES_DIR="wp-content/themes"
-    readonly WP_MU_PLUGINS_DIR="wp-content/mu-plugins"
-
-    # Composer configuration
-    readonly COMPOSER_HOME_DIR="/tmp/.composer"
-    readonly COMPOSER_INSTALL_DIR="/tmp"
-
-    # Runtime variables
-    WAIT_TIME=0
-    COMPOSER_PACKAGES_MODIFIED=false
->>>>>>> aae887d (beta2)
 
     # ============================================================================
     # DRY_RUN Mode Support
@@ -423,476 +398,6 @@ data:
       "$@"
     }
 
-    # ============================================================================
-    # Core Helper Functions
-    # ============================================================================
-
-<<<<<<< HEAD
-    # WP-CLI wrapper with optional debug output
-    # Uses global DEBUG flag to control verbosity
-    #
-    # Args: All arguments are passed through to wp-cli
-    #
-    # Performance Note:
-    #   Each wp call loads WordPress core - can be slow
-    #   Use batch operations where possible (e.g., install multiple plugins at once)
-    wp() {
-      if [ "${DRY_RUN}" = "true" ]; then
-        echo "[DRY_RUN] wp $*"
-        return 0
-      fi
-      if [ "${DEBUG}" = "true" ]; then
-        command wp --path="${WORDPRESS_PATH}" --debug "$@"
-      else
-        command wp --path="${WORDPRESS_PATH}" "$@"
-      fi
-    }
-
-    # Run commands with optional output suppression based on DEBUG flag
-    #
-    # Args: Command and arguments to execute
-    run() {
-      if [ "${DRY_RUN}" = "true" ]; then
-        echo "[DRY_RUN] $*"
-        return 0
-      fi
-      if [ "${DEBUG}" = "true" ]; then
-        "$@"
-      else
-        "$@" >/dev/null 2>&1
-      fi
-    }
-
-    # Standardized error handler
-    # Logs error message and exits with code 1
-    #
-    # Args:
-    #   $1 - Error message to display
-    handle_error() {
-      echo "ERROR: $1" >&2
-      exit 1
-    }
-
-    # Warning handler for non-fatal errors
-    # Logs warning but allows script to continue
-    #
-    # Args:
-    #   $1 - Warning message to display
-    warn_and_continue() {
-      echo "WARNING: $1" >&2
-      return 0
-    }
-
-    # Retry wrapper for network operations with exponential backoff
-    # Retries failed commands up to MAX_RETRIES times with increasing delays
-    #
-    # Args:
-    #   $@ - Command and arguments to execute
-    #
-    # Returns:
-    #   0 - Command succeeded (possibly after retries)
-    #   1 - Command failed after all retries exhausted
-    retry_command() {
-      local max_retries=${MAX_RETRIES:-3}
-      local retry_delay=${RETRY_DELAY:-2}
-      local attempt=1
-      local exit_code=0
-
-      while [ $attempt -le $max_retries ]; do
-        if "$@"; then
-          return 0
-        fi
-        exit_code=$?
-
-        if [ $attempt -lt $max_retries ]; then
-          local wait_time=$((retry_delay * attempt))
-          echo "Command failed (attempt $attempt/$max_retries), retrying in ${wait_time}s..." >&2
-          sleep $wait_time
-        fi
-
-        attempt=$((attempt + 1))
-      done
-
-      echo "Command failed after $max_retries attempts" >&2
-      return $exit_code
-    }
-
-    # Validate package name to prevent injection attacks
-    # Checks for dangerous characters and patterns
-    #
-    # Args:
-    #   $1 - Package name to validate
-    #
-    # Returns:
-    #   0 - Package name is valid
-    #   1 - Package name contains invalid characters
-    validate_package_name() {
-      local name="$1"
-
-      # Check for empty name
-      if [ -z "$name" ]; then
-        echo "ERROR: Package name cannot be empty" >&2
-        return 1
-      fi
-
-      # Check for dangerous characters (backticks, semicolons, pipes, etc.)
-      if echo "$name" | grep -qE '[`;|&$()<>]'; then
-        echo "ERROR: Package name contains invalid characters: $name" >&2
-        return 1
-      fi
-
-      # Check for path traversal attempts
-      if echo "$name" | grep -q '\.\.'; then
-        echo "ERROR: Package name contains path traversal: $name" >&2
-        return 1
-      fi
-
-      return 0
-    }
-  # ============================================================================
-  # Library: Database Lock Functions (lib-lock.sh)
-  # ============================================================================
-  # Contains: claim_lock_db(), release_lock()
-  # Provides distributed locking using WordPress options table
-  lib-lock.sh: |
-    #!/bin/bash
-    # WordPress Helm Chart - Database Lock Library
-    # Provides distributed locking for multi-pod deployments
-
-=======
->>>>>>> aae887d (beta2)
-    # Attempt to claim distributed database lock for initialization
-    # Ensures only one pod performs WordPress configuration at a time
-    #
-    # Returns:
-    #   0 - Lock successfully claimed or taken over from stale lock
-    #   1 - Lock held by another active pod
-    #
-    # Implementation:
-<<<<<<< HEAD
-    #   - Uses ATOMIC INSERT...ON DUPLICATE KEY UPDATE for race-condition safety
-    #   - wp_options table with option_name='_helm_init_lock'
-=======
-    #   - Uses wp_options table with option_name='_helm_init_lock'
->>>>>>> aae887d (beta2)
-    #   - Lock value format: "POD_ID-TIMESTAMP"
-    #   - Detects stale locks (older than STALE_LOCK_THRESHOLD seconds)
-    claim_lock_db() {
-      CURRENT_TIME=$(date +%s)
-      POD_ID="$$-$(hostname)"
-
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Using table prefix: $TABLE_PREFIX" >&2
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Attempting to claim lock with POD_ID=$POD_ID-$CURRENT_TIME" >&2
-
-      # Check if wp_options table exists - if not, it's a fresh install
-      if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: wp_options table doesn't exist yet, claiming lock for fresh install" >&2
-        return 0
-      fi
-
-      # Atomic lock claim using INSERT...ON DUPLICATE KEY UPDATE
-      wp db query "
-        INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload)
-        VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no')
-        ON DUPLICATE KEY UPDATE
-          option_value = IF(
-            CAST(SUBSTRING_INDEX(option_value, '-', -1) AS UNSIGNED) < $CURRENT_TIME - $STALE_LOCK_THRESHOLD,
-            '$POD_ID-$CURRENT_TIME',
-            option_value
-          );
-      " >/dev/null 2>&1
-
-      # Small delay to ensure database sync
-      sleep 0.1
-
-      # Check if we got the lock
-      LOCK_OWNER=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Current lock owner after atomic claim: $LOCK_OWNER" >&2
-
-      if [[ "$LOCK_OWNER" == "$POD_ID-$CURRENT_TIME" ]]; then
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: Successfully claimed lock atomically!" >&2
-        return 0
-      fi
-
-      # Check lock age for informational purposes
-      LOCK_TIME=$(echo "$LOCK_OWNER" | awk -F'-' '{print $NF}')
-      if [[ "$LOCK_TIME" =~ ^[0-9]+$ ]]; then
-        LOCK_AGE=$((CURRENT_TIME - LOCK_TIME))
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: Lock held by another pod, age: ${LOCK_AGE}s" >&2
-      fi
-
-      return 1
-    }
-
-    # Release database lock by deleting the lock row
-    # Called automatically via trap on script exit
-    # Safe to call even if lock doesn't exist (|| true)
-<<<<<<< HEAD
-    # IMPORTANT: Must return 0 to not affect script exit code
-    release_lock() {
-      wp db query "DELETE FROM ${TABLE_PREFIX:-wp_}options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
-      return 0
-    }
-  # ============================================================================
-  # Library: Composer Functions (lib-composer.sh)
-  # ============================================================================
-  # Contains: ensure_composer(), composer_exec()
-  # Handles Composer installation and package management
-  lib-composer.sh: |
-    #!/bin/bash
-    # WordPress Helm Chart - Composer Library
-    # Provides Composer package management utilities
-
-    # Install Composer on-demand to temporary directory
-    # Downloads, verifies checksum, and installs to COMPOSER_INSTALL_DIR
-    # Idempotent - skips if composer already available
-    #
-    # Performance Notes:
-    #   - Downloads only happen once per pod lifetime
-    #   - Uses retry logic for network resilience
-    #   - Checksum verification prevents corrupted downloads
-    ensure_composer() {
-      # Set Composer home to writable directory
-      export COMPOSER_HOME="${COMPOSER_HOME_DIR}"
-      mkdir -p "$COMPOSER_HOME"
-
-      if ! command -v composer &> /dev/null; then
-        echo "Composer not found, installing..."
-        cd "${COMPOSER_INSTALL_DIR}" || handle_error "Cannot access Composer install directory"
-
-        # Download Composer installer with retry logic
-        echo "  Downloading Composer installer..."
-        if ! retry_command php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"; then
-          handle_error "Failed to download Composer installer after retries"
-        fi
-
-        # Download and verify checksum with retry logic
-        echo "  Verifying checksum..."
-        if ! EXPECTED_CHECKSUM="$(retry_command php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"; then
-          rm -f composer-setup.php
-          handle_error "Failed to download Composer checksum after retries"
-        fi
-
-        ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
-
-        if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
-          rm composer-setup.php
-          handle_error "Invalid Composer installer checksum"
-        fi
-
-        # Install Composer to temporary location
-        echo "  Running installer..."
-        php composer-setup.php --quiet --install-dir="${COMPOSER_INSTALL_DIR}" --filename=composer 2>&1 | grep -v "PHP version" | grep -v "diagnose" || true
-        rm composer-setup.php
-
-        # Add to PATH for this session
-        export PATH="${COMPOSER_INSTALL_DIR}:$PATH"
-
-        echo "  Composer installed!"
-      fi
-=======
-    release_lock() {
-      TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
-      wp db query "DELETE FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
-      echo "Database lock released"
->>>>>>> aae887d (beta2)
-    }
-
-    # Execute composer command with proper environment
-    # Wraps composer with DRY_RUN support
-    #
-    # Args:
-    #   $@ - Composer command and arguments
-    composer_exec() {
-      if [ "${DRY_RUN}" = "true" ]; then
-        echo "[DRY_RUN] composer $*"
-        return 0
-      fi
-      composer "$@"
-    }
-  init.sh: |
-=======
->>>>>>> 98bd789 (beta8)
-    #!/bin/bash
-    # WordPress Helm Chart - Core Library
-    # Provides essential utility functions for the init script
-
-    # ============================================================================
-    # Test Mode Support
-    # ============================================================================
-    # When TEST_MODE=true, enables assert() for validation
-    # Usage: TEST_MODE=true ./init.sh
-
-    # Assert function for testing - validates conditions
-    # Only active when TEST_MODE=true
-    #
-    # Args:
-    #   $1 - Description of assertion
-    #   $2 - Condition to evaluate (must return 0 for success)
-    #
-<<<<<<< HEAD
-    # Features:
-<<<<<<< HEAD
-    #   - Modular library architecture for maintainability
-=======
->>>>>>> 1003169 (beta3)
-    #   - Atomic database lock prevents concurrent initialization
-    #   - Composer package management for plugins/themes
-    #   - Automatic dependency installation and autoloading
-    #   - Network retry logic with exponential backoff
-    #   - Input validation and injection protection
-    #   - Performance optimizations (caching, batch operations)
-<<<<<<< HEAD
-    #   - DRY_RUN mode for testing without changes
-    #   - TEST_MODE with assertions for validation
-    #
-    # Libraries:
-    #   - lib-core.sh: Core utilities (wp, run, handle_error, retry_command, assert)
-    #   - lib-lock.sh: Database locking (claim_lock_db, release_lock)
-    #   - lib-composer.sh: Composer management (ensure_composer, composer_exec)
-=======
-    #
-    # Error Handling:
-    #   - Exit code 0: Success
-    #   - Exit code 1: Fatal error (check logs for details)
-    #   - All errors logged to stderr with "ERROR:" prefix
->>>>>>> 1003169 (beta3)
-    #
-    # Environment Variables:
-    #   WP_INIT - Enable/disable WordPress core installation
-    #   WP_URL - WordPress site URL
-    #   WP_TITLE - Site title
-    #   WP_ADMIN_USER - Admin username
-    #   WP_ADMIN_PASSWORD - Admin password
-    #   WP_ADMIN_EMAIL - Admin email
-    #   WP_LOCALE - WordPress language locale
-    #   DEBUG - Enable verbose debug output (true/false)
-<<<<<<< HEAD
-    #   DRY_RUN - Print commands without executing (true/false)
-    #   TEST_MODE - Enable assertions for testing (true/false)
-=======
->>>>>>> 1003169 (beta3)
-    #   MAX_RETRIES - Network operation retry count (default: 3)
-    #   RETRY_DELAY - Base retry delay in seconds (default: 2)
-    #
-    # Exit Codes:
-    #   0 - Successful initialization
-    #   1 - Fatal error (database, lock timeout, invalid input, network failure)
-    #
-    # ============================================================================
-=======
-    # Example:
-    #   assert "wp command exists" "command -v wp"
-    #   assert "plugins directory exists" "[ -d wp-content/plugins ]"
-    assert() {
-      local description="$1"
-      shift
-      local condition="$@"
->>>>>>> 98bd789 (beta8)
-
-      if [ "${TEST_MODE}" != "true" ]; then
-        return 0
-      fi
-
-      if eval "$condition"; then
-        echo "✓ PASS: $description"
-        return 0
-      else
-        echo "✗ FAIL: $description"
-        echo "  Condition: $condition"
-        ASSERT_FAILURES=$((${ASSERT_FAILURES:-0} + 1))
-        return 1
-      fi
-    }
-
-    # Print test summary - call at end of script when TEST_MODE=true
-    test_summary() {
-      if [ "${TEST_MODE}" != "true" ]; then
-        return 0
-      fi
-
-      echo ""
-      echo "========================================="
-      echo "Test Summary"
-      echo "========================================="
-      if [ "${ASSERT_FAILURES:-0}" -eq 0 ]; then
-        echo "All assertions passed!"
-        return 0
-      else
-        echo "FAILED: ${ASSERT_FAILURES} assertion(s) failed"
-        return 1
-      fi
-    }
-
-    # ============================================================================
-<<<<<<< HEAD
-    # Load Libraries
-    # ============================================================================
-    # Libraries are copied to /tmp/lib by the base init container
-
-    LIB_DIR="/tmp/lib"
-
-    # Source libraries with error handling
-    for lib in lib-core.sh lib-lock.sh lib-composer.sh; do
-      if [ -f "$LIB_DIR/$lib" ]; then
-        # shellcheck source=/dev/null
-        source "$LIB_DIR/$lib"
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: Loaded library: $lib" >&2
-      else
-        echo "ERROR: Required library not found: $LIB_DIR/$lib" >&2
-        echo "Make sure the base init container has prepared the libraries." >&2
-        exit 1
-      fi
-    done
-
-    # ============================================================================
-    # Configuration Constants
-=======
-    # DRY_RUN Mode Support
->>>>>>> 98bd789 (beta8)
-    # ============================================================================
-    # When DRY_RUN=true, commands are printed but not executed
-    # Useful for testing what would happen without making changes
-
-<<<<<<< HEAD
-    # Database lock configuration
-    readonly CHECK_INTERVAL=5
-    readonly STALE_LOCK_THRESHOLD=120  # Consider lock stale after 2 minutes (handles pod deletion)
-    readonly MAX_WAIT=$((STALE_LOCK_THRESHOLD + 30))  # Wait a bit longer than stale threshold
-    readonly DB_CHECK_RETRY_INTERVAL=15  # Seconds between database connection checks
-
-    # WordPress paths
-    readonly WP_PLUGINS_DIR="wp-content/plugins"
-    readonly WP_THEMES_DIR="wp-content/themes"
-    readonly WP_MU_PLUGINS_DIR="wp-content/mu-plugins"
-
-    # Composer configuration
-    readonly COMPOSER_HOME_DIR="/tmp/.composer"
-    readonly COMPOSER_INSTALL_DIR="/tmp"
-
-    # Runtime variables
-    WAIT_TIME=0
-    COMPOSER_PACKAGES_MODIFIED=false
-    COMPOSER_PLUGINS_PENDING_ACTIVATION=()
-    ASSERT_FAILURES=0
-=======
-    # Execute a command, respecting DRY_RUN mode
-    # In DRY_RUN mode, prints the command instead of executing
-    #
-    # Args:
-    #   $@ - Command and arguments to execute
-    execute() {
-      if [ "${DRY_RUN}" = "true" ]; then
-        echo "[DRY_RUN] Would execute: $*"
-        return 0
-      fi
-      "$@"
-    }
->>>>>>> 98bd789 (beta8)
-
-<<<<<<< HEAD
-    # Setup exit trap for lock release
-=======
     # ============================================================================
     # Core Helper Functions
     # ============================================================================
@@ -1095,206 +600,6 @@ data:
       wp db query "DELETE FROM ${TABLE_PREFIX:-wp_}options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
       return 0
     }
-<<<<<<< HEAD
-
->>>>>>> 1003169 (beta3)
-    trap release_lock EXIT
-
-    # ============================================================================
-<<<<<<< HEAD
-=======
-    # Helper Functions
-    # ============================================================================
-
-    # WP-CLI wrapper with optional debug output
-    # Uses global DEBUG flag to control verbosity
-    #
-    # Args: All arguments are passed through to wp-cli
-    #
-    # Performance Note:
-    #   Each wp call loads WordPress core - can be slow
-    #   Use batch operations where possible (e.g., install multiple plugins at once)
-    wp() {
-      if [ "${DEBUG}" = "true" ]; then
-        command wp --path="${WORDPRESS_PATH}" --debug "$@"
-      else
-        command wp --path="${WORDPRESS_PATH}" "$@"
-      fi
-    }
-
-    # Run commands with optional output suppression based on DEBUG flag
-    #
-    # Args: Command and arguments to execute
-    run() {
-      if [ "${DEBUG}" = "true" ]; then
-        "$@"
-      else
-        "$@" >/dev/null 2>&1
-      fi
-    }
-
-    # Standardized error handler
-    # Logs error message and exits with code 1
-    #
-    # Args:
-    #   $1 - Error message to display
-    #
-    # Error Message Guidelines:
-    #   - Be specific about what failed
-    #   - Include relevant context (file paths, package names, etc.)
-    #   - Suggest next steps when possible
-    #
-    # Examples:
-    #   handle_error "Failed to download Composer installer after retries"
-    #   handle_error "Invalid Composer installer checksum"
-    #   handle_error "Cannot access Composer install directory"
-    handle_error() {
-      echo "ERROR: $1" >&2
-      exit 1
-    }
-
-    # Retry wrapper for network operations with exponential backoff
-    # Retries failed commands up to MAX_RETRIES times with increasing delays
-    #
-    # Args:
-    #   $@ - Command and arguments to execute
-    #
-    # Returns:
-    #   0 - Command succeeded (possibly after retries)
-    #   1 - Command failed after all retries exhausted
-    #
-    # Environment:
-    #   MAX_RETRIES - Maximum retry attempts (default: 3)
-    #   RETRY_DELAY - Base delay in seconds (default: 2)
-    retry_command() {
-      local max_retries=${MAX_RETRIES:-3}
-      local retry_delay=${RETRY_DELAY:-2}
-      local attempt=1
-      local exit_code=0
-
-      while [ $attempt -le $max_retries ]; do
-        if "$@"; then
-          return 0
-        fi
-        exit_code=$?
-
-        if [ $attempt -lt $max_retries ]; then
-          local wait_time=$((retry_delay * attempt))
-          echo "Command failed (attempt $attempt/$max_retries), retrying in ${wait_time}s..." >&2
-          sleep $wait_time
-        fi
-
-        attempt=$((attempt + 1))
-      done
-
-      echo "Command failed after $max_retries attempts" >&2
-      return $exit_code
-    }
-
-    # Validate package name to prevent injection attacks
-    # Checks for dangerous characters and patterns
-    #
-    # Args:
-    #   $1 - Package name to validate
-    #
-    # Returns:
-    #   0 - Package name is valid
-    #   1 - Package name contains invalid characters
-    validate_package_name() {
-      local name="$1"
-
-      # Check for empty name
-      if [ -z "$name" ]; then
-        echo "ERROR: Package name cannot be empty" >&2
-        return 1
-      fi
-
-      # Check for dangerous characters (backticks, semicolons, pipes, etc.)
-      if echo "$name" | grep -qE '[`;|&$()<>]'; then
-        echo "ERROR: Package name contains invalid characters: $name" >&2
-        return 1
-      fi
-
-      # Check for path traversal attempts
-      if echo "$name" | grep -q '\.\.'; then
-        echo "ERROR: Package name contains path traversal: $name" >&2
-        return 1
-      fi
-
-      return 0
-    }
-
-    # Retry wrapper for network operations with exponential backoff
-    # Retries failed commands up to MAX_RETRIES times with increasing delays
-    #
-    # Args:
-    #   $@ - Command and arguments to execute
-    #
-    # Returns:
-    #   0 - Command succeeded (possibly after retries)
-    #   1 - Command failed after all retries exhausted
-    #
-    # Environment:
-    #   MAX_RETRIES - Maximum retry attempts (default: 3)
-    #   RETRY_DELAY - Base delay in seconds (default: 2)
-    retry_command() {
-      local max_retries=${MAX_RETRIES:-3}
-      local retry_delay=${RETRY_DELAY:-2}
-      local attempt=1
-      local exit_code=0
-
-      while [ $attempt -le $max_retries ]; do
-        if "$@"; then
-          return 0
-        fi
-        exit_code=$?
-
-        if [ $attempt -lt $max_retries ]; then
-          local wait_time=$((retry_delay * attempt))
-          echo "Command failed (attempt $attempt/$max_retries), retrying in ${wait_time}s..." >&2
-          sleep $wait_time
-        fi
-
-        attempt=$((attempt + 1))
-      done
-
-      echo "Command failed after $max_retries attempts" >&2
-      return $exit_code
-    }
-
-    # Validate package name to prevent injection attacks
-    # Checks for dangerous characters and patterns
-    #
-    # Args:
-    #   $1 - Package name to validate
-    #
-    # Returns:
-    #   0 - Package name is valid
-    #   1 - Package name contains invalid characters
-    validate_package_name() {
-      local name="$1"
-
-      # Check for empty name
-      if [ -z "$name" ]; then
-        echo "ERROR: Package name cannot be empty" >&2
-        return 1
-      fi
-
-      # Check for dangerous characters (backticks, semicolons, pipes, etc.)
-      if echo "$name" | grep -qE '[`;|&$()<>]'; then
-        echo "ERROR: Package name contains invalid characters: $name" >&2
-        return 1
-      fi
-
-      # Check for path traversal attempts
-      if echo "$name" | grep -q '\.\.'; then
-        echo "ERROR: Package name contains path traversal: $name" >&2
-        return 1
-      fi
-
-      return 0
-    }
-=======
   # ============================================================================
   # Library: Composer Functions (lib-composer.sh)
   # ============================================================================
@@ -1304,7 +609,6 @@ data:
     #!/bin/bash
     # WordPress Helm Chart - Composer Library
     # Provides Composer package management utilities
->>>>>>> 98bd789 (beta8)
 
     # Install Composer on-demand to temporary directory
     # Downloads, verifies checksum, and installs to COMPOSER_INSTALL_DIR
@@ -1466,7 +770,6 @@ data:
     trap release_lock EXIT
 
     # ============================================================================
->>>>>>> aae887d (beta2)
     # Wait for Database
     # ============================================================================
 
@@ -1492,15 +795,6 @@ data:
 
     if [ "${WP_INIT}" = "true" ]; then
       if ! run wp core is-installed --url="${WP_URL}"; then
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-        echo "========================================="
-        echo "Setting up WordPress..."
-        echo "========================================="
->>>>>>> aae887d (beta2)
-=======
->>>>>>> 61d45e1 (wordpress 0.8.0 preps)
         run wp core install \
           --url="${WP_URL}" \
           --title="${WP_TITLE}" \
@@ -1803,240 +1097,6 @@ data:
       fi
     fi
     {{- end }}
-<<<<<<< HEAD
-
-    # ============================================================================
-    # WordPress Configuration (Localization, Permalinks, User Metadata)
-    # ============================================================================
-
-    if [ "${WP_INIT}" = "true" ]; then
-        echo "========================================="
-        echo "WordPress Configuration..."
-        echo "========================================="
-      # Set language
-      if [ -n "${WP_LOCALE}" ]; then
-        LANG_STATUS=$(wp language core list --language=${WP_LOCALE} --field=status 2>/dev/null || echo "uninstalled")
-        case $LANG_STATUS in
-          "uninstalled")
-            echo "Installing language pack: ${WP_LOCALE}..."
-            wp language core install ${WP_LOCALE} --activate
-            ;;
-          "installed")
-            wp site switch-language ${WP_LOCALE}
-            ;;
-        esac
-
-        # Check if language pack update is available
-        LANG_UPDATE=$(wp language core list --language=${WP_LOCALE} --field=update 2>/dev/null || echo "none")
-        if [ "$LANG_UPDATE" = "available" ]; then
-          echo "Updating language pack for ${WP_LOCALE}..."
-          wp language core update || true
-        fi
-      fi
-
-      # Set permalinks
-      if [ -n "${WP_PERMALINK_STRUCTURE}" ]; then
-        echo "Setting WordPress permalinks to: ${WP_PERMALINK_STRUCTURE}"
-        run wp rewrite structure "${WP_PERMALINK_STRUCTURE}"
-        run wp rewrite flush
-      fi
-
-      # Set admin user metadata
-      if [ -n "${WP_ADMIN_FIRSTNAME}" ]; then
-        CURRENT_FIRSTNAME=$(wp user meta get "$WP_ADMIN_USER" first_name 2>/dev/null || echo "")
-        if [ "$CURRENT_FIRSTNAME" != "$WP_ADMIN_FIRSTNAME" ]; then
-          echo "Setting admin first name..."
-          wp user meta update "$WP_ADMIN_USER" first_name "$WP_ADMIN_FIRSTNAME"
-        fi
-      fi
-      if [ -n "${WP_ADMIN_LASTNAME}" ]; then
-        CURRENT_LASTNAME=$(wp user meta get "$WP_ADMIN_USER" last_name 2>/dev/null || echo "")
-        if [ "$CURRENT_LASTNAME" != "$WP_ADMIN_LASTNAME" ]; then
-          echo "Setting admin last name..."
-          wp user meta update "$WP_ADMIN_USER" last_name "$WP_ADMIN_LASTNAME"
-        fi
-      fi
-    fi
-
-    # ============================================================================
-    # Create Custom Users
-    # ============================================================================
-
-    {{- if .Values.wordpress.users }}
-    echo "Creating custom users..."
-    EXISTING_USERS=$(wp user list --field=user_login 2>/dev/null || echo "")
-
-    {{- range .Values.wordpress.users }}
-    if ! echo "$EXISTING_USERS" | grep -q "^{{ .username }}$"; then
-      echo "Creating user {{ .username }}..."
-      run wp user create "{{ .username }}" "{{ .email }}" \
-        --role="{{ .role }}" \
-        --display_name="{{ .displayname }}" \
-        --first_name="{{ .firstname }}" \
-        --last_name="{{ .lastname }}" \
-        --send-email="{{ .sendEmail }}"
-    else
-      echo "User {{ .username }} already exists, skipping."
-    fi
-    {{- end }}
-    {{- else }}
-    echo "No custom users specified."
-    {{- end }}
-
-=======
->>>>>>> 61d45e1 (wordpress 0.8.0 preps)
-    # ============================================================================
-    # Composer Configuration
-    # ============================================================================
-    #
-    # Process Overview:
-    #   1. Cache plugin lists upfront (avoid repeated wp-cli calls)
-    #   2. Detect package type (Composer vs WP repository vs URL)
-    #   3. Validate package names for security
-    #   4. Batch operations for performance
-    #   5. Install with retry logic for network resilience
-    #   6. Activate and configure auto-updates
-    #
-    # Performance Optimizations:
-    #   - Batch installation (wp plugin install plugin1 plugin2 plugin3)
-    #   - Cached plugin lists (single wp-cli call)
-    #   - Skip already installed packages
-    #
-    # Error Handling:
-    #   - Validation errors: Skip package with warning
-    #   - Network errors: Retry with exponential backoff
-    #   - Composer errors: Exit with detailed message
-
-    # Only initialize Composer if we have Composer packages to install
-    {{- if or .Values.wordpress.plugins .Values.wordpress.themes }}
-    HAS_COMPOSER_PACKAGES=false
-    {{- if .Values.wordpress.plugins }}
-    {{- range .Values.wordpress.plugins }}
-    {{- $name := .name }}
-    {{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
-    HAS_COMPOSER_PACKAGES=true
-    {{- end }}
-    {{- end }}
-    {{- end }}
-    {{- if .Values.wordpress.themes }}
-    {{- range .Values.wordpress.themes }}
-    {{- $name := .name }}
-    {{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
-    HAS_COMPOSER_PACKAGES=true
-    {{- end }}
-    {{- end }}
-    {{- end }}
-
-    if [ "$HAS_COMPOSER_PACKAGES" = "true" ]; then
-      echo "========================================="
-      echo "Setting up Composer configuration..."
-      echo "========================================="
-      ensure_composer
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
-
-      # Track if any Composer packages were installed/updated (to run composer install later)
-      COMPOSER_PACKAGES_MODIFIED=false
-
-      # Initialize composer.json if it doesn't exist
-      if [ ! -f composer.json ]; then
-        echo "Creating composer.json..."
-        cat > composer.json << 'COMPOSERJSON'
-    {
-      "name": "wordpress/site",
-      "description": "WordPress site managed by Helm",
-      "type": "project",
-      "require": {},
-      "repositories": [
-        {
-          "type": "composer",
-          "url": "https://wpackagist.org"
-        }{{- if .Values.wordpress.composer.repositories }}{{- range .Values.wordpress.composer.repositories }},
-        {
-          "type": "{{ .type }}",
-          "url": "{{ .url }}"{{- if .options }},
-          "options": {{ .options | toJson }}{{- end }}
-        }{{- end }}{{- end }}
-      ],
-      "extra": {
-        "installer-paths": {
-          "wp-content/plugins/{$name}/": ["type:wordpress-plugin"],
-          "wp-content/themes/{$name}/": ["type:wordpress-theme"]
-        }
-      },
-      "config": {
-        "allow-plugins": {
-          "composer/installers": true
-        }
-      }
-    }
-    COMPOSERJSON
-        echo "composer.json created!"
-      else
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: composer.json already exists"
-        {{- if .Values.wordpress.composer }}
-        # Update repositories in existing composer.json
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: Updating custom repositories..."
-
-        # Build JSON array of custom repositories
-        CUSTOM_REPOS='[{{- range $index, $repo := .Values.wordpress.composer.repositories }}{{- if $index }},{{- end }}{{ $repo | toJson }}{{- end }}]'
-
-        # Use PHP to merge repositories (wpackagist + custom repos)
-        export CUSTOM_REPOS
-        TEMP_JSON=$(cat composer.json | php -r '
-          $json = json_decode(file_get_contents("php://stdin"), true);
-          $customReposJson = getenv("CUSTOM_REPOS");
-          $customRepos = json_decode($customReposJson, true);
-
-          // Remove any numeric keys that might have been added by mistake (only at top level)
-          $cleanJson = [];
-          foreach ($json as $key => $value) {
-            if (!is_numeric($key)) {
-              $cleanJson[$key] = $value;
-            }
-          }
-          $json = $cleanJson;
-
-          // Keep wpackagist repo
-          $wpackagist = ["type" => "composer", "url" => "https://wpackagist.org"];
-
-          // Build repositories array (wpackagist + custom repos)
-          $repos = [$wpackagist];
-          if (is_array($customRepos) && !empty($customRepos)) {
-            foreach ($customRepos as $repo) {
-              if (is_array($repo)) {
-                $repos[] = $repo;
-              }
-            }
-          }
-          $json["repositories"] = $repos;
-
-          // Ensure allow-plugins config is preserved/set
-          if (!isset($json["config"])) {
-            $json["config"] = [];
-          }
-          if (!isset($json["config"]["allow-plugins"])) {
-            $json["config"]["allow-plugins"] = [];
-          }
-          $json["config"]["allow-plugins"]["composer/installers"] = true;
-
-          echo json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        ')
-
-        echo "$TEMP_JSON" > composer.json
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: Custom repositories updated!"
-        {{- end }}
-      fi
-
-      # Set allow-plugins config before requiring composer/installers
-      composer config --no-plugins allow-plugins.composer/installers true
-
-      # Ensure composer/installers is available for installer-paths
-      if ! composer show composer/installers &>/dev/null; then
-        echo "Installing composer/installers..."
-        composer require composer/installers --no-interaction --quiet 2>&1 | grep -v "suggest" | grep -v "funding" || true
-      fi
-    fi
-    {{- end }}
 
     # ============================================================================
     # Plugin Management
@@ -2074,10 +1134,6 @@ data:
     # Returns:
     #   0 - Is a Composer package (contains / but not URL)
     #   1 - Not a Composer package
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 1003169 (beta3)
     #
     # Performance:
     #   String pattern matching (fast, no subprocess)
@@ -2086,11 +1142,6 @@ data:
     #   is_composer_package "wpackagist-plugin/akismet" -> 0 (true)
     #   is_composer_package "akismet" -> 1 (false)
     #   is_composer_package "https://example.com/plugin.zip" -> 1 (false)
-<<<<<<< HEAD
-=======
->>>>>>> aae887d (beta2)
-=======
->>>>>>> 1003169 (beta3)
     is_composer_package() {
       local name="$1"
       # Check if it contains / and doesn't start with http:// or https://
@@ -2147,10 +1198,6 @@ data:
     # ============================================================================
     # Plugin Management
     # ============================================================================
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 1003169 (beta3)
     #
     # Process Overview:
     #   1. Detect package type (Composer vs WP repository vs URL)
@@ -2169,24 +1216,10 @@ data:
     #   - Network errors: Retry with exponential backoff
     #   - Composer errors: Exit with detailed message
     #
-<<<<<<< HEAD
     # Handle custom plugins
     {{- if .Values.wordpress.plugins }}
     echo "========================================="
     echo "Processing plugins..."
-=======
-
-=======
->>>>>>> 1003169 (beta3)
-    # Handle custom plugins
-    {{- if .Values.wordpress.plugins }}
-    echo "========================================="
-<<<<<<< HEAD
-    echo "Installing custom plugins..."
->>>>>>> aae887d (beta2)
-=======
-    echo "Processing plugins..."
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     echo "========================================="
 
     PLUGINS_TO_INSTALL=()
@@ -2196,7 +1229,6 @@ data:
     COMPOSER_PLUGINS_TO_INSTALL=()
     COMPOSER_PLUGINS_TO_ACTIVATE=()
     COMPOSER_PLUGINS_TO_UPDATE=()
-<<<<<<< HEAD
 
     {{- range .Values.wordpress.plugins }}
     # Plugin: {{ .name | lower }}
@@ -2211,7 +1243,6 @@ data:
     # Check if it's a Composer package
     if is_composer_package "$PLUGIN_NAME"; then
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Detected Composer package: $PLUGIN_NAME"
-<<<<<<< HEAD
       COMPOSER_SLUG=$(get_composer_slug "$PLUGIN_NAME")
 
       # Check if already installed via composer.json AND plugin directory exists
@@ -2236,48 +1267,6 @@ data:
       else
         {{- if .version }}
         COMPOSER_PLUGINS_TO_INSTALL+=("{{ .name | lower }}:{{ .version }}")
-=======
-
-    {{- range .Values.wordpress.plugins }}
-    # Plugin: {{ .name }}
-    PLUGIN_NAME="{{ .name }}"
-
-    # Validate package name before processing
-    if ! validate_package_name "$PLUGIN_NAME"; then
-      echo "Skipping invalid plugin name: $PLUGIN_NAME"
-      continue
-    fi
-
-    # Check if it's a Composer package
-    if is_composer_package "$PLUGIN_NAME"; then
-      echo "Detected Composer package: $PLUGIN_NAME"
-=======
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
-      COMPOSER_SLUG=$(get_composer_slug "$PLUGIN_NAME")
-
-      # Check if already installed via composer.json AND plugin directory exists
-      # Plugin might be in composer.json but files deleted (e.g., after pruning)
-      if [ -f /var/www/html/composer.json ] && grep -q "\"$PLUGIN_NAME\"" /var/www/html/composer.json 2>/dev/null; then
-        if [ -d "/var/www/html/${WP_PLUGINS_DIR}/${COMPOSER_SLUG}" ]; then
-          [ "${DEBUG}" = "true" ] && echo "DEBUG: Composer package $PLUGIN_NAME already installed"
-
-          {{- if .autoupdate }}
-          {{- if not .version }}
-          # Auto-update only works for packages without fixed version AND already installed
-          COMPOSER_PLUGINS_TO_UPDATE+=("$PLUGIN_NAME")
-          {{- else }}
-          echo "Note: Auto-update skipped for $PLUGIN_NAME (fixed version specified)"
-          {{- end }}
-          {{- end }}
-        else
-          # Package in composer.json but files missing - need to run composer install
-          echo "Composer package $PLUGIN_NAME in composer.json but plugin directory missing - will reinstall"
-          COMPOSER_PACKAGES_MODIFIED=true
-        fi
-      else
-        {{- if .version }}
-        COMPOSER_PLUGINS_TO_INSTALL+=("{{ .name }}:{{ .version }}")
->>>>>>> aae887d (beta2)
         {{- else }}
         COMPOSER_PLUGINS_TO_INSTALL+=("$PLUGIN_NAME")
         {{- end }}
@@ -2345,8 +1334,6 @@ data:
     # Install Composer plugins
     if [ ${#COMPOSER_PLUGINS_TO_INSTALL[@]} -gt 0 ]; then
       echo "Installing ${#COMPOSER_PLUGINS_TO_INSTALL[@]} Composer plugin(s)..."
-<<<<<<< HEAD
-<<<<<<< HEAD
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
       for package_spec in "${COMPOSER_PLUGINS_TO_INSTALL[@]}"; do
@@ -2355,24 +1342,6 @@ data:
         if ! COMPOSER_OUTPUT=$(retry_command composer require "$package_spec" --no-interaction 2>&1); then
           echo "$COMPOSER_OUTPUT"
           handle_error "Error installing Composer package: $package_spec (failed after retries)"
-=======
-      cd /var/www/html || exit 1
-=======
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
->>>>>>> 1003169 (beta3)
-
-      for package_spec in "${COMPOSER_PLUGINS_TO_INSTALL[@]}"; do
-        echo "Installing Composer package: $package_spec"
-        # Capture output and only show on error, with retry logic
-        if ! COMPOSER_OUTPUT=$(retry_command composer require "$package_spec" --no-interaction 2>&1); then
-          echo "$COMPOSER_OUTPUT"
-<<<<<<< HEAD
-          echo "Error installing Composer package: $package_spec"
-          exit 1
->>>>>>> aae887d (beta2)
-=======
-          handle_error "Error installing Composer package: $package_spec (failed after retries)"
->>>>>>> 1003169 (beta3)
         fi
       done
 
@@ -2384,10 +1353,6 @@ data:
 
     # Update Composer plugins (auto-update for packages without fixed version)
     if [ ${#COMPOSER_PLUGINS_TO_UPDATE[@]} -gt 0 ]; then
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Checking for Composer plugin updates..."
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
@@ -2499,25 +1464,6 @@ data:
       echo "Composer autoloader MU-Plugin created!"
       echo "Plugin dependencies installed!"
     fi
-=======
-      echo "Updating ${#COMPOSER_PLUGINS_TO_UPDATE[@]} Composer plugin(s)..."
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
-
-      for package in "${COMPOSER_PLUGINS_TO_UPDATE[@]}"; do
-        echo "Updating Composer package: $package"
-        # Capture output and only show on error, with retry logic
-        if ! COMPOSER_OUTPUT=$(retry_command composer update "$package" --no-interaction 2>&1); then
-          echo "$COMPOSER_OUTPUT"
-          handle_error "Error updating Composer package: $package (failed after retries)"
-        fi
-      done
-
-      echo "Composer plugins updated!"
-      COMPOSER_PACKAGES_MODIFIED=true
-    fi
-
-    # Install all Composer dependencies will be done after themes processing
->>>>>>> aae887d (beta2)
 
     # Batch activate plugins
     if [ ${#PLUGINS_TO_ACTIVATE[@]} -gt 0 ]; then
@@ -2536,14 +1482,7 @@ data:
     fi
 
     # Activate Composer plugins
-<<<<<<< HEAD
-<<<<<<< HEAD
     # NOTE: This may fail if composer install hasn't run yet - will be retried after composer install
-=======
->>>>>>> aae887d (beta2)
-=======
-    # NOTE: This may fail if composer install hasn't run yet - will be retried after composer install
->>>>>>> 98bd789 (beta8)
     if [ ${#COMPOSER_PLUGINS_TO_ACTIVATE[@]} -gt 0 ]; then
       COMPOSER_PLUGINS_NEED_ACTIVATION=()
       for plugin in "${COMPOSER_PLUGINS_TO_ACTIVATE[@]}"; do
@@ -2554,10 +1493,6 @@ data:
 
       if [ ${#COMPOSER_PLUGINS_NEED_ACTIVATION[@]} -gt 0 ]; then
         echo "Activating ${#COMPOSER_PLUGINS_NEED_ACTIVATION[@]} Composer plugin(s)..."
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 98bd789 (beta8)
         # Don't fail here - plugins may not exist yet if composer install hasn't run
         # They will be activated after composer install runs
         if ! run wp plugin activate "${COMPOSER_PLUGINS_NEED_ACTIVATION[@]}"; then
@@ -2566,13 +1501,6 @@ data:
         else
           ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
         fi
-<<<<<<< HEAD
-=======
-        run wp plugin activate "${COMPOSER_PLUGINS_NEED_ACTIVATION[@]}"
-        ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
->>>>>>> aae887d (beta2)
-=======
->>>>>>> 98bd789 (beta8)
       fi
     fi
 
@@ -2590,7 +1518,6 @@ data:
         run wp plugin auto-updates enable "${PLUGINS_NEED_AUTOUPDATE[@]}"
       fi
     fi
-<<<<<<< HEAD
     {{- end }}
 
     {{- if .Values.wordpress.pluginsPrune }}
@@ -2657,95 +1584,11 @@ data:
         wp plugin delete --all >/dev/null 2>&1 || true
       fi
     fi
-=======
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
-    {{- end }}
-
-    {{- if .Values.wordpress.pluginsPrune }}
-    # ============================================================================
-    # Plugin Pruning - Remove plugins not in the defined list
-    # ============================================================================
-
-    # Build comma-separated list of plugins to exclude from deletion
-    # Includes both regular plugins and slugs extracted from Composer packages
-    EXCLUDE_PLUGINS=""
-    COMPOSER_PACKAGES_TO_KEEP=()
-    COMPOSER_THEME_PACKAGES_TO_KEEP=()
-    {{- $excludeList := list }}
-    {{- if .Values.wordpress.plugins }}
-<<<<<<< HEAD
-    {{- range $index, $plugin := .Values.wordpress.plugins }}
-    {{- $name := $plugin.name }}
-=======
-    {{- range $plugin := .Values.wordpress.plugins }}
-    {{- $name := $plugin.name | lower }}
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
-    {{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
-    # Composer package: {{ $name }} -> slug: {{ $name | splitList "/" | last }}
-    COMPOSER_PACKAGES_TO_KEEP+=("{{ $name }}")
-    {{- $excludeList = append $excludeList ($name | splitList "/" | last) }}
-    {{- else }}
-    # Regular plugin: {{ $name }}
-<<<<<<< HEAD
-    {{- if eq $index 0 }}
-    EXCLUDE_PLUGINS="{{ $plugin.name }}"
-    {{- else }}
-    EXCLUDE_PLUGINS="${EXCLUDE_PLUGINS},{{ $plugin.name }}"
-=======
-    {{- $excludeList = append $excludeList $name }}
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
-    {{- end }}
-    {{- end }}
-    {{- end }}
-    {{- if $excludeList }}
-    EXCLUDE_PLUGINS="{{ $excludeList | join "," }}"
-    {{- end }}
-    {{- if .Values.wordpress.themes }}
-    {{- range .Values.wordpress.themes }}
-    {{- $name := .name }}
-    {{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
-    # Composer theme package: {{ $name }}
-    COMPOSER_THEME_PACKAGES_TO_KEEP+=("{{ $name }}")
-    {{- end }}
-    {{- end }}
-    {{- end }}
-    {{- if .Values.metrics.wordpress.enabled }}
-    {{- if .Values.metrics.wordpress.installPlugin }}
-    {{- if .Values.metrics.wordpress.pluginNameOverride }}
-    [ -n "$EXCLUDE_PLUGINS" ] && EXCLUDE_PLUGINS="${EXCLUDE_PLUGINS},{{ .Values.metrics.wordpress.pluginNameOverride }}" || EXCLUDE_PLUGINS="{{ .Values.metrics.wordpress.pluginNameOverride }}"
-    {{- else }}
-    [ -n "$EXCLUDE_PLUGINS" ] && EXCLUDE_PLUGINS="${EXCLUDE_PLUGINS},slymetrics" || EXCLUDE_PLUGINS="slymetrics"
-    {{- end }}
-    {{- end }}
-    {{- end }}
-
-    # Delete all plugins except those in the exclude list
-    # Only show output if plugins are actually deleted
-    if [ -n "$EXCLUDE_PLUGINS" ]; then
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Keeping plugins: $EXCLUDE_PLUGINS"
-      PLUGINS_BEFORE=$(wp plugin list --field=name 2>/dev/null | wc -l || echo "0")
-      wp plugin delete --all --exclude="$EXCLUDE_PLUGINS" >/dev/null 2>&1 || true
-      PLUGINS_AFTER=$(wp plugin list --field=name 2>/dev/null | wc -l || echo "0")
-      PRUNED_COUNT=$((PLUGINS_BEFORE - PLUGINS_AFTER))
-      if [ "$PRUNED_COUNT" -gt 0 ]; then
-        echo "Pruned $PRUNED_COUNT plugin(s)"
-      fi
-    else
-      PLUGINS_COUNT=$(wp plugin list --field=name 2>/dev/null | wc -l || echo "0")
-      if [ "$PLUGINS_COUNT" -gt 0 ]; then
-        echo "Pruning all $PLUGINS_COUNT plugin(s)..."
-        wp plugin delete --all >/dev/null 2>&1 || true
-      fi
-    fi
     {{- end }}
 
     # ============================================================================
     # Theme Management
     # ============================================================================
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 1003169 (beta3)
     #
     # Process Overview:
     #   1. Detect package type (Composer vs WP repository vs URL)
@@ -2764,21 +1607,8 @@ data:
     #   - Network errors: Retry with exponential backoff
     #   - Composer errors: Exit with detailed message
     #
-<<<<<<< HEAD
     echo "========================================="
     echo "Processing themes..."
-=======
-
-    {{- if .Values.wordpress.themes }}
-=======
->>>>>>> 1003169 (beta3)
-    echo "========================================="
-<<<<<<< HEAD
-    echo "Installing custom themes..."
->>>>>>> aae887d (beta2)
-=======
-    echo "Processing themes..."
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     echo "========================================="
 
     # Cache all theme data upfront
@@ -2816,7 +1646,6 @@ data:
     COMPOSER_THEMES_TO_UPDATE=()
 
     {{- range .Values.wordpress.themes }}
-<<<<<<< HEAD
     THEME_NAME="{{ .name | lower }}"
 
     # Validate package name before processing
@@ -2828,7 +1657,6 @@ data:
     # Check if it's a Composer package
     if is_composer_package "$THEME_NAME"; then
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Detected Composer theme package: $THEME_NAME"
-<<<<<<< HEAD
       COMPOSER_THEME_SLUG=$(get_composer_slug "$THEME_NAME")
 
       # Check if already installed via composer.json AND theme directory exists
@@ -2853,45 +1681,6 @@ data:
       else
         {{- if .version }}
         COMPOSER_THEMES_TO_INSTALL+=("{{ .name | lower }}:{{ .version }}")
-=======
-    THEME_NAME="{{ .name }}"
-
-    # Validate package name before processing
-    if ! validate_package_name "$THEME_NAME"; then
-      echo "Skipping invalid theme name: $THEME_NAME"
-      continue
-    fi
-
-    # Check if it's a Composer package
-    if is_composer_package "$THEME_NAME"; then
-      echo "Detected Composer theme package: $THEME_NAME"
-=======
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
-      COMPOSER_THEME_SLUG=$(get_composer_slug "$THEME_NAME")
-
-      # Check if already installed via composer.json AND theme directory exists
-      # Theme might be in composer.json but files deleted (e.g., after pruning)
-      if [ -f /var/www/html/composer.json ] && grep -q "\"$THEME_NAME\"" /var/www/html/composer.json 2>/dev/null; then
-        if [ -d "/var/www/html/${WP_THEMES_DIR}/${COMPOSER_THEME_SLUG}" ]; then
-          [ "${DEBUG}" = "true" ] && echo "DEBUG: Composer theme package $THEME_NAME already installed"
-
-          {{- if .autoupdate }}
-          {{- if not .version }}
-          # Auto-update only works for packages without fixed version AND already installed
-          COMPOSER_THEMES_TO_UPDATE+=("$THEME_NAME")
-          {{- else }}
-          echo "Note: Auto-update skipped for theme $THEME_NAME (fixed version specified)"
-          {{- end }}
-          {{- end }}
-        else
-          # Package in composer.json but files missing - need to run composer install
-          echo "Composer theme package $THEME_NAME in composer.json but theme directory missing - will reinstall"
-          COMPOSER_PACKAGES_MODIFIED=true
-        fi
-      else
-        {{- if .version }}
-        COMPOSER_THEMES_TO_INSTALL+=("{{ .name }}:{{ .version }}")
->>>>>>> aae887d (beta2)
         {{- else }}
         COMPOSER_THEMES_TO_INSTALL+=("$THEME_NAME")
         {{- end }}
@@ -2901,7 +1690,6 @@ data:
       COMPOSER_THEME_TO_ACTIVATE="$COMPOSER_THEME_SLUG"
       {{- end }}
     else
-<<<<<<< HEAD
       THEME_SLUG=$(get_theme_slug "{{ .name | lower }}")
 
       if ! echo "$INSTALLED_THEMES" | grep -q "^${THEME_SLUG}$"; then
@@ -2909,15 +1697,6 @@ data:
         THEMES_TO_INSTALL+=("{{ .name | lower }}:{{ .version }}")
         {{- else }}
         THEMES_TO_INSTALL+=("{{ .name | lower }}")
-=======
-      THEME_SLUG=$(get_theme_slug "{{ .name }}")
-
-      if ! echo "$INSTALLED_THEMES" | grep -q "^${THEME_SLUG}$"; then
-        {{- if .version }}
-        THEMES_TO_INSTALL+=("{{ .name }}:{{ .version }}")
-        {{- else }}
-        THEMES_TO_INSTALL+=("{{ .name }}")
->>>>>>> aae887d (beta2)
         {{- end }}
       fi
       {{- if .activate }}
@@ -2970,8 +1749,6 @@ data:
     # Install Composer themes
     if [ ${#COMPOSER_THEMES_TO_INSTALL[@]} -gt 0 ]; then
       echo "Installing ${#COMPOSER_THEMES_TO_INSTALL[@]} Composer theme(s)..."
-<<<<<<< HEAD
-<<<<<<< HEAD
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
       for package_spec in "${COMPOSER_THEMES_TO_INSTALL[@]}"; do
@@ -2980,24 +1757,6 @@ data:
         if ! COMPOSER_OUTPUT=$(retry_command composer require "$package_spec" --no-interaction 2>&1); then
           echo "$COMPOSER_OUTPUT"
           handle_error "Error installing Composer theme package: $package_spec (failed after retries)"
-=======
-      cd /var/www/html || exit 1
-=======
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
->>>>>>> 1003169 (beta3)
-
-      for package_spec in "${COMPOSER_THEMES_TO_INSTALL[@]}"; do
-        echo "Installing Composer theme package: $package_spec"
-        # Capture output and only show on error, with retry logic
-        if ! COMPOSER_OUTPUT=$(retry_command composer require "$package_spec" --no-interaction 2>&1); then
-          echo "$COMPOSER_OUTPUT"
-<<<<<<< HEAD
-          echo "Error installing Composer theme package: $package_spec"
-          exit 1
->>>>>>> aae887d (beta2)
-=======
-          handle_error "Error installing Composer theme package: $package_spec (failed after retries)"
->>>>>>> 1003169 (beta3)
         fi
       done
 
@@ -3009,10 +1768,6 @@ data:
 
     # Update Composer themes (auto-update for packages without fixed version)
     if [ ${#COMPOSER_THEMES_TO_UPDATE[@]} -gt 0 ]; then
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Checking for Composer theme updates..."
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
@@ -3049,22 +1804,6 @@ data:
         echo "$THEMES_UPDATED Composer theme(s) updated!"
         COMPOSER_PACKAGES_MODIFIED=true
       fi
-=======
-      echo "Updating ${#COMPOSER_THEMES_TO_UPDATE[@]} Composer theme(s)..."
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
-
-      for package in "${COMPOSER_THEMES_TO_UPDATE[@]}"; do
-        echo "Updating Composer theme package: $package"
-        # Capture output and only show on error, with retry logic
-        if ! COMPOSER_OUTPUT=$(retry_command composer update "$package" --no-interaction 2>&1); then
-          echo "$COMPOSER_OUTPUT"
-          handle_error "Error updating Composer theme package: $package (failed after retries)"
-        fi
-      done
-
-      echo "Composer themes updated!"
-      COMPOSER_PACKAGES_MODIFIED=true
->>>>>>> aae887d (beta2)
     fi
 
     # Activate theme
@@ -3103,12 +1842,7 @@ data:
     THEMES_TO_KEEP=()
     {{- if .Values.wordpress.themes }}
     {{- range .Values.wordpress.themes }}
-<<<<<<< HEAD
-<<<<<<< HEAD
     {{- $name := .name | lower }}
-=======
-    {{- $name := .name }}
->>>>>>> 1003169 (beta3)
     {{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
     # Composer theme package: {{ $name }}
     # Extract theme slug from Composer package name (e.g., wpackagist-theme/astra -> astra)
@@ -3116,26 +1850,9 @@ data:
     THEMES_TO_KEEP+=("$THEME_SLUG")
     {{- else }}
     # Regular theme: {{ $name }}
-<<<<<<< HEAD
     THEME_SLUG=$(get_theme_slug "{{ $name }}")
     THEMES_TO_KEEP+=("$THEME_SLUG")
     {{- end }}
-=======
-    THEME_NAME="{{ .name }}"
-    if is_composer_package "$THEME_NAME"; then
-      # Extract theme slug from Composer package name (e.g., wpackagist-theme/astra -> astra)
-      THEME_SLUG=$(echo "$THEME_NAME" | sed 's/.*\///')
-      THEMES_TO_KEEP+=("$THEME_SLUG")
-    else
-      THEME_SLUG=$(get_theme_slug "{{ .name }}")
-      THEMES_TO_KEEP+=("$THEME_SLUG")
-    fi
->>>>>>> aae887d (beta2)
-=======
-    THEME_SLUG=$(get_theme_slug "{{ .name }}")
-    THEMES_TO_KEEP+=("$THEME_SLUG")
-    {{- end }}
->>>>>>> 1003169 (beta3)
     {{- end }}
     {{- end }}
 
@@ -3206,33 +1923,16 @@ data:
 
     # Delete all themes in one command for better performance
     if [ ${#THEMES_TO_DELETE[@]} -gt 0 ]; then
-<<<<<<< HEAD
-<<<<<<< HEAD
       echo "Pruning ${#THEMES_TO_DELETE[@]} theme(s): ${THEMES_TO_DELETE[*]}"
       wp theme delete "${THEMES_TO_DELETE[@]}" 2>/dev/null || true
-=======
-      echo "Pruning themes not in the defined list..."
-      echo "Keeping active theme: $ACTIVE_THEME"
-      echo "Removing ${#THEMES_TO_DELETE[@]} theme(s): ${THEMES_TO_DELETE[*]}"
-      run wp theme delete "${THEMES_TO_DELETE[@]}"
->>>>>>> aae887d (beta2)
-=======
-      echo "Pruning ${#THEMES_TO_DELETE[@]} theme(s): ${THEMES_TO_DELETE[*]}"
-      wp theme delete "${THEMES_TO_DELETE[@]}" 2>/dev/null || true
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     fi
 
     # Remove Composer packages (plugins & themes) not in the keep lists
     if [ -f /var/www/html/composer.json ]; then
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 1003169 (beta3)
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
       # Ensure Composer is available for pruning operations
       ensure_composer
-<<<<<<< HEAD
 
       # Get all currently required packages from composer.json (excluding composer/installers)
       # Use PHP for reliable JSON parsing (performance: single process vs multiple sed/grep calls)
@@ -3262,43 +1962,6 @@ data:
       # Track packages that should be removed
       PACKAGES_TO_REMOVE=()
       ACTIVE_THEME_PACKAGE=""
-=======
-      cd /var/www/html || exit 1
-=======
->>>>>>> 1003169 (beta3)
-
-      # Get all currently required packages from composer.json (excluding composer/installers)
-      # Use PHP for reliable JSON parsing (performance: single process vs multiple sed/grep calls)
-      if [ -f composer.json ]; then
-        CURRENT_PACKAGES=$(php -r '
-          $json = json_decode(file_get_contents("composer.json"), true);
-          if (isset($json["require"])) {
-            foreach ($json["require"] as $package => $version) {
-              if ($package !== "composer/installers") {
-                echo $package . "\n";
-              }
-            }
-          }
-        ' 2>/dev/null || echo "")
-      else
-        CURRENT_PACKAGES=""
-      fi
-
-      # Debug: Show what we're keeping
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Composer packages to keep: ${COMPOSER_PACKAGES_TO_KEEP[*]}" >&2
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Composer theme packages to keep: ${COMPOSER_THEME_PACKAGES_TO_KEEP[*]}" >&2
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Current packages in composer.json: $CURRENT_PACKAGES" >&2
-
-      # Get active theme (might be a Composer theme)
-      ACTIVE_THEME=$(wp theme list --status=active --field=name 2>/dev/null || echo "")
-
-      # Track packages that should be removed
-      PACKAGES_TO_REMOVE=()
-<<<<<<< HEAD
->>>>>>> aae887d (beta2)
-=======
-      ACTIVE_THEME_PACKAGE=""
->>>>>>> 1003169 (beta3)
 
       for package in $CURRENT_PACKAGES; do
         KEEP=false
@@ -3321,10 +1984,6 @@ data:
           done
         fi
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 1003169 (beta3)
         # Check if this package is the active theme
         if [[ "$package" == wpackagist-theme/* ]]; then
           PACKAGE_SLUG="${package#wpackagist-theme/}"
@@ -3339,20 +1998,11 @@ data:
           fi
         fi
 
-<<<<<<< HEAD
-=======
->>>>>>> aae887d (beta2)
-=======
->>>>>>> 1003169 (beta3)
         if [ "$KEEP" = false ]; then
           PACKAGES_TO_REMOVE+=("$package")
         fi
       done
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 1003169 (beta3)
       # If active theme should be removed, try to activate fallback first
       # Note: This handles Composer theme packages that were already checked during WordPress theme pruning
       if [ -n "$ACTIVE_THEME_PACKAGE" ]; then
@@ -3370,11 +2020,6 @@ data:
         # If ACTIVE_THEME_SHOULD_BE_PRUNED=true, the theme was already switched above, so we can safely remove it
       fi
 
-<<<<<<< HEAD
-=======
->>>>>>> aae887d (beta2)
-=======
->>>>>>> 1003169 (beta3)
       # Remove all packages in one go
       if [ ${#PACKAGES_TO_REMOVE[@]} -gt 0 ]; then
         echo "========================================="
@@ -3393,7 +2038,6 @@ data:
     fi
     {{- end }}
 
-<<<<<<< HEAD
     # Install Composer theme dependencies after theme installation
     # Plugin dependencies were already installed before theme processing
     #
@@ -3474,117 +2118,7 @@ data:
         fi
       fi
     fi
-=======
-    # Install all Composer dependencies once after all packages are installed/updated
-    #
-    # Why this is necessary:
-    #   - Some packages (e.g., humanmade/s3-uploads) have their own composer.json
-    #   - These packages need dependencies installed in their vendor/ directory
-    #   - We also create a global autoloader for WordPress to load all dependencies
-    #
-    # Performance:
-    #   - Only runs if COMPOSER_PACKAGES_MODIFIED=true OR vendor/ doesn't exist
-    #   - Uses --quiet flag to suppress verbose output
-    #   - Batch processes all plugins/themes in single pass
-    #
-    # This ensures packages like s3-uploads get their dependencies (e.g., AWS SDK)
-    # Also run if vendor/ directory is missing (e.g., fresh install or after PVC wipe)
-    if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ! -d /var/www/html/vendor ]; then
-      [ ! -d /var/www/html/vendor ] && echo "Vendor directory missing, running composer install..."
-      echo ""
-      echo "========================================="
-      echo "Installing Composer dependencies..."
-      echo "========================================="
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
-      if ! COMPOSER_OUTPUT=$(retry_command composer install --no-interaction 2>&1 | grep -v "suggest" | grep -v "funding"); then
-        echo "$COMPOSER_OUTPUT"
-        handle_error "Error installing Composer dependencies (failed after retries)"
-      fi
-      echo "Composer dependencies installed!"
 
-      # Also run composer install in each plugin/theme directory that has a composer.json
-      # This is needed for packages like humanmade/s3-uploads that require their own vendor directory
-      echo "Installing plugin-specific Composer dependencies..."
-      for plugin_dir in ${WP_PLUGINS_DIR}/*/; do
-        if [ -f "${plugin_dir}composer.json" ]; then
-          PLUGIN_NAME=$(basename "$plugin_dir")
-          echo "Running composer install in plugin: $PLUGIN_NAME"
-          cd "$plugin_dir" || continue
-          if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
-            cat /tmp/composer-error.txt
-            echo "Warning: Could not install dependencies for plugin: $PLUGIN_NAME"
-          else
-            echo "Successfully installed dependencies for plugin: $PLUGIN_NAME"
-          fi
-          cd /var/www/html || handle_error "Cannot return to WordPress root directory"
-        fi
-      done
-
-      echo "Installing theme-specific Composer dependencies..."
-      for theme_dir in ${WP_THEMES_DIR}/*/; do
-        if [ -f "${theme_dir}composer.json" ]; then
-          THEME_NAME=$(basename "$theme_dir")
-          echo "Running composer install in theme: $THEME_NAME"
-          cd "$theme_dir" || continue
-          if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
-            cat /tmp/composer-error.txt
-            echo "Warning: Could not install dependencies for theme: $THEME_NAME"
-          else
-            echo "Successfully installed dependencies for theme: $THEME_NAME"
-          fi
-          cd /var/www/html || handle_error "Cannot return to WordPress root directory"
-        fi
-      done
-
-      # Create MU-Plugin to auto-load Composer autoloaders from plugins/themes
-      # This ensures dependencies like AWS SDK are available to plugins
-      echo "Creating MU-Plugin for Composer autoloader support..."
-      mkdir -p "${WP_MU_PLUGINS_DIR}"
-      cat > "${WP_MU_PLUGINS_DIR}/composer-autoloader.php" << 'MUEOF'
-    <?php
-    /**
-     * Plugin Name: Composer Autoloader
-     * Description: Automatically loads Composer autoloaders from plugins and themes
-     * Author: Helm Chart
-     * Version: 1.0.0
-     */
-
-    // Load Composer autoloaders from all plugins
-    foreach ( glob( WP_CONTENT_DIR . '/plugins/*/vendor/autoload.php' ) as $autoloader ) {
-    	require_once $autoloader;
-    }
-
-    // Load Composer autoloaders from all themes
-    foreach ( glob( WP_CONTENT_DIR . '/themes/*/vendor/autoload.php' ) as $autoloader ) {
-    	require_once $autoloader;
-    }
-    MUEOF
-      echo "Composer autoloader MU-Plugin created!"
-
-      # Activate Composer plugins that couldn't be activated before (they didn't exist yet)
-      if [ ${#COMPOSER_PLUGINS_PENDING_ACTIVATION[@]} -gt 0 ]; then
-        echo "Activating Composer plugins after composer install..."
-        # Refresh active plugins list
-        ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
-        PLUGINS_STILL_NEED_ACTIVATION=()
-        for plugin in "${COMPOSER_PLUGINS_PENDING_ACTIVATION[@]}"; do
-          if ! echo "$ACTIVE_PLUGINS" | grep -q "^${plugin}$"; then
-            PLUGINS_STILL_NEED_ACTIVATION+=("$plugin")
-          fi
-        done
-        if [ ${#PLUGINS_STILL_NEED_ACTIVATION[@]} -gt 0 ]; then
-          echo "Activating ${#PLUGINS_STILL_NEED_ACTIVATION[@]} Composer plugin(s)..."
-          run wp plugin activate "${PLUGINS_STILL_NEED_ACTIVATION[@]}" || echo "Warning: Some plugins could not be activated"
-        fi
-      fi
-    fi
-
-<<<<<<< HEAD
-    echo "WordPress initialization completed!"
->>>>>>> aae887d (beta2)
-
-=======
->>>>>>> 95812d4 (wordpress 0.8.0-rc.1)
     # ============================================================================
     # Custom Init Commands
     # ============================================================================

@@ -46,15 +46,7 @@ wordpress:
   configExtraSecret:
     name: "wordpress-test-secret"
   htaccessConfigMap: "wordpress-custom-config"
-<<<<<<< HEAD
-<<<<<<< HEAD
   url: "https://example.com"
-=======
-  url: "https//example.com"
->>>>>>> dad9257 (changed: wordpress: updated configExtraSecret and fixed URL format)
-=======
-  url: "https://example.com"
->>>>>>> 61d45e1 (wordpress 0.8.0 preps)
 service:
   nodePorts:
     http: 30111
