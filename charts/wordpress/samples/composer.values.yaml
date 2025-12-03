@@ -78,12 +78,18 @@ wordpress:
   pluginsPrune: true
   themesPrune: true
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 61d45e1 (wordpress 0.8.0 preps)
 
 service:
   nodePorts:
     http: 30111
+<<<<<<< HEAD
 =======
 >>>>>>> dad9257 (changed: wordpress: updated configExtraSecret and fixed URL format)
+=======
+>>>>>>> 61d45e1 (wordpress 0.8.0 preps)
 # Database configuration
 mariadb:
   enabled: true

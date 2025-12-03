@@ -1493,11 +1493,14 @@ data:
     if [ "${WP_INIT}" = "true" ]; then
       if ! run wp core is-installed --url="${WP_URL}"; then
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         echo "========================================="
         echo "Setting up WordPress..."
         echo "========================================="
 >>>>>>> aae887d (beta2)
+=======
+>>>>>>> 61d45e1 (wordpress 0.8.0 preps)
         run wp core install \
           --url="${WP_URL}" \
           --title="${WP_TITLE}" \
@@ -1590,6 +1593,81 @@ data:
         run wp option update "$setting" disabled
       fi
     done
+
+    # ============================================================================
+    # WordPress Configuration (Localization, Permalinks, User Metadata)
+    # ============================================================================
+
+    if [ "${WP_INIT}" = "true" ]; then
+      # Set language
+      if [ -n "${WP_LOCALE}" ]; then
+        LANG_STATUS=$(wp language core list --language=${WP_LOCALE} --field=status 2>/dev/null || echo "uninstalled")
+        case $LANG_STATUS in
+          "uninstalled")
+            echo "Installing language pack: ${WP_LOCALE}..."
+            wp language core install ${WP_LOCALE} --activate
+            ;;
+          "installed")
+            wp site switch-language ${WP_LOCALE}
+            ;;
+        esac
+
+        # Check if language pack update is available
+        LANG_UPDATE=$(wp language core list --language=${WP_LOCALE} --field=update 2>/dev/null || echo "none")
+        if [ "$LANG_UPDATE" = "available" ]; then
+          echo "Updating language pack for ${WP_LOCALE}..."
+          wp language core update || true
+        fi
+      fi
+
+      # Set permalinks
+      if [ -n "${WP_PERMALINK_STRUCTURE}" ]; then
+        echo "Setting WordPress permalinks to: ${WP_PERMALINK_STRUCTURE}"
+        run wp rewrite structure "${WP_PERMALINK_STRUCTURE}"
+        run wp rewrite flush
+      fi
+
+      # Set admin user metadata
+      if [ -n "${WP_ADMIN_FIRSTNAME}" ]; then
+        CURRENT_FIRSTNAME=$(wp user meta get "$WP_ADMIN_USER" first_name 2>/dev/null || echo "")
+        if [ "$CURRENT_FIRSTNAME" != "$WP_ADMIN_FIRSTNAME" ]; then
+          echo "Setting admin first name..."
+          wp user meta update "$WP_ADMIN_USER" first_name "$WP_ADMIN_FIRSTNAME"
+        fi
+      fi
+      if [ -n "${WP_ADMIN_LASTNAME}" ]; then
+        CURRENT_LASTNAME=$(wp user meta get "$WP_ADMIN_USER" last_name 2>/dev/null || echo "")
+        if [ "$CURRENT_LASTNAME" != "$WP_ADMIN_LASTNAME" ]; then
+          echo "Setting admin last name..."
+          wp user meta update "$WP_ADMIN_USER" last_name "$WP_ADMIN_LASTNAME"
+        fi
+      fi
+    fi
+
+    # ============================================================================
+    # Create Custom Users
+    # ============================================================================
+
+    {{- if .Values.wordpress.users }}
+    echo "Creating custom users..."
+    EXISTING_USERS=$(wp user list --field=user_login 2>/dev/null || echo "")
+
+    {{- range .Values.wordpress.users }}
+    if ! echo "$EXISTING_USERS" | grep -q "^{{ .username }}$"; then
+      echo "Creating user {{ .username }}..."
+      run wp user create "{{ .username }}" "{{ .email }}" \
+        --role="{{ .role }}" \
+        --display_name="{{ .displayname }}" \
+        --first_name="{{ .firstname }}" \
+        --last_name="{{ .lastname }}" \
+        --send-email="{{ .sendEmail }}"
+    else
+      echo "User {{ .username }} already exists, skipping."
+    fi
+    {{- end }}
+    {{- else }}
+    echo "No custom users specified."
+    {{- end }}
 
     # ============================================================================
     # Composer Configuration
@@ -1725,6 +1803,7 @@ data:
       fi
     fi
     {{- end }}
+<<<<<<< HEAD
 
     # ============================================================================
     # WordPress Configuration (Localization, Permalinks, User Metadata)
@@ -1804,6 +1883,8 @@ data:
     echo "No custom users specified."
     {{- end }}
 
+=======
+>>>>>>> 61d45e1 (wordpress 0.8.0 preps)
     # ============================================================================
     # Composer Configuration
     # ============================================================================
