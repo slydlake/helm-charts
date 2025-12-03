@@ -67,6 +67,10 @@ wordpress:
 
   pluginsPrune: true
   themesPrune: true
+
+service:
+  nodePorts:
+    http: 30111
 # Database configuration
 mariadb:
   enabled: true
