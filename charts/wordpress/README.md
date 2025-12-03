@@ -77,7 +77,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 
 ### Metrics and Monitoring
 - **WordPress Metrics**: Automatically install a WordPress Plugin for Prometheus metrics.
-  - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics] 
+  - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics]
 - **Apache Metrics**: Sidecar container for Apache metrics.
   - See details on GitHub Repo of (apache exporter from Lusitaniae)[https://github.com/Lusitaniae/apache_exporter]
 - **Grafana Dashboard**: Automatically deploy Grafana dashboard for WordPress metrics visualization.
@@ -242,6 +242,10 @@ wordpress:
       activate: true
 ```
 
-## Support
+## Upgrading
 
-For issues or contributions: [GitHub Repository](https://github.com/slydlake/helm-charts)
+### To 1.0.0
+This major release introduces new possibilities to use composer plugins and themes and muPlugins. Now it is possible to activate a prune mode for plugins and themes. This will uninstall all plugins/themes that are not listed in the values.
+
+Also adds more flexible user customization with init scripts. The init script is now a huge set to pre-configure and set up WordPress.
+For more, see the changelog.
