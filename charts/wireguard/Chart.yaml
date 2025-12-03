@@ -32,6 +32,7 @@ annotations:
   artifacthub.io/images: |
     - name: wireguard
       image: docker.io/linuxserver/wireguard:1.0.20250521-r0-ls92
+      image: docker.io/linuxserver/wireguard:1.0.20250521-r0-ls92
 keywords:
   - wireguard
   - vpn

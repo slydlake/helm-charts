@@ -167,6 +167,12 @@ jobs:
             else
               echo "skip=true" >> $GITHUB_OUTPUT
             fi
+            if [ "${{ github.event.inputs.force }}" == "true" ]; then
+              echo "Force flag set - will overwrite existing version"
+              echo "skip=false" >> $GITHUB_OUTPUT
+            else
+              echo "skip=true" >> $GITHUB_OUTPUT
+            fi
           else
             echo "Chart $chart_name:$chart_version does not exist, will publish"
             echo "skip=false" >> $GITHUB_OUTPUT
