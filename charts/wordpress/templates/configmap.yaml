@@ -872,7 +872,6 @@ data:
 
     echo "Database lock acquired, proceeding with initialization..."
 
-
     # ============================================================================
     # Disable WordPress Core Auto-Updates (managed by Helm chart via image updates)
     # ============================================================================
