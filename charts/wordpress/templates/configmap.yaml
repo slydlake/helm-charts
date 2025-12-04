@@ -276,10 +276,12 @@ data:
 
 
         # Inject default WordPress rules into fresh ConfigMap .htaccess
-          /tmp/htaccess-inject.sh \
-            /configfiles/.htaccess \
-            /tmp/htaccess-new \
-            /scripts/wordpress-rewrite-rules.txt        # Replace old .htaccess with updated one
+        /tmp/htaccess-inject.sh \
+          /configfiles/.htaccess \
+          /tmp/htaccess-new \
+          /scripts/wordpress-rewrite-rules.txt
+
+        # Replace old .htaccess with updated one
         mv /tmp/htaccess-new /tmp/wordpress/.htaccess
         chown www-data:www-data /tmp/wordpress/.htaccess
         chmod 664 /tmp/wordpress/.htaccess
@@ -314,7 +316,6 @@ data:
 
     awk -v rules_file="$RULES_FILE" '
     BEGIN {
-    BEGIN {
         in_wp=0
         wp_done=0
         # Read rules from file
@@ -323,7 +324,6 @@ data:
         }
         close(rules_file)
     }
-    /# BEGIN WordPress/ {
     /# BEGIN WordPress/ {
         print
         printf "%s", rules
