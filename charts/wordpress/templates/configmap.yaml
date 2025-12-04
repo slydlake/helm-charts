@@ -135,78 +135,9 @@ data:
         fi
 
         # Copy wp-content skeleton if not present
-
-    # Helper function to extract WordPress version from version.php
-    get_wp_version() {
-      local version_file="$1"
-      if [ -f "$version_file" ]; then
-        grep "^\$wp_version" "$version_file" | sed "s/.*'\([^']*\)'.*/\1/"
-      else
-        echo ""
-      fi
-    }
-
-    # Helper function to copy WordPress core files (excludes wp-content)
-    copy_wp_core() {
-      echo "Copying WordPress core files..."
-      cd /usr/src/wordpress || exit 1
-      for item in *; do
-        if [ "$item" != "wp-content" ]; then
-          cp -r "$item" /tmp/wordpress/ || exit 1
-        fi
-      done
-      echo "WordPress core files copied successfully!"
-    }
-
-    # Get versions from image and PVC
-    IMAGE_VERSION=$(get_wp_version "/usr/src/wordpress/wp-includes/version.php")
-    PVC_VERSION=$(get_wp_version "/tmp/wordpress/wp-includes/version.php")
-
-    echo "========================================="
-    echo "WordPress Version Check"
-    echo "========================================="
-    echo "Image version: ${IMAGE_VERSION:-'not found'}"
-    echo "PVC version:   ${PVC_VERSION:-'not installed'}"
-    echo "========================================="
-
-    # Check if WordPress needs to be installed or updated
-    if [ -z "$PVC_VERSION" ]; then
-        echo "WordPress not found in /tmp/wordpress - fresh installation..."
-        mkdir -p /tmp/wordpress
-        copy_wp_core
-
-        # Handle wp-config-docker.php for fresh install
-        if [ -f "/usr/src/wordpress/wp-config-docker.php" ] && [ ! -s /tmp/wordpress/wp-config.php ]; then
-          awk '
-            /put your unique phrase here/ {
-              cmd = "head -c1m /dev/urandom | sha1sum | cut -d\\  -f1"
-              cmd | getline str
-              close(cmd)
-              gsub("put your unique phrase here", str)
-            }
-            { print }
-          ' /usr/src/wordpress/wp-config-docker.php > /tmp/wordpress/wp-config.php
-        fi
-
-        # Copy wp-content skeleton if not present
         if [ ! -d /tmp/wordpress/wp-content ]; then
             cp -r /usr/src/wordpress/wp-content /tmp/wordpress/wp-content 2>/dev/null || true
-            cp -r /usr/src/wordpress/wp-content /tmp/wordpress/wp-content 2>/dev/null || true
         fi
-        echo "Complete! WordPress has been successfully installed to /tmp/wordpress"
-
-    elif [ "$IMAGE_VERSION" != "$PVC_VERSION" ]; then
-        echo "WordPress version mismatch detected!"
-        echo "Updating core files from $PVC_VERSION to $IMAGE_VERSION..."
-        echo "Note: wp-content directory will be preserved."
-        copy_wp_core
-        echo "Complete! WordPress core has been updated to $IMAGE_VERSION"
-
-        # Mark that a core update happened (used by init.sh to disable auto-updates)
-        touch /tmp/wordpress/.wp-core-updated
-
-    else
-        echo "WordPress version matches - no update needed."
         echo "Complete! WordPress has been successfully installed to /tmp/wordpress"
 
     elif [ "$IMAGE_VERSION" != "$PVC_VERSION" ]; then
