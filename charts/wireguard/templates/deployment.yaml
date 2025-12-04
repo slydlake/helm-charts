@@ -94,7 +94,7 @@ spec:
             runAsNonRoot: false 
             runAsUser: 0
           {{ end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             {{- if .Values.wireguard.PUID }}

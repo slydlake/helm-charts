@@ -3,8 +3,6 @@
 ## Introduction
 This Helm chart installs WordPress in a Kubernetes cluster with many advanced features. It is based on the official WordPress image and provides automation for installation, user management, plugin installation, and metrics for prometheus (WordPress and Apache).
 
-> **Note:** Soon only OCI registries will be supported. Please migrate to this OCI-based installation method shown below.
-
 ## TL;DR
 
 You can find different sample YAML files (external database, integrated MariaDB and advanced configuration) in the GitHub repo in the subfolder "samples".
@@ -60,13 +58,15 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Language**: Set the WordPress language (e.g., de_DE for German).
 
 ### Plugin Installation
-- **Automatic Installation**: Install plugins from WordPress.org, local ZIPs, or URLs.
-- **Versioning**: Specify plugin versions.
+- **Automatic Installation**: Install plugins from WordPress.org, local ZIPs, URLs, or Composer packages.
+- **Composer Support**: Install plugins via Composer (e.g., `humanmade/s3-uploads`) that aren't available in WordPress.org.
+- **Versioning**: Specify plugin versions (WordPress.org and Composer syntax supported).
 - **Activation and Auto-Updates**: Activate plugins after installation and enable auto-updates.
 
 ### Theme Installation
-- **Automatic Installation**: Install themes from WordPress.org, local ZIPs, or URLs.
-- **Versioning**: Specify theme versions.
+- **Automatic Installation**: Install themes from WordPress.org, local ZIPs, URLs, or Composer packages.
+- **Composer Support**: Install themes via Composer (e.g., `wpackagist-theme/astra`).
+- **Versioning**: Specify theme versions (WordPress.org and Composer syntax supported).
 - **Activation and Auto-Updates**: Activate themes after installation and enable auto-updates.
 - **Custom Themes**: Support for custom theme ZIPs via direct URLs.
 
@@ -77,10 +77,12 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 
 ### Metrics and Monitoring
 - **WordPress Metrics**: Automatically install a WordPress Plugin for Prometheus metrics.
-  - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics] 
+  - See details on GitHub Repo of (SlyMetrics Plugin from slydlake)[https://github.com/slydlake/slymetrics]
 - **Apache Metrics**: Sidecar container for Apache metrics.
   - See details on GitHub Repo of (apache exporter from Lusitaniae)[https://github.com/Lusitaniae/apache_exporter]
-- **Grafana Dashboard**: Integrate with Grafana for metrics visualization.
+- **Grafana Dashboard**: Automatically deploy Grafana dashboard for WordPress metrics visualization.
+  - Requires Grafana with dashboard sidecar (e.g., kube-prometheus-stack)
+  - Automatically discovered via `grafana_dashboard: "1"` labe
 
 
 ### Additional Configuration Files in values
@@ -90,7 +92,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Apache Ports Config**: Adjust `/etc/apache2/ports.conf` with `apache.customPortsConfig`.
 - **Apache PHP Config**: Set PHP settings like upload limits via `apache.customPhpConfig`.
 
-### Custom Init Commands
+### Custom commands in init container
 - **Execute custom shell commands** after init.sh via ConfigMap (`wordpress.init.customInitConfigMap.name`)
 - Perfect for custom setup tasks like updating plugins or creating pages
 - Configure with `name` and optional `key` (defaults to "commands.sh")
@@ -109,7 +111,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Container Security Context**: RunAsNonRoot and additional security measures enabled.
 
 
-## Configuration
+## WordPress configuration
 
 ### Mandatory parameters
 - `wordpress.url`: Is needed to set wp-config with correct settings
@@ -131,7 +133,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - `memcached.enabled`: Enable embedded memcached
 
 
-## Installation
+## Installation samples
 
 ### Basic Installation
 See in TL;DR
@@ -202,6 +204,48 @@ kubectl apply -f ./samples/muPlugins.configmap.yaml
 helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/muPlugins.values.yaml
 ```
 
-## Support
+### Composer Packages
+Install plugins and themes via Composer that aren't available in WordPress.org. See `samples/composer.values.yaml`.
 
-For issues or contributions: [GitHub Repository](https://github.com/slydlake/helm-charts)
+```bash
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/composer.values.yaml
+```
+
+**Examples:**
+- **Plugins**: `humanmade/s3-uploads`, `wpackagist-plugin/wordpress-seo`
+- **Themes**: `wpackagist-theme/astra`
+- **Auto-Update**: Works for packages without fixed version (always installs latest)
+- **Pruning**: Compatible with `pluginsPrune` and `themesPrune`
+
+#### Custom Composer Repositories
+By default, only **wpackagist.org** is configured, which mirrors all WordPress.org plugins and themes.
+
+Add custom repositories for private/premium packages:
+
+```yaml
+wordpress:
+  composer:
+    repositories:
+      - type: "vcs"
+        url: "https://github.com/mycompany/private-plugin"
+      - type: "composer"
+        url: "https://my-satis-server.com"
+      - type: "package"
+        package:
+          name: "vendor/premium-plugin"
+          version: "1.0.0"
+          dist:
+            url: "https://example.com/premium-plugin.zip"
+            type: "zip"
+  plugins:
+    - name: "mycompany/private-plugin"
+      activate: true
+```
+
+## Upgrading
+
+### To 1.0.0
+This major release introduces new possibilities to use composer plugins and themes and muPlugins. Now it is possible to activate a prune mode for plugins and themes. This will uninstall all plugins/themes that are not listed in the values.
+
+Also adds more flexible user customization with init scripts. The init script is now a huge set to pre-configure and set up WordPress.
+For more, see the changelog.

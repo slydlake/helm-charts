@@ -47,6 +47,23 @@
                 "Install test chart"
             ],
             "problemMatcher": []
+        },
+        {
+            "label": "Run pre-commit",
+            "type": "shell",
+            "command": "pre-commit run --all-files",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
         }
     ],
     "inputs": [

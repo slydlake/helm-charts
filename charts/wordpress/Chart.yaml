@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 0.7.6
+version: 1.0.0
 appVersion: "6.8.3"
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,10 +26,38 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "Fixed updating process for wordpress iamge and language installation and updating"
+    - kind: added
+      description: "Added Grafana Dashboard auto-deployment feature for WordPress metrics (metrics.wordpress.grafanaDashboard) with automatic discovery via grafana_dashboard label and optional folder organization"
+    - kind: added
+      description: "Added WORDPRESS_CONFIG_EXTRA environment variable support to init container for consistent configuration across all containers"
+    - kind: added
+      description: "Added wordpress.plugins option to define plugins to be installed via Composer during init."
+    - kind: added
+      description: "Added wordpress.themes option to define themes to be installed via Composer during init."
+    - kind: added
+      description: "Added wordpress.composer.repositories option to configure custom Composer repositories (e.g., private GitHub, Satis, premium plugins). Default repositories (wpackagist.org) are documented in values.yaml"
+    - kind: added
+      description: "Added init container support for installing Composer plugins and themes during initialization"
+    - kind: added
+      description: "Added wordpress.pluginsPrune option to automatically remove all plugins not defined in wordpress.plugins list during init"
+    - kind: added
+      description: "Added wordpress.themesPrune option to automatically remove all themes not defined in wordpress.themes list during init (protects active theme with automatic fallback activation)"
+    - kind: added
+      description: "Added samples/composer.values.yaml sample file demonstrating usage of Composer plugins, themes, and custom repositories"
     - kind: changed
-      description: "Disabled wordpress auto updates by default in database"
+      description: "Changed samples/customInit.values.yaml and muPlugins.values.yaml with fixed nodePort for easier testing"
+    - kind: fixed
+      description: "Better startupProbe and livenessProbe initial delays and periods for more reliable container health checking"
+    - kind: added
+      description: "Refactored init scripts into modular libraries (lib-core.sh, lib-lock.sh, lib-composer.sh) for better maintainability and testability"
+    - kind: added
+      description: "Added DRY_RUN and TEST_MODE support with assert() function for testing init scripts without making changes"
+    - kind: deprecated
+      description: "Traditional Helm Repository is deprecated, only OCI-based Helm charts are supported."
+    - kind: added
+      description: "Registry value added. Added functionality to _helpers.tpl to support it."
+    - kind: changed
+      description: "Better comments for documentation in values.yaml."
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.8.3-php8.1-apache

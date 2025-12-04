@@ -62,7 +62,7 @@ jobs:
 
             if (chartYamls.length > 0) {
               const charts = chartYamls.map(f => f.filename.split('/')[1]).join(', ');
-              
+
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,

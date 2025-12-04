@@ -2,7 +2,7 @@ apiVersion: v2
 name: wireguard
 description: "Using the offical linuxserver/wireguard image with almost any environment variables for K8S. Supporting server and client mode."
 type: application
-version: 0.2.6
+version: 0.3.0
 appVersion: 1.0.20250521-r0-ls92
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
 home: https://github.com/slydlake/helm-charts
@@ -22,11 +22,12 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
+    - kind: added
+      description: "Registry value added. Added functionality to _helpers.tpl to support it."
     - kind: changed
-      description: "Update linuxserver/wireguard to 1.0.20250521-r0-ls92"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/80
+      description: "Better comments for documentation in values.yaml."
+    - kind: added
+      description: "Added missing values in values.schema.yaml."
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wireguard

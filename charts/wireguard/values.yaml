@@ -1,296 +1,392 @@
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+## @section Image configuration
+## @descriptionStart
+## Container image settings. More info: https://kubernetes.io/docs/concepts/containers/images/
+## @descriptionEnd
 image:
+  ## @param image.registry string Wireguard container image registry
+  registry: docker.io
+  ## @param image.repository string Wireguard container image repository
   repository: linuxserver/wireguard
-  # This sets the pull policy for images.
+  ## @param image.pullPolicy string Pull policy for the container image
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "1.0.20250521-r0-ls92@sha256:fc51204ae6dda0acde8ef83b0c4705e09458ae5805eacfc3d802085b5dcc6583"
 
-# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+## @param imagePullSecrets list Secrets for pulling images from a private repository
 imagePullSecrets: []
-# This is to override the chart name.
+## @param nameOverride string Override the chart name
 nameOverride: ""
+## @param fullnameOverride string Override the full chart name
 fullnameOverride: ""
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+## @param replicaCount int Number of replicas for the deployment
 replicaCount: 1
 
-# DNS policy and configuration of the pod
-# E.g.
-# dnsPolicy: None
-# dnsConfig:
-#   searchers:
-#     - svc.cluster.local
-#     - cluster.local
-#   nameservers:
-#     - 1.1.1.1
-#     - 8.8.8.8
+## @section DNS configuration
+## @descriptionStart
+## DNS policy and configuration of the pod.
+## E.g.
+## ```yaml
+## dnsPolicy: None
+## dnsConfig:
+##   searches:
+##     - svc.cluster.local
+##     - cluster.local
+##   nameservers:
+##     - 1.1.1.1
+##     - 8.8.8.8
+## ```
+## @descriptionEnd
 
-# dnsPolicy: ClusterFirst
-# dnsConfig: {}
+## @extra dnsPolicy string DNS policy for the pod (ClusterFirst, None, ClusterFirstWithHostNet, Default)
+## @extra dnsConfig object DNS configuration for the pod (nameservers, searches, options)
 
-# Expose the service on the host network
-# hostNetwork: true
+## @section Host Network
+## @descriptionStart
+## Expose the pod on the host network.
+## E.g.
+## ```yaml
+## hostNetwork: true
+## ```
+## @descriptionEnd
 
-# deployment strategy type
-# NOTE: Set it to `Recreate` if you use a PersistentVolume that cannot be mounted on multiple pods
-# E.g.
-# updateStrategy:
-#   rollingUpdate:
-#     maxSurge: 25%
-#     maxUnavailable: 25%
-#   type: RollingUpdate
+## @extra hostNetwork bool Use the host's network namespace
+
+## @section Deployment strategy
+## @descriptionStart
+## NOTE: Set it to `Recreate` if you use a PersistentVolume that cannot be mounted on multiple pods.
+## E.g.
+## ```yaml
+## updateStrategy:
+##   type: Recreate
+## ```
+## Or with rolling update settings:
+## ```yaml
+## updateStrategy:
+##   type: RollingUpdate
+##   rollingUpdate:
+##     maxSurge: 25%
+##     maxUnavailable: 25%
+## ```
+## @descriptionEnd
 updateStrategy:
+  ## @param updateStrategy.type string Deployment strategy type (RollingUpdate or Recreate)
   type: RollingUpdate
 
-# Init containers
-# initContainers:
-#   - name: do-something
-#     image: busybox
-#     command: ['do', 'something']
+## @section Init and Sidecar Containers
+## @descriptionStart
+## Add init containers or sidecars to the pod.
+## E.g.
+## ```yaml
+## initContainers:
+##   - name: init-sysctl
+##     image: busybox
+##     command: ["sysctl", "-w", "net.ipv4.ip_forward=1"]
+##     securityContext:
+##       privileged: true
+##
+## sidecars:
+##   - name: logging
+##     image: fluentd:latest
+##     volumeMounts:
+##       - name: logs
+##         mountPath: /var/log
+## ```
+## @descriptionEnd
+
+## @param initContainers list Init containers to add to the pod
 initContainers: []
 
-# Sidecar containers
-# E.g.
-#  sidecars:
-#   - name: container-name
-#     image: image-name
-#     imagePullPolicy: Always
+## @param sidecars list Sidecar containers to add to the pod
 sidecars: []
 
-# Wireguard specific configuration
-# wireguard client and server will always use the wg0 interface
+## @section Wireguard configuration
+## @descriptionStart
+## Wireguard specific configuration. Client and server will always use the wg0 interface.
+## @descriptionEnd
 wireguard:
-  # these options are used in server or client mode
-
-  # optional timezone to use, see this list: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List Default is "Etc/UTC"
+  ## @param wireguard.timezone string Timezone to use. See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List (default: Etc/UTC)
   timezone: ""
 
-  # optional DNS server set in peer/client configs (can be set as 8.8.8.8)
-  # for server default is "auto" (uses host's DNS via included CoreDNS forward)
-  # for client default is "1.1.1.1, 2606:4700:4700::1111"
-  # dns: "1.1.1.1"
+  ## @extra wireguard.dns string DNS server for peer/client configs. Server default: auto, Client default: 1.1.1.1, 2606:4700:4700::1111
+  ## @extra wireguard.allowedIPs string IPs/Ranges reachable via VPN. Default: 0.0.0.0/0, ::0/0 (all traffic through VPN)
 
-  # The IPs/Ranges for Client/Server. Defines what IPs/Ranges will be able to reach using the VPN connection.
-  # If not specified the default value is: '0.0.0.0/0, ::0/0' This will cause ALL traffic to route through the VPN, if you want split tunneling, set this to only the IPs you would like to use the tunnel AND the ip of the server's WG ip, such as 10.13.13.1.
-  # allowedIPs: "0.0.0.0/0, ::0/0"
-
-  # see for more information https://github.com/linuxserver/docker-wireguard?tab=readme-ov-file#user--group-identifiers
-  # UserID, default 1000
+  ## @param wireguard.PUID string User ID for the container process (default: 1000)
   PUID: "1000"
-  # GroupID, default 1000
+  ## @param wireguard.PGID string Group ID for the container process (default: 1000)
   PGID: "1000"
 
-  # extra environment variables to set in the wireguard container
-  # E.g.
-  # extraEnvVars:
-  # - name: MY_ENV_VAR
-  #   value: my-value
+  ## @param wireguard.extraEnvVars list Extra environment variables for the wireguard container
+  ## E.g.
+  ## ```yaml
+  ## extraEnvVars:
+  ##   - name: LOG_CONFS
+  ##     value: "true"
+  ##   - name: LOG_JSON
+  ##     value: "false"
+  ## ```
   extraEnvVars: []
 
-  # Name of the existing Secret containing extra env vars for wireguard container
+  ## @param wireguard.extraEnvVarsSecret string Name of existing Secret containing extra env vars
   extraEnvVarsSecret: ""
 
-  # Name of the existing ConfigMap containing extra env vars for wireguard container
+  ## @param wireguard.extraEnvVarsCM string Name of existing ConfigMap containing extra env vars
   extraEnvVarsCM: ""
 
-  # Use existing secret for the wireguard configuration. The secret has to contain the stringData wg0.conf
-  # This must contain the FULL wireguard configuration file (in client or server mode)
-  # NOTE: When it's set the wireguard.server.config or wireguard.client.config are ignored
+  ## @param wireguard.existingSecret string Existing secret with full wg0.conf. NOTE: Overrides server/client config
   existingSecret: ""
 
-  # server mode
+  ## @section Wireguard Server Mode
   server:
-    # This enables the WireGuard server mode, cannot be enabled at the same time as wireguard.client.enabled
+    ## @param wireguard.server.enabled bool Enable WireGuard server mode (mutually exclusive with client mode)
     enabled: false
 
-    # persistent volume claim for wireguard configuration
+    ## @section Server storage configuration
     storage:
-      # Name of an existing PVC to use
+      ## @param wireguard.server.storage.existingClaim string Name of an existing PVC to use
       existingClaim: ""
-      # storageClass is required when using a new PVC
+      ## @param wireguard.server.storage.storageClass string Storage class for a new PVC (required when not using existingClaim)
       storageClass: ""
-      # size is required when using a new PVC
+      ## @param wireguard.server.storage.size string Size of the PVC (required when not using existingClaim)
       size: 250Mi
-      # accessModes is required when using a new PVC
+      ## @param wireguard.server.storage.accessModes list Access modes for the PVC
       accessModes:
         - ReadWriteOnce
-      # annotations to add to the PVC
+      ## @param wireguard.server.storage.annotations object Annotations to add to the PVC
       annotations: {}
-      # labels to add to the PVC
+      ## @param wireguard.server.storage.labels object Labels to add to the PVC
       labels: {}
-      # selector to add to the PVC
+      ## @param wireguard.server.storage.selector object Selector for the PVC
       selector: {}
-      # resource policy of the PVC
+      ## @param wireguard.server.storage.resourcePolicy string Resource policy of the PVC (keep or delete)
       resourcePolicy: keep
 
-    # Use this to set values of the wireguard configuration instead of existingSecret
+    ## @section Server config
     config:
-      # External IP or domain name. If set to auto, the container will try to determine and set the external IP automatically (for a static IP address)
-      # This address will be used by the WireGuard clients to connect to the server
+      ## @param wireguard.server.config.address string External IP or domain name for clients to connect. Use "auto" for automatic detection
       address: vpn.example.com
 
-      # Number of peers to create confs for. Required for server mode. Can also be a list of names: myPC,myPhone,myTablet (alphanumeric only). Default is 1
+      ## @param wireguard.server.config.peers string Number of peers or comma-separated names (e.g. myPC,myPhone,myTablet)
       peers: "1"
 
-      # Internal subnet for the wireguard and server and peers (only change if it clashes). default 10.13.13.0/24
-      # subnet: "10.13.13.0/24"
+      ## @extra wireguard.server.config.subnet string Internal subnet for server and peers (default: 10.13.13.0/24)
+      ## @extra wireguard.server.config.keepalivePeers string Peers to send keepalive packets to (default: all)
+      ## @extra wireguard.server.config.peerQR bool Display QR codes in logs (default: false)
 
-      # set to all or a list of comma separated peers (ie. 1,4,laptop) for the wireguard server to send keepalive packets to listed peers every 25 seconds.
-      # Useful if server is accessed via domain name and has dynamic IP. Default = "all"
-      # keepalivePeers = "1"
-
-      # Generated QR codes will be displayed in the log. Set to false to skip log output. Default is false
-      # peerQR: false
-
-  # client mode
+  ## @section Wireguard Client Mode
   client:
-    # This enables the WireGuard client mode, cannot be enabled at the same time as wireguard.server.enabled
+    ## @param wireguard.client.enabled bool Enable WireGuard client mode (mutually exclusive with server mode)
     enabled: false
 
+    ## @section Client config
     config:
-      # This secret must used for the complete client configuation. Use this information from your peer configuration of the wireguard server
-      # The secret has to contain the keys "privatekey", "publickey", "presharedkey"
+      ## @param wireguard.client.config.existingSecret string Secret containing privatekey, publickey, presharedkey from server peer config
       existingSecret: ""
 
-      # IP Address to assign to the WireGuard peer
+      ## @param wireguard.client.config.address string IP Address to assign to the WireGuard peer
       address: "10.13.13.2/24"
 
-      # Defines hooks for the WireGuard client, default is empty
-      # preUp = ""
-      # postUp = ""
-      # preDown = ""
-      # postDown = ""
+      ## @extra wireguard.client.config.preUp string Hook to run before bringing up the interface
+      ## @extra wireguard.client.config.postUp string Hook to run after bringing up the interface
+      ## @extra wireguard.client.config.preDown string Hook to run before bringing down the interface
+      ## @extra wireguard.client.config.postDown string Hook to run after bringing down the interface
+      ## @extra wireguard.client.config.mtu int MTU value (default: 1420)
+      ## @extra wireguard.client.config.persistentKeepalive int Persistent keepalive in seconds, 0 to disable (default: 25)
 
-      # MTU. Default is 1420
-      # mtu: 1420
-
-      # Persistent keepalive in seconds, 0 to disable, default is 25
-      # persistentKeepalive: 25
-
-      # Endpoint ip or hostname with port of the WireGuard server
+      ## @param wireguard.client.config.endpoint string Endpoint ip or hostname with port of the WireGuard server
       endpoint: "vpn.example.com:51820"
 
-# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+## @section ServiceAccount configuration
 serviceAccount:
-  # Specifies whether a service account should be created
+  ## @param serviceAccount.create bool Specifies whether a service account should be created
   create: true
-  # Automatically mount a ServiceAccount's API credentials?
+  ## @param serviceAccount.automount bool Automatically mount ServiceAccount API credentials
   automount: true
-  # Annotations to add to the service account
+  ## @param serviceAccount.annotations object Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
+  ## @param serviceAccount.name string Name of the service account. If not set and create is true, a name is generated
   name: ""
 
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+## @param podAnnotations object Annotations to add to the pod
 podAnnotations: {}
-# This is for setting Kubernetes Labels to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+## @param podLabels object Labels to add to the pod
 podLabels: {}
 
+## @section Security Context
+## @descriptionStart
+## Security context configuration for pod and container.
+## E.g.
+## ```yaml
+## podSecurityContext:
+##   fsGroup: 1000
+##   sysctls:
+##     - name: net.ipv4.ip_forward
+##       value: "1"
+##
+## securityContext:
+##   capabilities:
+##     add:
+##       - NET_ADMIN
+##       - SYS_MODULE
+##   privileged: false
+## ```
+## @descriptionEnd
+
+## @param podSecurityContext object Security context for the pod
 podSecurityContext: {}
-# default is:
-# runAsUser: 1000
-# runAsGroup: 1000
-# fsGroup: 1000
 
-# Container Security Context
+## @param securityContext object Security context for the container
 securityContext: {}
-# default is:
-# capabilities:
-#   add:
-#     - NET_ADMIN
-#   drop:
-#     - ALL
-# privileged: true
-# allowPrivilegeEscalation: true
-# readOnlyRootFilesystem: false
-# runAsNonRoot: false
-# runAsUser: 0
 
-# used for server mode
-# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+## @section Service configuration (used for server mode)
 service:
-  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  ## @param service.type string Service type (NodePort, LoadBalancer, ClusterIP)
   type: NodePort
-  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+  ## @param service.port int WireGuard UDP port
   port: 51820
-  # This sets the NodePort
+  ## @param service.nodePort int NodePort to use when service type is NodePort
   nodePort: 31822
-  # External IPs to bind the LoadBalancer service to (if using LoadBalancer type)
+  ## @param service.externalIPs list External IPs to bind the LoadBalancer service to
   externalIPs: []
 
+## @param resources object Resource limits and requests for the container
+## E.g.
+## ```yaml
+## resources:
+##   limits:
+##     cpu: 200m
+##     memory: 256Mi
+##   requests:
+##     cpu: 100m
+##     memory: 128Mi
+## ```
 resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 500m
-  #   memory: 256Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
 
-# This is to setup the startup, liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+## @section Probes configuration
 livenessProbe:
+  ## @param livenessProbe.enabled bool Enable liveness probe
   enabled: true
+  ## @param livenessProbe.initialDelaySeconds int Initial delay before starting liveness probe
   initialDelaySeconds: 5
+  ## @param livenessProbe.periodSeconds int Period between liveness probes
   periodSeconds: 10
+  ## @param livenessProbe.timeoutSeconds int Timeout for liveness probe
   timeoutSeconds: 1
+  ## @param livenessProbe.failureThreshold int Failure threshold for liveness probe
   failureThreshold: 3
+  ## @param livenessProbe.successThreshold int Success threshold for liveness probe
   successThreshold: 1
 
 readinessProbe:
+  ## @param readinessProbe.enabled bool Enable readiness probe
   enabled: true
+  ## @param readinessProbe.initialDelaySeconds int Initial delay before starting readiness probe
   initialDelaySeconds: 5
+  ## @param readinessProbe.periodSeconds int Period between readiness probes
   periodSeconds: 10
+  ## @param readinessProbe.timeoutSeconds int Timeout for readiness probe
   timeoutSeconds: 1
+  ## @param readinessProbe.failureThreshold int Failure threshold for readiness probe
   failureThreshold: 3
+  ## @param readinessProbe.successThreshold int Success threshold for readiness probe
   successThreshold: 1
 
 startupProbe:
+  ## @param startupProbe.enabled bool Enable startup probe
   enabled: true
+  ## @param startupProbe.initialDelaySeconds int Initial delay before starting startup probe
   initialDelaySeconds: 15
+  ## @param startupProbe.periodSeconds int Period between startup probes
   periodSeconds: 10
+  ## @param startupProbe.timeoutSeconds int Timeout for startup probe
   timeoutSeconds: 1
+  ## @param startupProbe.failureThreshold int Failure threshold for startup probe
   failureThreshold: 10
+  ## @param startupProbe.successThreshold int Success threshold for startup probe
   successThreshold: 1
 
-# override default livness probe for wireguard
+## @param customLivenessProbe object Override default liveness probe
 customLivenessProbe: {}
 
-# override default readiness probe for wireguard
+## @param customReadinessProbe object Override default readiness probe
 customReadinessProbe: {}
 
-# override default startup probe for wireguard
+## @param customStartupProbe object Override default startup probe
 customStartupProbe: {}
 
-# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+## @section Autoscaling configuration
 autoscaling:
+  ## @param autoscaling.enabled bool Enable horizontal pod autoscaling
   enabled: false
+  ## @param autoscaling.minReplicas int Minimum number of replicas
   minReplicas: 1
+  ## @param autoscaling.maxReplicas int Maximum number of replicas
   maxReplicas: 100
+  ## @param autoscaling.targetCPUUtilizationPercentage int Target CPU utilization percentage
   targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+  ## @extra autoscaling.targetMemoryUtilizationPercentage int Target memory utilization percentage
 
-# Additional volumes on the output Deployment definition.
+## @section Extra Volumes
+## @descriptionStart
+## Additional volumes and volume mounts for the deployment.
+## E.g.
+## ```yaml
+## extraVolumes:
+##   - name: custom-scripts
+##     configMap:
+##       name: wireguard-scripts
+##   - name: tls-certs
+##     secret:
+##       secretName: wireguard-tls
+##
+## extraVolumeMounts:
+##   - name: custom-scripts
+##     mountPath: /scripts
+##     readOnly: true
+##   - name: tls-certs
+##     mountPath: /etc/wireguard/tls
+##     readOnly: true
+## ```
+## @descriptionEnd
+
+## @param extraVolumes list Additional volumes for the deployment
 extraVolumes: []
-# - name: foo
-#   secret:
-#     secretName: mysecret
-#     optional: false
 
-# Additional volumeMounts on the output Deployment definition.
+## @param extraVolumeMounts list Additional volume mounts for the container
 extraVolumeMounts: []
-# - name: foo
-#   mountPath: "/etc/foo"
-#   readOnly: true
 
+## @section Scheduling
+## @descriptionStart
+## Node selection, tolerations, and affinity rules for pod scheduling.
+## E.g.
+## ```yaml
+## nodeSelector:
+##   kubernetes.io/os: linux
+##   node-role.kubernetes.io/vpn: "true"
+##
+## tolerations:
+##   - key: "dedicated"
+##     operator: "Equal"
+##     value: "vpn"
+##     effect: "NoSchedule"
+##
+## affinity:
+##   nodeAffinity:
+##     requiredDuringSchedulingIgnoredDuringExecution:
+##       nodeSelectorTerms:
+##         - matchExpressions:
+##             - key: topology.kubernetes.io/zone
+##               operator: In
+##               values:
+##                 - eu-west-1a
+## ```
+## @descriptionEnd
+
+## @param nodeSelector object Node selector for pod assignment
 nodeSelector: {}
 
+## @param tolerations list Tolerations for pod assignment
 tolerations: []
 
+## @param affinity object Affinity rules for pod assignment
 affinity: {}
