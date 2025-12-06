@@ -35,7 +35,7 @@
                 "^charts/.*/Chart\\.yaml$"
             ],
             "matchStrings": [
-                "image: docker\\.io/(?<depName>[^:]+):(?<currentValue>[^\\s]+)"
+                "image: (?<depName>docker\\.io/[^:]+):(?<currentValue>[^\\s]+)"
             ],
             "datasourceTemplate": "docker",
             "versioningTemplate": "docker"
