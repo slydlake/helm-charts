@@ -32,7 +32,7 @@ annotations:
         - name: Pull Request
           url: https://github.com/slydlake/helm-charts/pull/93
     - kind: changed
-      description: "Update docker.io/wordpress to 6.9.0-php8.1-apache"
+      description: "Update docker.io/wordpress to 6.9.0-php8.3-apache"
       links:
         - name: Pull Request
           url: https://github.com/slydlake/helm-charts/pull/93
