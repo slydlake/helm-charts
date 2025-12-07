@@ -32,6 +32,18 @@
         {
             "customType": "regex",
             "fileMatch": [
+                "^charts/(?!wireguard/).*/Chart\\.yaml$"
+            ],
+            "matchStrings": [
+                "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?(?:\\s*#\\s*renovate:\\s*image=(?<depName>[^\\s]+))?"
+            ],
+            "datasourceTemplate": "docker",
+            "depNameTemplate": "docker.io/{{replace \"charts/\" \"\" packageFileDir}}",
+            "versioningTemplate": "semver"
+        },
+        {
+            "customType": "regex",
+            "fileMatch": [
                 "^charts/.*/Chart\\.yaml$"
             ],
             "matchStrings": [
