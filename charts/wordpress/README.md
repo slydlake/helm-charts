@@ -242,7 +242,12 @@ wordpress:
       activate: true
 ```
 
-## Upgrading
+## Notable changes
+
+### To 2.0.0
+- WordPress version from 6.8.3 to 6.9.0
+- WordPress image tag from PHP version 8.1 to 8.3 (default)
+- mariadb from 12.0.2 to 12.1.2
 
 ### To 1.0.0
 This major release introduces new possibilities to use composer plugins and themes and muPlugins. Now it is possible to activate a prune mode for plugins and themes. This will uninstall all plugins/themes that are not listed in the values.
