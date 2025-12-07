@@ -6,7 +6,7 @@
     "enabledManagers": [
         "helm-values",
         "helmv3",
-        "custom.regex"
+        "regex"
     ],
     "pinDigests": true,
     "prHourlyLimit": 5,
