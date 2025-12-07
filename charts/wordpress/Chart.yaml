@@ -2,8 +2,8 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 1.0.2
-appVersion: "6.8.3" # renovate: image=docker.io/wordpress
+version: 2.0.0
+appVersion: "6.9.0" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
@@ -26,28 +26,51 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "fixed base script problem"
+    - kind: changed
+      description: "Update docker.io/mariadb to 12.1.2-noble"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/93
+    - kind: changed
+      description: "Update docker.io/wordpress to 6.9.0-php8.3-apache"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/93
+    - kind: changed
+      description: "Update docker.io/wordpress to 6.9.0"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/93
+    - kind: changed
+      description: "Update mariadb to 0.9.0"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/93
+    - kind: changed
+      description: "Update memcached to 0.7.1"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/93
   artifacthub.io/images: |
     - name: wordpress
-      image: docker.io/wordpress:6.8.3-php8.1-apache
+      image: docker.io/wordpress:6.9.0-php8.3-apache
     - name: wordpress-cli
-      image: docker.io/wordpress:cli-2.12.0-php8.1
+      image: docker.io/wordpress:cli-2.12.0-php8.3
     - name: metrics-apache
       image: docker.io/lusotycoon/apache-exporter:v1.0.11
     - name: mariadb
-      image: docker.io/mariadb:12.0.2-noble
+      image: docker.io/mariadb:12.1.2-noble
     - name: memcached
       image: docker.io/memcached:1.6.39
 dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.7.0
+    version: 0.7.1
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.7.0
+    version: 0.9.0
 keywords:
   - wordpress
   - blog
