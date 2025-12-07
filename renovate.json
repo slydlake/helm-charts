@@ -18,36 +18,24 @@
     "customManagers": [
         {
             "customType": "regex",
-            "fileMatch": [
-                "^charts/wireguard/Chart\\.yaml$"
+            "description": "Update appVersion in Chart.yaml based on image comment",
+            "managerFilePatterns": [
+                "^charts/.*/Chart\\.yaml$"
             ],
             "matchStrings": [
-                "appVersion:\\s+['\"]?(?<currentValue>\\d+\\.\\d+\\.\\d+(?:-r\\d+-ls\\d+)?)['\"]?"
+                "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*image=(?<depName>[^\\s]+)"
             ],
             "datasourceTemplate": "docker",
-            "depNameTemplate": "linuxserver/wireguard",
-            "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$",
-            "extractVersionTemplate": "^(?<version>.+)$"
-        },
-        {
-            "customType": "regex",
-            "fileMatch": [
-                "^charts/(?!wireguard/).*/Chart\\.yaml$"
-            ],
-            "matchStrings": [
-                "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?(?:\\s*#\\s*renovate:\\s*image=(?<depName>[^\\s]+))?"
-            ],
-            "datasourceTemplate": "docker",
-            "depNameTemplate": "docker.io/{{replace \"charts/\" \"\" packageFileDir}}",
             "versioningTemplate": "semver"
         },
         {
             "customType": "regex",
-            "fileMatch": [
+            "description": "Update artifacthub.io/images in Chart.yaml",
+            "managerFilePatterns": [
                 "^charts/.*/Chart\\.yaml$"
             ],
             "matchStrings": [
-                "image: (?<depName>docker\\.io/[^:]+):(?<currentValue>[^\\s]+)"
+                "image: (?<depName>[^:]+):(?<currentValue>[^\\s]+)"
             ],
             "datasourceTemplate": "docker",
             "versioningTemplate": "docker"
