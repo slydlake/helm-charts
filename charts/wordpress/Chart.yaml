@@ -55,7 +55,7 @@ annotations:
     - name: wordpress
       image: docker.io/wordpress:6.9.0-php8.3-apache
     - name: wordpress-cli
-      image: docker.io/wordpress:cli-2.12.0-php8.1
+      image: docker.io/wordpress:cli-2.12.0-php8.3
     - name: metrics-apache
       image: docker.io/lusotycoon/apache-exporter:v1.0.11
     - name: mariadb
