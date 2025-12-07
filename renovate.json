@@ -18,8 +18,8 @@
     "customManagers": [
         {
             "customType": "regex",
-            "description": "Update appVersion in Chart.yaml based on image comment",
-            "managerFilePatterns": [
+            "description": "Update appVersion in Chart.yaml",
+            "fileMatch": [
                 "^charts/.*/Chart\\.yaml$"
             ],
             "matchStrings": [
@@ -32,12 +32,13 @@
         {
             "customType": "regex",
             "description": "Update artifacthub.io/images in Chart.yaml",
-            "managerFilePatterns": [
+            "fileMatch": [
                 "^charts/.*/Chart\\.yaml$"
             ],
             "matchStrings": [
-                "image: (?<depName>[^:]+):(?<currentValue>[^\\s]+)"
+                "image: (?<packageName>[^:]+):(?<currentValue>[^\\s]+)"
             ],
+            "depNameTemplate": "artifacthub/{{{packageName}}}",
             "datasourceTemplate": "docker",
             "versioningTemplate": "docker"
         }
@@ -45,9 +46,10 @@
     "packageRules": [
         {
             "matchPackageNames": [
-                "/^appVersion\\/.+/"
+                "/^appVersion\\//",
+                "/^artifacthub\\//"
             ],
-            "groupName": "{{{replace 'appVersion/' '' depName}}}"
+            "groupName": "{{{replace 'appVersion/' '' (replace 'artifacthub/' '' depName)}}}"
         },
         {
             "matchUpdateTypes": [
