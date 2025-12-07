@@ -25,9 +25,9 @@
             "matchStrings": [
                 "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*image=(?<packageName>[^\\s]+)"
             ],
-            "depNameTemplate": "appVersion/{{{packageName}}}",
+            "depNameTemplate": "{{{packageName}}}",
             "datasourceTemplate": "docker",
-            "versioningTemplate": "semver"
+            "versioningTemplate": "docker"
         },
         {
             "customType": "regex",
@@ -38,19 +38,12 @@
             "matchStrings": [
                 "image: (?<packageName>[^:]+):(?<currentValue>[^\\s]+)"
             ],
-            "depNameTemplate": "artifacthub/{{{packageName}}}",
+            "depNameTemplate": "{{{packageName}}}",
             "datasourceTemplate": "docker",
             "versioningTemplate": "docker"
         }
     ],
     "packageRules": [
-        {
-            "matchPackageNames": [
-                "/^appVersion\\//",
-                "/^artifacthub\\//"
-            ],
-            "groupName": "{{{replace 'appVersion/' '' (replace 'artifacthub/' '' depName)}}}"
-        },
         {
             "matchUpdateTypes": [
                 "digest"
