@@ -23,8 +23,9 @@
                 "^charts/.*/Chart\\.yaml$"
             ],
             "matchStrings": [
-                "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*image=(?<depName>[^\\s]+)"
+                "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*image=(?<packageName>[^\\s]+)"
             ],
+            "depNameTemplate": "appVersion/{{{packageName}}}",
             "datasourceTemplate": "docker",
             "versioningTemplate": "semver"
         },
@@ -42,6 +43,12 @@
         }
     ],
     "packageRules": [
+        {
+            "matchPackageNames": [
+                "/^appVersion\\/.+/"
+            ],
+            "groupName": "{{{replace 'appVersion/' '' depName}}}"
+        },
         {
             "matchUpdateTypes": [
                 "digest"
