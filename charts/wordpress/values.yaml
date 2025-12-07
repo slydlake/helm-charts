@@ -10,7 +10,7 @@ image:
   ## @param image.repository string WordPress container image repository
   repository: wordpress
   ## @param image.tag string Image tag (default is the chart appVersion)
-  tag: "6.9.0-php8.1-apache@sha256:527863f1c9b5399700312d9c6ef1810d9d67978d0f594e396a603d1bd283b11f"
+  tag: "6.9.0-php8.3-apache"
   ## @param image.pullPolicy string Image pull policy
   pullPolicy: IfNotPresent
 

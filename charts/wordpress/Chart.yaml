@@ -53,7 +53,7 @@ annotations:
           url: https://github.com/slydlake/helm-charts/pull/93
   artifacthub.io/images: |
     - name: wordpress
-      image: docker.io/wordpress:6.9.0-php8.1-apache
+      image: docker.io/wordpress:6.9.0-php8.3-apache
     - name: wordpress-cli
       image: docker.io/wordpress:cli-2.12.0-php8.1
     - name: metrics-apache
