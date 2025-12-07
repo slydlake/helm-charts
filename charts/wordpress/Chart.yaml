@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 1.0.2
+version: 2.0.0
 appVersion: "6.9.0" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,8 +26,31 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "fixed base script problem"
+    - kind: changed
+      description: "Update docker.io/mariadb to 12.1.2-noble"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/93
+    - kind: changed
+      description: "Update docker.io/wordpress to 6.9.0-php8.1-apache"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/93
+    - kind: changed
+      description: "Update docker.io/wordpress to 6.9.0"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/93
+    - kind: changed
+      description: "Update mariadb to 0.9.0"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/93
+    - kind: changed
+      description: "Update memcached to 0.7.1"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/93
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.9.0-php8.1-apache
