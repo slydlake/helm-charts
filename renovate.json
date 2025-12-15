@@ -70,6 +70,19 @@
                 "helm-values",
                 "custom.regex"
             ],
+            "matchPackageNames": [
+                "linuxserver/wireguard",
+                "/^docker\\.io\\/linuxserver\\/wireguard$/"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "description": "Auto-commit and auto-merge wireguard image bumps"
+        },
+        {
+            "matchManagers": [
+                "helm-values",
+                "custom.regex"
+            ],
             "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}}",
             "labels": [
                 "dependencies",
