@@ -74,6 +74,11 @@
                 "linuxserver/wireguard",
                 "/^docker\\.io\\/linuxserver\\/wireguard$/"
             ],
+            "labels": [
+                "dependencies",
+                "renovate",
+                "automerge"
+            ],
             "automerge": true,
             "automergeType": "pr",
             "description": "Auto-commit and auto-merge wireguard image bumps"
