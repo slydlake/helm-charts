@@ -8,8 +8,6 @@ on:
 
 jobs:
   update-chart-metadata:
-    # Only run on Renovate PRs
-    if: github.actor == 'renovate[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
