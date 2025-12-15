@@ -68,13 +68,13 @@
         {
             "matchManagers": [
                 "helm-values",
-                "custom.regex"
+                "custom.regex",
+                "helmv3"
             ],
-            "matchPackageNames": [
-                "linuxserver/wireguard",
-                "/^docker\\.io\\/linuxserver\\/wireguard$/"
+            "matchPackagePatterns": [
+                "(^|/)linuxserver/wireguard$"
             ],
-            "labels": [
+            "addLabels": [
                 "dependencies",
                 "renovate",
                 "automerge"
