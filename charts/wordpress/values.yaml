@@ -1007,7 +1007,7 @@ memcached:
     ## @param memcached.image.repository string Memcached image repository
     repository: docker.io/memcached
     ## @param memcached.image.tag string Memcached image tag
-    tag: "1.6.39@sha256:4737e17016e4d65ad8007408ec1816096c4ebec04cfa89a5265a3edd3f4ca552"
+    tag: "1.6.40@sha256:cf7cf1c8f636c9d9640a0e0b1a574393cb7f187d64915b31b7b3e84bee47f711"
     ## @param memcached.image.pullPolicy string Memcached image pull policy
     pullPolicy: IfNotPresent
 
