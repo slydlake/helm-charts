@@ -61,16 +61,16 @@ annotations:
     - name: mariadb
       image: docker.io/mariadb:12.1.2-noble
     - name: memcached
-      image: docker.io/memcached:1.6.39
+      image: docker.io/memcached:1.6.40
 dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.7.1
+    version: 0.8.1
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.9.0
+    version: 0.10.1
 keywords:
   - wordpress
   - blog
