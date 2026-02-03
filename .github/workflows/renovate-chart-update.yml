@@ -114,16 +114,47 @@ jobs:
               return;
             }
 
+            async function enableAutoMergeREST(){
+              return await github.rest.pulls.enableAutoMerge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                merge_method: 'squash'
+              });
+            }
+
+            // Try REST API first (more robust for token/cors issues), fallback to GraphQL on failure
             try {
-              const result = await github.graphql(
-                `mutation($prId:ID!){
-                  enablePullRequestAutoMerge(input:{pullRequestId:$prId, mergeMethod:SQUASH}){
-                    pullRequest { number }
+              let attempts = 0;
+              let success = false;
+              while (attempts < 2 && !success) {
+                attempts++;
+                try {
+                  const resp = await enableAutoMergeREST();
+                  core.info(`Auto-merge enabled via REST for PR: ${JSON.stringify(resp.data)}`);
+                  success = true;
+                  break;
+                } catch (restErr) {
+                  core.warning(`REST enableAutoMerge attempt ${attempts} failed: ${restErr.message}`);
+                  if (attempts < 2) {
+                    core.info('Retrying REST enableAutoMerge...');
+                    await new Promise(r => setTimeout(r, 2000));
                   }
-                }`,
-                { prId: process.env.PR_ID }
-              );
-              core.info(`Auto-merge enabled via GitHub for PR: ${JSON.stringify(result)}`);
+                }
+              }
+
+              if (!success) {
+                core.info('REST attempts failed; trying GraphQL as fallback');
+                const result = await github.graphql(
+                  `mutation($prId:ID!){
+                    enablePullRequestAutoMerge(input:{pullRequestId:$prId, mergeMethod:SQUASH}){
+                      pullRequest { number }
+                    }
+                  }`,
+                  { prId: process.env.PR_ID }
+                );
+                core.info(`Auto-merge enabled via GraphQL for PR: ${JSON.stringify(result)}`);
+              }
             } catch (err) {
               core.warning(`Could not enable auto-merge: ${err.message}`);
               core.warning('Ensure the GITHUB_TOKEN has appropriate permissions to enable auto-merge.');
