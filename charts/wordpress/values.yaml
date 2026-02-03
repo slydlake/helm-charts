@@ -750,7 +750,7 @@ metrics:
       ## @param metrics.apache.image.pullPolicy string Image pull policy
       pullPolicy: IfNotPresent
       ## @param metrics.apache.image.tag string Image tag
-      tag: "v1.0.11@sha256:efe95823087760a4e1b0cec245848389f11ec97c48ebbb49df6c49a240656acb"
+      tag: "v1.0.12@sha256:8bc1ba9d573058b101b833414028bff86b6f83be6f14b9bf9b568bc933b26e07"
 
     ## @section Apache Exporter Probes
     livenessProbe:
@@ -913,7 +913,7 @@ mariadb:
     ## @param mariadb.image.repository string MariaDB image repository
     repository: "docker.io/mariadb"
     ## @param mariadb.image.tag string MariaDB image tag
-    tag: "12.1.2-noble@sha256:e1bcd6f85781f4a875abefb11c4166c1d79e4237c23de597bf0df81fec225b40"
+    tag: "12.1.2-noble@sha256:f54db0cb3ccfe9431aba6d08c65a1763c499789b116b4cb651dd7fcf325965b3"
     ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
     imagePullPolicy: IfNotPresent
 
@@ -1007,7 +1007,7 @@ memcached:
     ## @param memcached.image.repository string Memcached image repository
     repository: docker.io/memcached
     ## @param memcached.image.tag string Memcached image tag
-    tag: "1.6.39@sha256:4737e17016e4d65ad8007408ec1816096c4ebec04cfa89a5265a3edd3f4ca552"
+    tag: "1.6.40@sha256:cc523a19da58864f1e6ddefab6df7b807f9f82252e0b1cc71260967a34ffc416"
     ## @param memcached.image.pullPolicy string Memcached image pull policy
     pullPolicy: IfNotPresent
 
