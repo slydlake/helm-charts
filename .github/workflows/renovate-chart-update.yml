@@ -94,9 +94,23 @@ jobs:
           script: |
             const labels = (process.env.PR_LABELS || '').split(',').map(l => l.trim()).filter(Boolean);
             const hasAutomergeLabel = labels.includes('automerge');
+            core.info(`PR labels: ${labels.join(',')}`);
+
+            // Fetch current PR data to check if auto_merge is already configured
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            const prAutoMerge = pr.data.auto_merge;
+
+            if (prAutoMerge) {
+              core.info(`PR already has auto_merge configured (merge method: ${prAutoMerge.merge_method || 'unknown'}), skipping enablePullRequestAutoMerge`);
+              return;
+            }
 
             if (!hasAutomergeLabel) {
-              core.info('automerge label not present, skipping enablePullRequestAutoMerge');
+              core.info('automerge label not present and PR.auto_merge not set, skipping enablePullRequestAutoMerge');
               return;
             }
 
@@ -112,6 +126,7 @@ jobs:
               core.info(`Auto-merge enabled via GitHub for PR: ${JSON.stringify(result)}`);
             } catch (err) {
               core.warning(`Could not enable auto-merge: ${err.message}`);
+              core.warning('Ensure the GITHUB_TOKEN has appropriate permissions to enable auto-merge.');
             }
 
       - name: Skip non-Renovate PRs
