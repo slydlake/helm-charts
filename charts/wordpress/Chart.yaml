@@ -57,20 +57,20 @@ annotations:
     - name: wordpress-cli
       image: docker.io/wordpress:cli-2.12.0-php8.3
     - name: metrics-apache
-      image: docker.io/lusotycoon/apache-exporter:v1.0.11
+      image: docker.io/lusotycoon/apache-exporter:v1.0.12
     - name: mariadb
       image: docker.io/mariadb:12.1.2-noble
     - name: memcached
-      image: docker.io/memcached:1.6.39
+      image: docker.io/memcached:1.6.40
 dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.7.1
+    version: 0.9.5
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.9.0
+    version: 0.13.2
 keywords:
   - wordpress
   - blog
