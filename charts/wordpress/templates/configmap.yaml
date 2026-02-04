@@ -122,7 +122,7 @@ data:
         copy_wp_core
 
         # Handle wp-config-docker.php for fresh install
-        if [ -f "/usr/src/wordpress/wp-config-docker.php" ] && [ ! -s /tmp/wordpress/wp-config.php ]; then
+        if [ -f "/usr/src/wordpress/wp-config-docker.php" ] && [ ! -f /tmp/wordpress/wp-config.php ]; then
           awk '
             /put your unique phrase here/ {
               cmd = "head -c1m /dev/urandom | sha1sum | cut -d\\  -f1"
@@ -563,11 +563,12 @@ data:
     # Implementation:
     #   - Uses ATOMIC INSERT...ON DUPLICATE KEY UPDATE for race-condition safety
     #   - wp_options table with option_name='_helm_init_lock'
-    #   - Lock value format: "POD_ID-TIMESTAMP"
-    #   - Detects stale locks (older than STALE_LOCK_THRESHOLD seconds)
+    #   - Lock value format: "POD_ID-TIMESTAMP-STATUS" (active/completed)
+    #   - Detects stale locks: completed status OR no heartbeat for 60s
     claim_lock_db() {
       CURRENT_TIME=$(date +%s)
       POD_ID="$$-$(hostname)"
+      POD_HOSTNAME="$(hostname)"
 
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Using table prefix: $TABLE_PREFIX" >&2
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Attempting to claim lock with POD_ID=$POD_ID-$CURRENT_TIME" >&2
@@ -579,14 +580,17 @@ data:
         return 0
       fi
 
-      # Atomic lock claim using INSERT...ON DUPLICATE KEY UPDATE
+      # Atomic lock claim using INSERT...ON DUPLICATE KEY UPDATE with heartbeat-based staleness
+      # Lock is stale if: status=completed OR timestamp older than STALE_LOCK_THRESHOLD OR same hostname (pod restart)
       wp db query "
         INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload)
-        VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no')
+        VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME-active', 'no')
         ON DUPLICATE KEY UPDATE
           option_value = IF(
-            CAST(SUBSTRING_INDEX(option_value, '-', -1) AS UNSIGNED) < $CURRENT_TIME - $STALE_LOCK_THRESHOLD,
-            '$POD_ID-$CURRENT_TIME',
+            option_value LIKE '%-completed'
+            OR option_value LIKE '%-${POD_HOSTNAME}-%'
+            OR CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(option_value, '-', -2), '-', 1) AS UNSIGNED) < $CURRENT_TIME - $STALE_LOCK_THRESHOLD,
+            '$POD_ID-$CURRENT_TIME-active',
             option_value
           );
       " >/dev/null 2>&1
@@ -598,28 +602,89 @@ data:
       LOCK_OWNER=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Current lock owner after atomic claim: $LOCK_OWNER" >&2
 
-      if [[ "$LOCK_OWNER" == "$POD_ID-$CURRENT_TIME" ]]; then
+      if [[ "$LOCK_OWNER" == "$POD_ID-$CURRENT_TIME"* ]]; then
         [ "${DEBUG}" = "true" ] && echo "DEBUG: Successfully claimed lock atomically!" >&2
         return 0
       fi
 
-      # Check lock age for informational purposes
-      LOCK_TIME=$(echo "$LOCK_OWNER" | awk -F'-' '{print $NF}')
+      # Check lock age and status for informational purposes
+      LOCK_TIME=$(echo "$LOCK_OWNER" | awk -F'-' '{print $(NF-1)}')
+      LOCK_STATUS=$(echo "$LOCK_OWNER" | awk -F'-' '{print $NF}')
       if [[ "$LOCK_TIME" =~ ^[0-9]+$ ]]; then
         LOCK_AGE=$((CURRENT_TIME - LOCK_TIME))
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: Lock held by another pod, age: ${LOCK_AGE}s" >&2
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Lock held by another pod, age: ${LOCK_AGE}s, status: $LOCK_STATUS" >&2
       fi
 
 
       return 1
     }
 
-    # Release database lock by deleting the lock row
+    # Start lock heartbeat process
+    # Runs in background and updates lock timestamp every 30 seconds
+    # Stops when main script exits (via trap)
+    #
+    # Lock format: "POD_ID-TIMESTAMP-STATUS"
+    # Status: "active" (still running) or "completed" (finished successfully)
+    #
+    # Uses PHP script for better reliability and error handling
+    start_lock_heartbeat() {
+      HEARTBEAT_INTERVAL=30  # Update every 30s
+      TABLE_PREFIX_LOCAL="${TABLE_PREFIX}"
+      POD_ID_LOCAL="$$-$(hostname)"
+      DB_HOST_LOCAL="${WORDPRESS_DB_HOST}"
+      DB_NAME_LOCAL="${WORDPRESS_DB_NAME}"
+      DB_USER_LOCAL="${WORDPRESS_DB_USER}"
+      DB_PASSWORD_LOCAL="${WORDPRESS_DB_PASSWORD}"
+
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Starting heartbeat with POD_ID=$POD_ID_LOCAL" >&2
+
+      # Start background process with inline PHP
+      (
+        while true; do
+          sleep $HEARTBEAT_INTERVAL
+
+          # Update lock using inline PHP
+          php -r "\$m = @new mysqli('$DB_HOST_LOCAL', '$DB_USER_LOCAL', '$DB_PASSWORD_LOCAL', '$DB_NAME_LOCAL'); if (!\$m->connect_error) { \$t = time(); \$m->query(\"UPDATE ${TABLE_PREFIX_LOCAL}options SET option_value = '$POD_ID_LOCAL-\$t-active' WHERE option_name = '_helm_init_lock' AND option_value LIKE '$POD_ID_LOCAL-%'\"); \$m->close(); }" 2>/dev/null || exit 0
+        done
+      ) &
+
+      HEARTBEAT_PID=$!
+      echo "$HEARTBEAT_PID" > /tmp/lock_heartbeat.pid
+
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Started lock heartbeat process (PID: $HEARTBEAT_PID)" >&2
+    }
+
+    # Stop lock heartbeat process
+    stop_lock_heartbeat() {
+      if [ -f /tmp/lock_heartbeat.pid ]; then
+        HEARTBEAT_PID=$(cat /tmp/lock_heartbeat.pid)
+        kill $HEARTBEAT_PID 2>/dev/null || true
+        rm -f /tmp/lock_heartbeat.pid
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Stopped lock heartbeat process" >&2
+      fi
+    }
+
+    # Release database lock by marking as completed
     # Called automatically via trap on script exit
     # Safe to call even if lock doesn't exist (|| true)
     # IMPORTANT: Must return 0 to not affect script exit code
     release_lock() {
-      wp db query "DELETE FROM ${TABLE_PREFIX:-wp_}options WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || true
+      # Stop heartbeat first
+      stop_lock_heartbeat
+
+      # Mark lock as completed (not just delete)
+      POD_ID="$$-$(hostname)"
+      CURRENT_TIME=$(date +%s)
+
+      wp db query "
+        UPDATE ${TABLE_PREFIX:-wp_}options
+        SET option_value = '$POD_ID-$CURRENT_TIME-completed'
+        WHERE option_name = '_helm_init_lock'
+          AND option_value LIKE '$POD_ID-%';
+      " >/dev/null 2>&1 || true
+
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Released lock and marked as completed" >&2
+
       return 0
     }
   # ============================================================================
@@ -768,9 +833,9 @@ data:
     # ============================================================================
 
     # Database lock configuration
-    readonly CHECK_INTERVAL=5
-    readonly STALE_LOCK_THRESHOLD=120  # Consider lock stale after 2 minutes (handles pod deletion)
-    readonly MAX_WAIT=$((STALE_LOCK_THRESHOLD + 30))  # Wait a bit longer than stale threshold
+    readonly CHECK_INTERVAL=10
+    readonly STALE_LOCK_THRESHOLD=600  # 10 minutes - covers long first-time installs without heartbeat
+    readonly MAX_WAIT=600  # 10 minutes maximum wait time for lock acquisition
     readonly DB_CHECK_RETRY_INTERVAL=15  # Seconds between database connection checks
 
     # WordPress paths
@@ -901,6 +966,10 @@ data:
 
     echo "Database lock acquired, proceeding with initialization..."
 
+    # Heartbeat disabled - using 10min STALE_LOCK_THRESHOLD instead
+    # This avoids background process complexity while covering long init times
+    # start_lock_heartbeat
+
     # ============================================================================
     # Disable WordPress Core Auto-Updates (managed by Helm chart via image updates)
     # ============================================================================
@@ -923,13 +992,11 @@ data:
 
 
     if [ "${WP_INIT}" = "true" ]; then
-      # Set language
+      # Set language (with single check)
       if [ -n "${WP_LOCALE}" ]; then
-        LANG_STATUS=$(wp language core list --language=${WP_LOCALE} --field=status 2>/dev/null || echo "uninstalled")
         LANG_STATUS=$(wp language core list --language=${WP_LOCALE} --field=status 2>/dev/null || echo "uninstalled")
         case $LANG_STATUS in
           "uninstalled")
-            echo "Installing language pack: ${WP_LOCALE}..."
             echo "Installing language pack: ${WP_LOCALE}..."
             wp language core install ${WP_LOCALE} --activate
             ;;
@@ -938,14 +1005,7 @@ data:
             ;;
         esac
 
-        # Check if language pack update is available
-        LANG_UPDATE=$(wp language core list --language=${WP_LOCALE} --field=update 2>/dev/null || echo "none")
-        if [ "$LANG_UPDATE" = "available" ]; then
-          echo "Updating language pack for ${WP_LOCALE}..."
-          wp language core update || true
-        fi
-
-        # Check if language pack update is available
+        # Check if language pack update is available (single check)
         LANG_UPDATE=$(wp language core list --language=${WP_LOCALE} --field=update 2>/dev/null || echo "none")
         if [ "$LANG_UPDATE" = "available" ]; then
           echo "Updating language pack for ${WP_LOCALE}..."
@@ -1212,28 +1272,20 @@ data:
       if echo "$INSTALLED_PLUGINS" | grep -q "^${WORDPRESS_METRICS}$"; then
         if ! echo "$ACTIVE_PLUGINS" | grep -q "^${WORDPRESS_METRICS}$"; then
           wp plugin activate ${WORDPRESS_METRICS} 2>/dev/null || true
-          ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
+          PLUGINS_MODIFIED=true
         fi
       else
         echo "Installing WordPress metrics plugin..."
         wp plugin install ${WORDPRESS_METRICS} --activate --force
-        INSTALLED_PLUGINS=$(wp plugin list --field=name 2>/dev/null || echo "")
-        ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
+        PLUGINS_MODIFIED=true
       fi
 
-      echo "Flushing rewrite rules for metrics plugin..."
-      run wp rewrite flush
-
-      if ! echo "$AUTOUPDATE_ENABLED" | grep -q "^${WORDPRESS_METRICS}$"; then
-        run wp plugin auto-updates enable ${WORDPRESS_METRICS}
-        AUTOUPDATE_ENABLED=$(wp plugin list --fields=name,auto_update --format=csv 2>/dev/null | grep ",on$" | cut -d',' -f1 || echo "")
-      fi
     else
       # Remove plugin if WORDPRESS_METRICS is empty and plugin exists
       if [ -n "${WORDPRESS_METRICS}" ] && [ -n "$INSTALLED_PLUGINS" ] && echo "$INSTALLED_PLUGINS" | grep -q "^${WORDPRESS_METRICS}$"; then
         echo "Removing metrics plugin..."
         wp plugin delete ${WORDPRESS_METRICS}
-        INSTALLED_PLUGINS=$(wp plugin list --field=name 2>/dev/null || echo "")
+        PLUGINS_MODIFIED=true
       fi
     fi
 
@@ -1378,24 +1430,34 @@ data:
       ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
     fi
 
-    # Install Composer plugins
+    # Install Composer plugins (batch operation for performance)
     if [ ${#COMPOSER_PLUGINS_TO_INSTALL[@]} -gt 0 ]; then
       echo "Installing ${#COMPOSER_PLUGINS_TO_INSTALL[@]} Composer plugin(s)..."
       cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
-      for package_spec in "${COMPOSER_PLUGINS_TO_INSTALL[@]}"; do
-        echo "Installing Composer package: $package_spec"
-        # Capture output and only show on error, with retry logic
-        if ! COMPOSER_OUTPUT=$(retry_command composer require "$package_spec" --no-interaction 2>&1); then
-          echo "$COMPOSER_OUTPUT"
-          handle_error "Error installing Composer package: $package_spec (failed after retries)"
-        fi
-      done
+      # Try batch install first (faster: single dependency resolution)
+      all_packages="${COMPOSER_PLUGINS_TO_INSTALL[@]}"
+      echo "Attempting batch install: $all_packages"
+
+      if COMPOSER_OUTPUT=$(retry_command composer require $all_packages --no-interaction 2>&1); then
+        echo "Batch install successful!"
+      else
+        echo "Batch install failed, falling back to individual installs..."
+        echo "$COMPOSER_OUTPUT"
+
+        # Fallback: Install individually
+        for package_spec in "${COMPOSER_PLUGINS_TO_INSTALL[@]}"; do
+          echo "Installing Composer package: $package_spec"
+          if ! COMPOSER_OUTPUT=$(retry_command composer require "$package_spec" --no-interaction 2>&1); then
+            echo "$COMPOSER_OUTPUT"
+            handle_error "Error installing Composer package: $package_spec (failed after retries)"
+          fi
+        done
+      fi
 
       echo "Composer plugins installed!"
       COMPOSER_PACKAGES_MODIFIED=true
-      INSTALLED_PLUGINS=$(wp plugin list --field=name 2>/dev/null || echo "")
-      ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
+      # Don't refresh plugin lists here - will do single refresh later
     fi
 
     # Update Composer plugins (auto-update for packages without fixed version)
@@ -1438,18 +1500,21 @@ data:
     # Install Composer dependencies for plugins NOW (before theme installation)
     # This ensures plugins like s3-uploads have their dependencies (e.g., AWS SDK)
     # available before WordPress loads them during theme installation
-    if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ${#COMPOSER_PLUGINS_TO_INSTALL[@]} -gt 0 ]; then
-      echo ""
-      echo "========================================="
-      echo "Installing plugin Composer dependencies..."
-      echo "========================================="
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
+    # Always run this section to ensure plugin dependencies are installed, even if
+    # packages were not modified in this run (e.g., for existing installations)
+    echo ""
+    echo "========================================="
+    echo "Checking plugin Composer dependencies..."
+    echo "========================================="
+    cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
-      # Run composer install for main project first
+    # Run composer install for main project first (only if composer.json exists and was modified)
+    if [ -f composer.json ] && { [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ${#COMPOSER_PLUGINS_TO_INSTALL[@]} -gt 0 ]; }; then
       if ! COMPOSER_OUTPUT=$(retry_command composer install --no-interaction 2>&1 | grep -v "suggest" | grep -v "funding"); then
         echo "$COMPOSER_OUTPUT"
         handle_error "Error installing Composer dependencies (failed after retries)"
       fi
+    fi
 
       # Build list of Composer-installed plugin slugs
       COMPOSER_PLUGIN_SLUGS=""
@@ -1467,20 +1532,40 @@ data:
         ' 2>/dev/null || echo "")
       fi
 
-      # Install dependencies for each Composer-installed plugin
+      # Install dependencies for each Composer-installed plugin (with skip check)
       for plugin_dir in ${WP_PLUGINS_DIR}/*/; do
         if [ -f "${plugin_dir}composer.json" ]; then
           PLUGIN_NAME=$(basename "$plugin_dir")
 
           if echo "$COMPOSER_PLUGIN_SLUGS" | grep -q "^${PLUGIN_NAME}$"; then
+            # Skip if vendor/ exists and is not empty
+            if [ -d "${plugin_dir}vendor" ] && [ -n "$(ls -A "${plugin_dir}vendor" 2>/dev/null)" ]; then
+              [ "${DEBUG}" = "true" ] && echo "DEBUG: Skipping composer install for $PLUGIN_NAME (vendor/ exists)" >&2
+              continue
+            fi
+
             echo "Running composer install in plugin: $PLUGIN_NAME"
             cd "$plugin_dir" || continue
-            if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
-              cat /tmp/composer-error.txt
-              echo "Warning: Could not install dependencies for plugin: $PLUGIN_NAME"
-            else
+
+            echo "Installing Composer dependencies (this may take a while for plugins with many dependencies)..."
+
+            # Show composer output but filter noise
+            # --no-progress shows package operations instead of progress bar (better for logs)
+            if composer install --no-dev --no-interaction --ignore-platform-reqs --no-security-blocking --no-progress 2>&1 | \
+               grep -v "^$" | \
+               while IFS= read -r line; do
+                 # Show important lines: operations, generating autoload, warnings, errors
+                 if echo "$line" | grep -qE "(^Lock file operations:|^Package operations:|installs|updates|removals|Generating autoload|^  - |Warning|Error|Failed)"; then
+                   echo "  $line"
+                 fi
+               done; then
               echo "Successfully installed dependencies for plugin: $PLUGIN_NAME"
+            else
+              composer_exit=$?
+              echo "Warning: Could not install dependencies for plugin: $PLUGIN_NAME (Exit code: $composer_exit)"
+              # Don't fail the whole init script, just warn
             fi
+
             cd /var/www/html || handle_error "Cannot return to WordPress root directory"
           fi
         fi
@@ -1509,8 +1594,7 @@ data:
     }
     MUEOF
       echo "Composer autoloader MU-Plugin created!"
-      echo "Plugin dependencies installed!"
-    fi
+      echo "Plugin dependencies checked!"
 
     # Batch activate plugins
     if [ ${#PLUGINS_TO_ACTIVATE[@]} -gt 0 ]; then
@@ -1525,7 +1609,7 @@ data:
       if [ ${#PLUGINS_NEED_ACTIVATION[@]} -gt 0 ]; then
         echo "Activating ${#PLUGINS_NEED_ACTIVATION[@]} plugin(s)..."
         wp plugin activate "${PLUGINS_NEED_ACTIVATION[@]}" 2>/dev/null || echo "Warning: Some plugins could not be activated"
-        ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
+        PLUGINS_MODIFIED=true
       fi
     fi
 
@@ -1564,7 +1648,24 @@ data:
 
       if [ ${#PLUGINS_NEED_AUTOUPDATE[@]} -gt 0 ]; then
         echo "Enabling auto-updates for ${#PLUGINS_NEED_AUTOUPDATE[@]} plugin(s)..."
-        run wp plugin auto-updates enable "${PLUGINS_NEED_AUTOUPDATE[@]}"
+
+        # Process in batches of 10 to avoid wp-cli failures with large arrays
+        BATCH_SIZE=10
+        TOTAL_BATCHES=$(( (${#PLUGINS_NEED_AUTOUPDATE[@]} + BATCH_SIZE - 1) / BATCH_SIZE ))
+
+        for ((i=0; i<${#PLUGINS_NEED_AUTOUPDATE[@]}; i+=BATCH_SIZE)); do
+          BATCH=("${PLUGINS_NEED_AUTOUPDATE[@]:i:BATCH_SIZE}")
+          BATCH_NUM=$(( i/BATCH_SIZE + 1 ))
+
+          if [ ${#BATCH[@]} -gt 0 ]; then
+            echo "  Batch ${BATCH_NUM}/${TOTAL_BATCHES}: Enabling auto-updates for ${#BATCH[@]} plugin(s)..."
+            if ! run wp plugin auto-updates enable "${BATCH[@]}"; then
+              echo "  Warning: Failed to enable auto-updates for batch ${BATCH_NUM}, continuing..."
+            fi
+          fi
+        done
+
+        echo "Plugin auto-updates processing complete!"
       fi
     fi
     {{- end }}
@@ -1634,6 +1735,16 @@ data:
       fi
     fi
     {{- end }}
+
+    # ============================================================================
+    # Final Plugin State Refresh
+    # ============================================================================
+    # Only refresh if we made modifications (performance optimization)
+    if [ "$PLUGINS_MODIFIED" = "true" ] || [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ]; then
+      echo "Refreshing plugin state after modifications..."
+      INSTALLED_PLUGINS=$(wp plugin list --field=name 2>/dev/null || echo "")
+      ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
+    fi
 
     # ============================================================================
     # Theme Management
@@ -1886,7 +1997,24 @@ data:
 
       if [ ${#THEMES_NEED_AUTOUPDATE[@]} -gt 0 ]; then
         echo "Enabling auto-updates for ${#THEMES_NEED_AUTOUPDATE[@]} theme(s)..."
-        run wp theme auto-updates enable "${THEMES_NEED_AUTOUPDATE[@]}"
+
+        # Process in batches of 10 to avoid wp-cli failures with large arrays
+        BATCH_SIZE=10
+        TOTAL_BATCHES=$(( (${#THEMES_NEED_AUTOUPDATE[@]} + BATCH_SIZE - 1) / BATCH_SIZE ))
+
+        for ((i=0; i<${#THEMES_NEED_AUTOUPDATE[@]}; i+=BATCH_SIZE)); do
+          BATCH=("${THEMES_NEED_AUTOUPDATE[@]:i:BATCH_SIZE}")
+          BATCH_NUM=$(( i/BATCH_SIZE + 1 ))
+
+          if [ ${#BATCH[@]} -gt 0 ]; then
+            echo "  Batch ${BATCH_NUM}/${TOTAL_BATCHES}: Enabling auto-updates for ${#BATCH[@]} theme(s)..."
+            if ! run wp theme auto-updates enable "${BATCH[@]}"; then
+              echo "  Warning: Failed to enable auto-updates for batch ${BATCH_NUM}, continuing..."
+            fi
+          fi
+        done
+
+        echo "Theme auto-updates processing complete!"
       fi
     fi
 
@@ -2192,6 +2320,14 @@ data:
     fi
     {{- end }}
 
+
+    # ============================================================================
+    # Final Rewrite Flush (single flush at the end)
+    # ============================================================================
+    if [ "$PLUGINS_MODIFIED" = "true" ] || [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ]; then
+      echo "Flushing rewrite rules after all changes..."
+      run wp rewrite flush
+    fi
 
     # ============================================================================
     # Release Lock and Complete
