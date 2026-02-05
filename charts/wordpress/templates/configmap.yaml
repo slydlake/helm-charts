@@ -1045,8 +1045,8 @@ data:
 
     # Database lock configuration
     readonly CHECK_INTERVAL=10
-    readonly STALE_LOCK_THRESHOLD=600  # 10 minutes - covers long first-time installs without heartbeat
-    readonly MAX_WAIT=600  # 10 minutes maximum wait time for lock acquisition
+    readonly STALE_LOCK_THRESHOLD=700  # 10 minutes - covers long first-time installs without heartbeat
+    readonly MAX_WAIT=700  # 10 minutes maximum wait time for lock acquisition
     readonly DB_CHECK_RETRY_INTERVAL=15  # Seconds between database connection checks
 
     # WordPress paths
