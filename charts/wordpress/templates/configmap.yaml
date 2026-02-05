@@ -785,10 +785,11 @@ data:
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Attempting to claim lock with POD_ID=$POD_ID-$CURRENT_TIME" >&2
 
 
-      # Check if wp_options table exists - if not, it's a fresh install
+      # Check if wp_options table exists - if not, WordPress is not installed
       if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: wp_options table doesn't exist yet, claiming lock for fresh install" >&2
-        return 0
+        echo "ERROR: wp_options table does not exist!" >&2
+        echo "WordPress database is not initialized. Please set wordpress.init.enabled=true" >&2
+        exit 1
       fi
 
       # Atomic lock claim using INSERT...ON DUPLICATE KEY UPDATE with heartbeat-based staleness
@@ -1050,6 +1051,7 @@ data:
     readonly DB_CHECK_RETRY_INTERVAL=15  # Seconds between database connection checks
 
     # WordPress paths
+    readonly WORDPRESS_PATH="/var/www/html"
     readonly WP_PLUGINS_DIR="wp-content/plugins"
     readonly WP_THEMES_DIR="wp-content/themes"
     readonly WP_MU_PLUGINS_DIR="wp-content/mu-plugins"
@@ -1081,8 +1083,10 @@ data:
     echo "Database connection established!"
 
     # Cache table prefix once (performance optimization)
-    # Extract directly from wp-config.php (faster than wp db prefix - no WordPress bootstrap)
-    if [ -f /var/www/html/wp-config.php ]; then
+    # Priority: 1. Environment variable (from values.yaml), 2. wp-config.php, 3. default "wp_"
+    if [ -n "${WORDPRESS_TABLE_PREFIX}" ]; then
+      TABLE_PREFIX="${WORDPRESS_TABLE_PREFIX}"
+    elif [ -f /var/www/html/wp-config.php ]; then
       TABLE_PREFIX=$(grep "^\$table_prefix" /var/www/html/wp-config.php 2>/dev/null | sed "s/.*'\([^']*\)'.*/\1/" || echo "wp_")
     else
       TABLE_PREFIX="wp_"
@@ -1099,7 +1103,21 @@ data:
     echo "========================================="
 
     if [ "${WP_INIT}" = "true" ]; then
-      if ! run wp core is-installed --url="${WP_URL}"; then
+      # Check both: wp-cli installation status AND database tables existence
+      WP_INSTALLED=false
+      if run wp core is-installed --url="${WP_URL}" 2>/dev/null; then
+        # wp-cli says installed, but verify tables actually exist
+        if wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+          WP_INSTALLED=true
+          echo "WordPress is already installed, skipping installation."
+        else
+          echo "WordPress files exist but database tables are missing - reinstalling..."
+          WP_INSTALLED=false
+        fi
+      fi
+
+      if [ "$WP_INSTALLED" = "false" ]; then
+        echo "Installing WordPress core..."
         run wp core install \
           --url="${WP_URL}" \
           --title="${WP_TITLE}" \
@@ -1108,8 +1126,13 @@ data:
           --admin_email="${WP_ADMIN_EMAIL}" \
           --skip-email \
           --locale="${WP_LOCALE}"
-      else
-        echo "WordPress is already installed, skipping installation."
+        
+        # Verify installation succeeded
+        if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+          echo "ERROR: WordPress installation failed - wp_options table not created!"
+          exit 1
+        fi
+        echo "WordPress core installed successfully!"
       fi
     else
       # WP_INIT is false - check if WordPress is already installed
@@ -1188,22 +1211,36 @@ data:
     # start_lock_heartbeat
 
     # ============================================================================
+    # Disable WordPress Core Auto-Updates (managed by Helm chart via image updates)
+    # ============================================================================
+
+    # Only run if wp_options table exists (skip for fresh installs without WP_INIT=true)
+    if wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+      echo "Disabling WordPress core auto-updates..."
+      # Update all 3 settings in one multi-row query (faster than 3 separate queries)
+      wp db query "
+        INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES
+          ('auto_update_core_dev', 'disabled', 'yes'),
+          ('auto_update_core_minor', 'disabled', 'yes'),          ('auto_update_core_major', 'disabled', 'yes')
+        ON DUPLICATE KEY UPDATE option_value='disabled';
+      " 2>&1 | grep -v -e "^$" -e "^Success:" || true
+      echo "Core auto-updates disabled!"
+    else
+      echo "Skipping WordPress configuration (database tables not ready yet)"
+      # Skip all DB-dependent configuration if tables don't exist
+      {{- if .Values.wordpress.users }}
+      echo "Skipping custom user creation (database not ready)"
+      {{- end }}
+      echo "Continuing to plugin/theme management..."
+      exit 0  # Exit early, WordPress needs to be set up first
+    fi
+
+    # ============================================================================
     # WordPress Configuration (Localization, Permalinks, User Metadata)
     # ============================================================================
 
 
     if [ "${WP_INIT}" = "true" ]; then
-      # Disable WordPress Core Auto-Updates (managed by Helm chart via image updates)
-      echo "Disabling WordPress core auto-updates..."
-      wp db query "
-        INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES
-          ('auto_update_core_dev', 'disabled', 'yes'),
-          ('auto_update_core_minor', 'disabled', 'yes'),
-          ('auto_update_core_major', 'disabled', 'yes')
-        ON DUPLICATE KEY UPDATE option_value='disabled';
-      " 2>&1 | grep -v -e "^$" -e "^Success:" || true
-      echo "Core auto-updates disabled!"
-
       # Set language (with single check)
       if [ -n "${WP_LOCALE}" ]; then
         LANG_STATUS=$(wp language core list --language=${WP_LOCALE} --field=status 2>/dev/null || echo "uninstalled")
