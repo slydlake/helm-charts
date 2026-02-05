@@ -1188,26 +1188,22 @@ data:
     # start_lock_heartbeat
 
     # ============================================================================
-    # Disable WordPress Core Auto-Updates (managed by Helm chart via image updates)
-    # ============================================================================
-
-    echo "Disabling WordPress core auto-updates..."
-    # Update all 3 settings in one multi-row query (faster than 3 separate queries)
-    wp db query "
-      INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES
-        ('auto_update_core_dev', 'disabled', 'yes'),
-        ('auto_update_core_minor', 'disabled', 'yes'),
-        ('auto_update_core_major', 'disabled', 'yes')
-      ON DUPLICATE KEY UPDATE option_value='disabled';
-    " 2>&1 | grep -v "^$" || true
-    echo "Core auto-updates disabled!"
-
-    # ============================================================================
     # WordPress Configuration (Localization, Permalinks, User Metadata)
     # ============================================================================
 
 
     if [ "${WP_INIT}" = "true" ]; then
+      # Disable WordPress Core Auto-Updates (managed by Helm chart via image updates)
+      echo "Disabling WordPress core auto-updates..."
+      wp db query "
+        INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES
+          ('auto_update_core_dev', 'disabled', 'yes'),
+          ('auto_update_core_minor', 'disabled', 'yes'),
+          ('auto_update_core_major', 'disabled', 'yes')
+        ON DUPLICATE KEY UPDATE option_value='disabled';
+      " 2>&1 | grep -v -e "^$" -e "^Success:" || true
+      echo "Core auto-updates disabled!"
+
       # Set language (with single check)
       if [ -n "${WP_LOCALE}" ]; then
         LANG_STATUS=$(wp language core list --language=${WP_LOCALE} --field=status 2>/dev/null || echo "uninstalled")
