@@ -1637,8 +1637,8 @@ data:
       done
 
 
-      INSTALLED_PLUGINS=$(wp plugin list --field=name 2>/dev/null || echo "")
-      ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
+      INSTALLED_PLUGINS=$(wp_plugin_list --field=name 2>/dev/null || echo "")
+      ACTIVE_PLUGINS=$(wp_plugin_list --status=active --field=name 2>/dev/null || echo "")
     fi
 
     # Install Composer plugins (batch operation for performance)
@@ -1842,7 +1842,7 @@ data:
           echo "Note: Some Composer plugins couldn't be activated yet - will retry after composer install"
           COMPOSER_PLUGINS_PENDING_ACTIVATION=("${COMPOSER_PLUGINS_NEED_ACTIVATION[@]}")
         else
-          ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
+          ACTIVE_PLUGINS=$(wp_plugin_list --status=active --field=name 2>/dev/null || echo "")
         fi
       fi
     fi
@@ -1931,15 +1931,15 @@ data:
     # Only show output if plugins are actually deleted
     if [ -n "$EXCLUDE_PLUGINS" ]; then
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Keeping plugins: $EXCLUDE_PLUGINS"
-      PLUGINS_BEFORE=$(wp plugin list --field=name 2>/dev/null | wc -l || echo "0")
+      PLUGINS_BEFORE=$(wp_plugin_list --field=name 2>/dev/null | wc -l || echo "0")
       wp plugin delete --all --exclude="$EXCLUDE_PLUGINS" >/dev/null 2>&1 || true
-      PLUGINS_AFTER=$(wp plugin list --field=name 2>/dev/null | wc -l || echo "0")
+      PLUGINS_AFTER=$(wp_plugin_list --field=name 2>/dev/null | wc -l || echo "0")
       PRUNED_COUNT=$((PLUGINS_BEFORE - PLUGINS_AFTER))
       if [ "$PRUNED_COUNT" -gt 0 ]; then
         echo "Pruned $PRUNED_COUNT plugin(s)"
       fi
     else
-      PLUGINS_COUNT=$(wp plugin list --field=name 2>/dev/null | wc -l || echo "0")
+      PLUGINS_COUNT=$(wp_plugin_list --field=name 2>/dev/null | wc -l || echo "0")
       if [ "$PLUGINS_COUNT" -gt 0 ]; then
         echo "Pruning all $PLUGINS_COUNT plugin(s)..."
         wp plugin delete --all >/dev/null 2>&1 || true
@@ -1953,8 +1953,8 @@ data:
     # Only refresh if we made modifications (performance optimization)
     if [ "$PLUGINS_MODIFIED" = "true" ] || [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ]; then
       echo "Refreshing plugin state after modifications..."
-      INSTALLED_PLUGINS=$(wp plugin list --field=name 2>/dev/null || echo "")
-      ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
+      INSTALLED_PLUGINS=$(wp_plugin_list --field=name 2>/dev/null || echo "")
+      ACTIVE_PLUGINS=$(wp_plugin_list --status=active --field=name 2>/dev/null || echo "")
     fi
 
     # ============================================================================
@@ -2120,8 +2120,8 @@ data:
       done
 
 
-      INSTALLED_THEMES=$(wp theme list --field=name 2>/dev/null || echo "")
-      ACTIVE_THEME=$(wp theme list --status=active --field=name 2>/dev/null || echo "")
+      INSTALLED_THEMES=$(wp_theme_list --field=name 2>/dev/null || echo "")
+      ACTIVE_THEME=$(wp_theme_list --status=active --field=name 2>/dev/null || echo "")
     fi
 
     # Install Composer themes
@@ -2140,8 +2140,8 @@ data:
 
       echo "Composer themes installed!"
       COMPOSER_PACKAGES_MODIFIED=true
-      INSTALLED_THEMES=$(wp theme list --field=name 2>/dev/null || echo "")
-      ACTIVE_THEME=$(wp theme list --status=active --field=name 2>/dev/null || echo "")
+      INSTALLED_THEMES=$(wp_theme_list --field=name 2>/dev/null || echo "")
+      ACTIVE_THEME=$(wp_theme_list --status=active --field=name 2>/dev/null || echo "")
     fi
 
     # Update Composer themes (auto-update for packages without fixed version)
@@ -2253,8 +2253,8 @@ data:
     {{- end }}
 
     # Get all installed themes and active theme
-    INSTALLED_THEMES=$(wp theme list --field=name 2>/dev/null || echo "")
-    ACTIVE_THEME=$(wp theme list --status=active --field=name 2>/dev/null || echo "")
+    INSTALLED_THEMES=$(wp_theme_list --field=name 2>/dev/null || echo "")
+    ACTIVE_THEME=$(wp_theme_list --status=active --field=name 2>/dev/null || echo "")
 
     # Check if active theme should be pruned (will be handled before deletion)
     ACTIVE_THEME_SHOULD_BE_PRUNED=false
@@ -2353,7 +2353,7 @@ data:
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Current packages in composer.json: $CURRENT_PACKAGES" >&2
 
       # Get active theme (might be a Composer theme)
-      ACTIVE_THEME=$(wp theme list --status=active --field=name 2>/dev/null || echo "")
+      ACTIVE_THEME=$(wp_theme_list --status=active --field=name 2>/dev/null || echo "")
 
       # Track packages that should be removed
       PACKAGES_TO_REMOVE=()
@@ -2501,7 +2501,7 @@ data:
       # Activate Composer plugins that couldn't be activated before (dependencies were missing)
       if [ ${#COMPOSER_PLUGINS_PENDING_ACTIVATION[@]} -gt 0 ]; then
         echo "Activating Composer plugins after dependency installation..."
-        ACTIVE_PLUGINS=$(wp plugin list --status=active --field=name 2>/dev/null || echo "")
+        ACTIVE_PLUGINS=$(wp_plugin_list --status=active --field=name 2>/dev/null || echo "")
         PLUGINS_STILL_NEED_ACTIVATION=()
         for plugin in "${COMPOSER_PLUGINS_PENDING_ACTIVATION[@]}"; do
           if ! echo "$ACTIVE_PLUGINS" | grep -q "^${plugin}$"; then
