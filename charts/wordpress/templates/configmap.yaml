@@ -1073,14 +1073,20 @@ data:
 
 
     echo "Waiting for database..."
-    until run wp db check; do
+    # Direct database connection check (faster than wp db check - no WordPress bootstrap)
+    until php -r "\$m = @new mysqli('${WORDPRESS_DB_HOST}', '${WORDPRESS_DB_USER}', '${WORDPRESS_DB_PASSWORD}', '${WORDPRESS_DB_NAME}'); exit(\$m->connect_error ? 1 : 0);" 2>/dev/null; do
       echo "Database not ready yet, waiting ${DB_CHECK_RETRY_INTERVAL} seconds..."
       sleep "${DB_CHECK_RETRY_INTERVAL}"
     done
+    echo "Database connection established!"
 
     # Cache table prefix once (performance optimization)
-    # Avoids repeated wp db prefix calls throughout the script
-    TABLE_PREFIX=$(wp db prefix 2>/dev/null || echo "wp_")
+    # Extract directly from wp-config.php (faster than wp db prefix - no WordPress bootstrap)
+    if [ -f /var/www/html/wp-config.php ]; then
+      TABLE_PREFIX=$(grep "^\$table_prefix" /var/www/html/wp-config.php 2>/dev/null | sed "s/.*'\([^']*\)'.*/\1/" || echo "wp_")
+    else
+      TABLE_PREFIX="wp_"
+    fi
     export TABLE_PREFIX
     echo "Using WordPress table prefix: ${TABLE_PREFIX}"
 
@@ -1188,12 +1194,13 @@ data:
     # Read current auto-update settings in one query
     AUTO_UPDATE_SETTINGS=$(wp db query "SELECT option_name, option_value FROM ${TABLE_PREFIX:-wp_}options WHERE option_name IN ('auto_update_core_dev', 'auto_update_core_minor', 'auto_update_core_major');" --skip-column-names 2>/dev/null || echo "")
 
-    # Check and update each setting only if not already disabled
+    # Check and update each setting only if not already disabled (direct DB update - faster than wp-cli)
     for setting in auto_update_core_dev auto_update_core_minor auto_update_core_major; do
       current_value=$(echo "$AUTO_UPDATE_SETTINGS" | grep "^$setting" | awk '{print $2}')
       if [ "$current_value" != "disabled" ]; then
         echo "Disabling $setting..."
-        run wp option update "$setting" disabled
+        # Direct DB update instead of wp option update (avoids loading WordPress)
+        wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('$setting', 'disabled', 'yes') ON DUPLICATE KEY UPDATE option_value='disabled';" >/dev/null 2>&1
       fi
     done
 
@@ -1224,11 +1231,17 @@ data:
         fi
       fi
 
-      # Set permalinks
+      # Set permalinks (direct DB query - faster than wp-cli)
       if [ -n "${WP_PERMALINK_STRUCTURE}" ]; then
-        echo "Setting WordPress permalinks to: ${WP_PERMALINK_STRUCTURE}"
-        run wp rewrite structure "${WP_PERMALINK_STRUCTURE}"
-        run wp rewrite flush
+        CURRENT_PERMALINK=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='permalink_structure';" --skip-column-names 2>/dev/null || echo "")
+        if [ "$CURRENT_PERMALINK" != "$WP_PERMALINK_STRUCTURE" ]; then
+          echo "Setting WordPress permalinks to: ${WP_PERMALINK_STRUCTURE}"
+          # Update or insert permalink structure directly in database
+          wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('permalink_structure', '${WP_PERMALINK_STRUCTURE}', 'yes') ON DUPLICATE KEY UPDATE option_value='${WP_PERMALINK_STRUCTURE}';" >/dev/null 2>&1
+          # Delete rewrite_rules to force WordPress to regenerate them on next page load
+          wp db query "DELETE FROM ${TABLE_PREFIX}options WHERE option_name='rewrite_rules';" >/dev/null 2>&1 || true
+          echo "Permalink structure updated (rewrite rules will be regenerated automatically)"
+        fi
       fi
 
       # Set admin user metadata
@@ -1847,7 +1860,7 @@ data:
       fi
     fi
 
-    # Batch enable auto-updates
+    # Batch enable auto-updates (direct DB update - faster than wp-cli)
     if [ ${#PLUGINS_TO_AUTOUPDATE[@]} -gt 0 ]; then
       PLUGINS_NEED_AUTOUPDATE=()
       for plugin in "${PLUGINS_TO_AUTOUPDATE[@]}"; do
@@ -1860,23 +1873,50 @@ data:
       if [ ${#PLUGINS_NEED_AUTOUPDATE[@]} -gt 0 ]; then
         echo "Enabling auto-updates for ${#PLUGINS_NEED_AUTOUPDATE[@]} plugin(s)..."
 
-        # Process in batches of 10 to avoid wp-cli failures with large arrays
-        BATCH_SIZE=10
-        TOTAL_BATCHES=$(( (${#PLUGINS_NEED_AUTOUPDATE[@]} + BATCH_SIZE - 1) / BATCH_SIZE ))
+        # Get current auto-update plugins from DB
+        CURRENT_AUTOUPDATE=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='auto_update_plugins';" --skip-column-names 2>/dev/null || echo "")
 
-        for ((i=0; i<${#PLUGINS_NEED_AUTOUPDATE[@]}; i+=BATCH_SIZE)); do
-          BATCH=("${PLUGINS_NEED_AUTOUPDATE[@]:i:BATCH_SIZE}")
-          BATCH_NUM=$(( i/BATCH_SIZE + 1 ))
+        # Pass plugins as newline-separated string to PHP
+        PLUGINS_TO_ADD=$(printf '%s\n' "${PLUGINS_NEED_AUTOUPDATE[@]}")
+        export PLUGINS_TO_ADD
 
-          if [ ${#BATCH[@]} -gt 0 ]; then
-            echo "  Batch ${BATCH_NUM}/${TOTAL_BATCHES}: Enabling auto-updates for ${#BATCH[@]} plugin(s)..."
-            if ! run wp plugin auto-updates enable "${BATCH[@]}"; then
-              echo "  Warning: Failed to enable auto-updates for batch ${BATCH_NUM}, continuing..."
-            fi
-          fi
-        done
+        # Use PHP to merge arrays and serialize
+        NEW_AUTOUPDATE=$(echo "$CURRENT_AUTOUPDATE" | php -r '
+          $current = @unserialize(file_get_contents("php://stdin"));
+          if (!is_array($current)) { $current = []; }
+          $toAddStr = trim(getenv("PLUGINS_TO_ADD"));
+          $toAdd = !empty($toAddStr) ? explode("\n", $toAddStr) : [];
 
-        echo "Plugin auto-updates processing complete!"
+          // Find plugin main file for each slug
+          $merged = $current;
+          foreach ($toAdd as $slug) {
+            // Search for plugin main file (slug/slug.php or any .php in slug/)
+            $pluginDir = "/var/www/html/wp-content/plugins/" . $slug;
+            if (is_dir($pluginDir)) {
+              // Try slug/slug.php first (most common)
+              $mainFile = $slug . "/" . $slug . ".php";
+              if (!file_exists("/var/www/html/wp-content/plugins/" . $mainFile)) {
+                // Find any .php file in the directory
+                $files = glob($pluginDir . "/*.php");
+                if (!empty($files)) {
+                  $mainFile = $slug . "/" . basename($files[0]);
+                }
+              }
+              if (!in_array($mainFile, $merged)) {
+                $merged[] = $mainFile;
+              }
+            }
+          }
+          echo serialize($merged);
+        ' 2>/dev/null)
+
+        # Update database
+        if [ -n "$NEW_AUTOUPDATE" ]; then
+          # Escape for SQL
+          ESCAPED_VALUE=$(echo "$NEW_AUTOUPDATE" | sed "s/'/\\\\'/g")
+          wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('auto_update_plugins', '$ESCAPED_VALUE', 'no') ON DUPLICATE KEY UPDATE option_value='$ESCAPED_VALUE';" >/dev/null 2>&1
+          echo "Plugin auto-updates enabled!"
+        fi
       fi
     fi
     {{- end }}
@@ -2196,7 +2236,7 @@ data:
       run wp theme activate "$COMPOSER_THEME_TO_ACTIVATE"
     fi
 
-    # Batch enable auto-updates
+    # Batch enable auto-updates (direct DB update - faster than wp-cli)
     if [ ${#THEMES_TO_AUTOUPDATE[@]} -gt 0 ]; then
       THEMES_NEED_AUTOUPDATE=()
       for theme in "${THEMES_TO_AUTOUPDATE[@]}"; do
@@ -2209,23 +2249,32 @@ data:
       if [ ${#THEMES_NEED_AUTOUPDATE[@]} -gt 0 ]; then
         echo "Enabling auto-updates for ${#THEMES_NEED_AUTOUPDATE[@]} theme(s)..."
 
-        # Process in batches of 10 to avoid wp-cli failures with large arrays
-        BATCH_SIZE=10
-        TOTAL_BATCHES=$(( (${#THEMES_NEED_AUTOUPDATE[@]} + BATCH_SIZE - 1) / BATCH_SIZE ))
+        # Get current auto-update themes from DB
+        CURRENT_AUTOUPDATE_THEMES=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='auto_update_themes';" --skip-column-names 2>/dev/null || echo "")
 
-        for ((i=0; i<${#THEMES_NEED_AUTOUPDATE[@]}; i+=BATCH_SIZE)); do
-          BATCH=("${THEMES_NEED_AUTOUPDATE[@]:i:BATCH_SIZE}")
-          BATCH_NUM=$(( i/BATCH_SIZE + 1 ))
+        # Pass themes as newline-separated string to PHP
+        THEMES_TO_ADD=$(printf '%s\n' "${THEMES_NEED_AUTOUPDATE[@]}")
+        export THEMES_TO_ADD
 
-          if [ ${#BATCH[@]} -gt 0 ]; then
-            echo "  Batch ${BATCH_NUM}/${TOTAL_BATCHES}: Enabling auto-updates for ${#BATCH[@]} theme(s)..."
-            if ! run wp theme auto-updates enable "${BATCH[@]}"; then
-              echo "  Warning: Failed to enable auto-updates for batch ${BATCH_NUM}, continuing..."
-            fi
-          fi
-        done
+        # Use PHP to merge arrays and serialize
+        NEW_AUTOUPDATE_THEMES=$(echo "$CURRENT_AUTOUPDATE_THEMES" | php -r '
+          $current = @unserialize(file_get_contents("php://stdin"));
+          if (!is_array($current)) { $current = []; }
+          $toAddStr = trim(getenv("THEMES_TO_ADD"));
+          $toAdd = !empty($toAddStr) ? explode("\n", $toAddStr) : [];
 
-        echo "Theme auto-updates processing complete!"
+          // Merge theme slugs
+          $merged = array_unique(array_merge($current, $toAdd));
+          echo serialize($merged);
+        ' 2>/dev/null)
+
+        # Update database
+        if [ -n "$NEW_AUTOUPDATE_THEMES" ]; then
+          # Escape for SQL
+          ESCAPED_VALUE=$(echo "$NEW_AUTOUPDATE_THEMES" | sed "s/'/\\\\'/g")
+          wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('auto_update_themes', '$ESCAPED_VALUE', 'no') ON DUPLICATE KEY UPDATE option_value='$ESCAPED_VALUE';" >/dev/null 2>&1
+          echo "Theme auto-updates enabled!"
+        fi
       fi
     fi
 
