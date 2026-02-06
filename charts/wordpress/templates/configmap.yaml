@@ -837,17 +837,19 @@ data:
       echo "Attempting to claim bootstrap lock (for WordPress installation)..."
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Pod hostname: $pod_hostname" >&2
 
-      # Ensure helm_locks table exists
-      wp db query "
-        CREATE TABLE IF NOT EXISTS ${TABLE_PREFIX}helm_locks (
-          lock_name VARCHAR(64) PRIMARY KEY,
-          lock_value VARCHAR(255) NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      " >/dev/null 2>&1
-
       while [ $retry_count -lt $max_retries ]; do
         current_time=$(date +%s)
+
+        # Ensure helm_locks table exists on every attempt
+        # (CREATE TABLE IF NOT EXISTS is idempotent and fast when table already exists)
+        # This handles the case where MariaDB accepts connections but isn't fully ready for DDL yet
+        wp db query "
+          CREATE TABLE IF NOT EXISTS ${TABLE_PREFIX}helm_locks (
+            lock_name VARCHAR(64) PRIMARY KEY,
+            lock_value VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        " >/dev/null 2>&1
 
         # Atomic lock claim: override if same hostname OR no heartbeat for STALE_THRESHOLD seconds
         wp db query "
