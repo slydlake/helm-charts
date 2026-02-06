@@ -435,10 +435,12 @@ data:
         echo "[DRY_RUN] wp $*"
         return 0
       fi
+      # --skip-plugins/themes: avoid loading all installed plugins on every call
+      # (huge speedup when Composer packages like s3-uploads are installed)
       if [ "${DEBUG}" = "true" ]; then
-        command wp --path="${WORDPRESS_PATH}" --debug "$@"
+        command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes --debug "$@"
       else
-        command wp --path="${WORDPRESS_PATH}" "$@"
+        command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes "$@"
       fi
     }
 
@@ -895,7 +897,8 @@ data:
         _stop_heartbeat
         [ "${DEBUG}" = "true" ] && echo "DEBUG: Releasing bootstrap lock" >&2
         local pod_hostname="$(hostname)"
-        wp db query "DELETE FROM ${TABLE_PREFIX}helm_locks WHERE lock_name='bootstrap' AND lock_value LIKE '$pod_hostname-%';" >/dev/null 2>&1 || true
+        # Direct PHP for fast release (no WordPress bootstrap overhead)
+        php -r "\$m = @new mysqli('${WORDPRESS_DB_HOST}', '${WORDPRESS_DB_USER}', '${WORDPRESS_DB_PASSWORD}', '${WORDPRESS_DB_NAME}'); if(!\$m->connect_error) { \$m->query(\"DELETE FROM ${TABLE_PREFIX}helm_locks WHERE lock_name='bootstrap' AND lock_value LIKE '${pod_hostname}-%'\"); \$m->close(); }" 2>/dev/null || true
         BOOTSTRAP_LOCK_ACQUIRED=false
         echo "Bootstrap lock released!"
       fi
@@ -966,7 +969,8 @@ data:
         _stop_heartbeat
         [ "${DEBUG}" = "true" ] && echo "DEBUG: Releasing config lock" >&2
         local pod_hostname="$(hostname)"
-        wp db query "DELETE FROM ${TABLE_PREFIX}options WHERE option_name='_helm_config_lock' AND option_value LIKE '$pod_hostname-%';" >/dev/null 2>&1 || true
+        # Direct PHP for fast release (no WordPress bootstrap overhead)
+        php -r "\$m = @new mysqli('${WORDPRESS_DB_HOST}', '${WORDPRESS_DB_USER}', '${WORDPRESS_DB_PASSWORD}', '${WORDPRESS_DB_NAME}'); if(!\$m->connect_error) { \$m->query(\"DELETE FROM ${TABLE_PREFIX}options WHERE option_name='_helm_config_lock' AND option_value LIKE '${pod_hostname}-%'\"); \$m->close(); }" 2>/dev/null || true
         CONFIG_LOCK_ACQUIRED=false
         echo "Config lock released!"
       fi
@@ -1314,6 +1318,7 @@ data:
     if [ "${WP_INIT}" = "true" ]; then
       # Set language (with single check)
       if [ -n "${WP_LOCALE}" ]; then
+        echo "Checking language pack status for ${WP_LOCALE}..."
         LANG_STATUS=$(wp language core list --language=${WP_LOCALE} --field=status 2>/dev/null || echo "uninstalled")
         case $LANG_STATUS in
           "uninstalled")
@@ -1335,6 +1340,7 @@ data:
 
       # Set permalinks (direct DB query - faster than wp-cli)
       if [ -n "${WP_PERMALINK_STRUCTURE}" ]; then
+        echo "Checking permalink structure..."
         CURRENT_PERMALINK=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='permalink_structure';" --skip-column-names 2>/dev/null || echo "")
         if [ "$CURRENT_PERMALINK" != "$WP_PERMALINK_STRUCTURE" ]; then
           echo "Setting WordPress permalinks to: ${WP_PERMALINK_STRUCTURE}"
@@ -1347,6 +1353,9 @@ data:
       fi
 
       # Set admin user metadata
+      if [ -n "${WP_ADMIN_FIRSTNAME}" ] || [ -n "${WP_ADMIN_LASTNAME}" ]; then
+        echo "Checking admin user metadata..."
+      fi
       if [ -n "${WP_ADMIN_FIRSTNAME}" ]; then
         CURRENT_FIRSTNAME=$(wp user meta get "$WP_ADMIN_USER" first_name 2>/dev/null || echo "")
         if [ "$CURRENT_FIRSTNAME" != "$WP_ADMIN_FIRSTNAME" ]; then
