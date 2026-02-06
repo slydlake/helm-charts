@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 2.2.0-beta.11
+version: 2.2.0-beta.12
 appVersion: "6.9.0" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,31 +26,16 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
+    - kind: added
+      description: "Add heartbeat-based distributed locking for multi-pod init containers"
+    - kind: added
+      description: "Add bootstrap lock using dedicated helm_locks table (before WordPress installation)"
+    - kind: added
+      description: "Add automatic stale lock detection (60s without heartbeat) for crash recovery"
+    - kind: added
+      description: "sample file composer2.values.yaml for using Composer packages and two replicas with shared storage"
     - kind: changed
-      description: "Update docker.io/lusotycoon/apache-exporter"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/95
-    - kind: changed
-      description: "Update docker.io/mariadb"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/95
-    - kind: changed
-      description: "Update docker.io/memcached"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/95
-    - kind: changed
-      description: "Update mariadb to ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/mariadb))"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/95
-    - kind: changed
-      description: "Update memcached to ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/memcached))"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/95
+      description: "Replace wp-cli with direct database queries for much faster initialization"
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.9.0-php8.3-apache

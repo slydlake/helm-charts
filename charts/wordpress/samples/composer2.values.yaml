@@ -10,6 +10,7 @@ storage:
   size: 1Gi
 
 wordpress:
+  tablePrefix: xztab_
   init:
     enabled: true
     existingSecret: "wordpress-test-secret"
