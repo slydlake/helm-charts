@@ -757,147 +757,176 @@ data:
   # ============================================================================
   # Library: Database Lock Functions (lib-lock.sh)
   # ============================================================================
-  # Contains: claim_lock_db(), release_lock()
-  # Provides distributed locking using WordPress options table
+  # Contains: claim_bootstrap_lock(), release_bootstrap_lock(), claim_config_lock(), release_config_lock()
+  # Provides distributed locking for multi-pod deployments using wp_options table
   lib-lock.sh: |
     #!/bin/bash
     # WordPress Helm Chart - Database Lock Library
     # Provides distributed locking for multi-pod deployments
+    #
+    # Uses wp_options table with hostname-based stale detection:
+    #   - Same hostname (pod restart): Lock immediately overridden
+    #   - Different hostname: 60s timeout for stale detection
+    #   - Lock format: hostname-timestamp
 
-    # Attempt to claim distributed database lock for initialization
-    # Ensures only one pod performs WordPress configuration at a time
+    BOOTSTRAP_LOCK_ACQUIRED=false
+    CONFIG_LOCK_ACQUIRED=false
+    readonly LOCK_TIMEOUT=300  # 300 seconds (5 min) until config lock is considered stale (for Composer operations)
+
+    # Attempt to claim bootstrap lock using dedicated helm_locks table
+    # This is used BEFORE WordPress installation when wp_options doesn't exist yet
     #
     # Returns:
-    #   0 - Lock successfully claimed or taken over from stale lock
-    #   1 - Lock held by another active pod
+    #   0 - Lock successfully claimed
+    #   1 - Lock held by another pod (after retries)
     #
     # Implementation:
-    #   - Uses ATOMIC INSERT...ON DUPLICATE KEY UPDATE for race-condition safety
-    #   - wp_options table with option_name='_helm_init_lock'
-    #   - Lock value format: "POD_ID-TIMESTAMP-STATUS" (active/completed)
-    #   - Detects stale locks: completed status OR no heartbeat for 60s
-    claim_lock_db() {
-      CURRENT_TIME=$(date +%s)
-      POD_ID="$$-$(hostname)"
-      POD_HOSTNAME="$(hostname)"
+    #   - Uses dedicated helm_locks table (created on-demand)
+    #   - Lock format: hostname-timestamp
+    #   - Same hostname: Immediate override (pod restart)
+    #   - Different hostname + stale (>600s): Override (long timeout for WP install)
+    #   - Different hostname + fresh: Wait and retry
+    claim_bootstrap_lock() {
+      local max_retries=6  # 6 retries × 10s = 60s max wait
+      local retry_interval=10
+      local retry_count=0
+      local pod_hostname="$(hostname)"
+      local current_time=$(date +%s)
 
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Using table prefix: $TABLE_PREFIX" >&2
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Attempting to claim lock with POD_ID=$POD_ID-$CURRENT_TIME" >&2
+      echo "Attempting to claim bootstrap lock (for WordPress installation)..."
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Pod hostname: $pod_hostname" >&2
 
-
-      # Check if wp_options table exists - if not, WordPress is not installed
-      if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
-        echo "ERROR: wp_options table does not exist!" >&2
-        echo "WordPress database is not initialized. Please set wordpress.init.enabled=true" >&2
-        exit 1
-      fi
-
-      # Atomic lock claim using INSERT...ON DUPLICATE KEY UPDATE with heartbeat-based staleness
-      # Lock is stale if: status=completed OR timestamp older than STALE_LOCK_THRESHOLD OR same hostname (pod restart)
+      # Ensure helm_locks table exists
       wp db query "
-        INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload)
-        VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME-active', 'no')
-        ON DUPLICATE KEY UPDATE
-          option_value = IF(
-            option_value LIKE '%-completed'
-            OR option_value LIKE '%-${POD_HOSTNAME}-%'
-            OR CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(option_value, '-', -2), '-', 1) AS UNSIGNED) < $CURRENT_TIME - $STALE_LOCK_THRESHOLD,
-            '$POD_ID-$CURRENT_TIME-active',
-            option_value
-          );
+        CREATE TABLE IF NOT EXISTS ${TABLE_PREFIX}helm_locks (
+          lock_name VARCHAR(64) PRIMARY KEY,
+          lock_value VARCHAR(255) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
       " >/dev/null 2>&1
 
-      # Small delay to ensure database sync
-      sleep 0.1
+      while [ $retry_count -lt $max_retries ]; do
+        # Atomic lock claim with 600s timeout for bootstrap (WordPress install can be slow)
+        wp db query "
+          INSERT INTO ${TABLE_PREFIX}helm_locks (lock_name, lock_value)
+          VALUES ('bootstrap', '$pod_hostname-$current_time')
+          ON DUPLICATE KEY UPDATE
+            lock_value = IF(
+              lock_value LIKE '$pod_hostname-%'
+              OR CAST(SUBSTRING_INDEX(lock_value, '-', -1) AS UNSIGNED) < $current_time - 600,
+              '$pod_hostname-$current_time',
+              lock_value
+            );
+        " >/dev/null 2>&1
 
-      # Check if we got the lock
-      LOCK_OWNER=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Current lock owner after atomic claim: $LOCK_OWNER" >&2
+        sleep 0.1
 
-      if [[ "$LOCK_OWNER" == "$POD_ID-$CURRENT_TIME"* ]]; then
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: Successfully claimed lock atomically!" >&2
-        return 0
-      fi
+        # Check if we got the lock
+        local lock_owner=$(wp db query "SELECT lock_value FROM ${TABLE_PREFIX}helm_locks WHERE lock_name='bootstrap';" --skip-column-names 2>/dev/null || echo "")
 
-      # Check lock age and status for informational purposes
-      LOCK_TIME=$(echo "$LOCK_OWNER" | awk -F'-' '{print $(NF-1)}')
-      LOCK_STATUS=$(echo "$LOCK_OWNER" | awk -F'-' '{print $NF}')
-      if [[ "$LOCK_TIME" =~ ^[0-9]+$ ]]; then
-        LOCK_AGE=$((CURRENT_TIME - LOCK_TIME))
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: Lock held by another pod, age: ${LOCK_AGE}s, status: $LOCK_STATUS" >&2
-      fi
+        if [[ "$lock_owner" == "$pod_hostname-$current_time" ]]; then
+          echo "Bootstrap lock acquired successfully!"
+          BOOTSTRAP_LOCK_ACQUIRED=true
+          [ "${DEBUG}" = "true" ] && echo "DEBUG: Pod $pod_hostname claimed bootstrap lock" >&2
+          return 0
+        fi
 
+        retry_count=$((retry_count + 1))
+        if [ $retry_count -lt $max_retries ]; then
+          local wait_time=$((retry_count * retry_interval))
+          echo "Another pod is installing WordPress, waiting... (${wait_time}s/60s)"
+          sleep $retry_interval
+          current_time=$(date +%s)
+        fi
+      done
 
+      echo "Timeout waiting for bootstrap lock after 60s"
+      echo "Another pod is still installing WordPress. This pod will restart and retry."
       return 1
     }
 
-    # Start lock heartbeat process
-    # Runs in background and updates lock timestamp every 30 seconds
-    # Stops when main script exits (via trap)
-    #
-    # Lock format: "POD_ID-TIMESTAMP-STATUS"
-    # Status: "active" (still running) or "completed" (finished successfully)
-    #
-    # Uses PHP script for better reliability and error handling
-    start_lock_heartbeat() {
-      HEARTBEAT_INTERVAL=30  # Update every 30s
-      TABLE_PREFIX_LOCAL="${TABLE_PREFIX}"
-      POD_ID_LOCAL="$$-$(hostname)"
-      DB_HOST_LOCAL="${WORDPRESS_DB_HOST}"
-      DB_NAME_LOCAL="${WORDPRESS_DB_NAME}"
-      DB_USER_LOCAL="${WORDPRESS_DB_USER}"
-      DB_PASSWORD_LOCAL="${WORDPRESS_DB_PASSWORD}"
-
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Starting heartbeat with POD_ID=$POD_ID_LOCAL" >&2
-
-      # Start background process with inline PHP
-      (
-        while true; do
-          sleep $HEARTBEAT_INTERVAL
-
-          # Update lock using inline PHP
-          php -r "\$m = @new mysqli('$DB_HOST_LOCAL', '$DB_USER_LOCAL', '$DB_PASSWORD_LOCAL', '$DB_NAME_LOCAL'); if (!\$m->connect_error) { \$t = time(); \$m->query(\"UPDATE ${TABLE_PREFIX_LOCAL}options SET option_value = '$POD_ID_LOCAL-\$t-active' WHERE option_name = '_helm_init_lock' AND option_value LIKE '$POD_ID_LOCAL-%'\"); \$m->close(); }" 2>/dev/null || exit 0
-        done
-      ) &
-
-      HEARTBEAT_PID=$!
-      echo "$HEARTBEAT_PID" > /tmp/lock_heartbeat.pid
-
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Started lock heartbeat process (PID: $HEARTBEAT_PID)" >&2
-    }
-
-    # Stop lock heartbeat process
-    stop_lock_heartbeat() {
-      if [ -f /tmp/lock_heartbeat.pid ]; then
-        HEARTBEAT_PID=$(cat /tmp/lock_heartbeat.pid)
-        kill $HEARTBEAT_PID 2>/dev/null || true
-        rm -f /tmp/lock_heartbeat.pid
-        [ "${DEBUG}" = "true" ] && echo "DEBUG: Stopped lock heartbeat process" >&2
+    # Release bootstrap lock
+    release_bootstrap_lock() {
+      if [ "$BOOTSTRAP_LOCK_ACQUIRED" = "true" ]; then
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Releasing bootstrap lock" >&2
+        local pod_hostname="$(hostname)"
+        wp db query "DELETE FROM ${TABLE_PREFIX}helm_locks WHERE lock_name='bootstrap' AND lock_value LIKE '$pod_hostname-%';" >/dev/null 2>&1 || true
+        BOOTSTRAP_LOCK_ACQUIRED=false
+        echo "Bootstrap lock released!"
       fi
     }
 
-    # Release database lock by marking as completed
-    # Called automatically via trap on script exit
-    # Safe to call even if lock doesn't exist (|| true)
-    # IMPORTANT: Must return 0 to not affect script exit code
-    release_lock() {
-      # Stop heartbeat first
-      stop_lock_heartbeat
+    # Attempt to claim configuration lock using wp_options table
+    # This is used AFTER WordPress installation for plugin/theme/config management
+    #
+    # Returns:
+    #   0 - Lock successfully claimed
+    #   1 - Lock held by another pod (after retries)
+    #
+    # Implementation:
+    #   - Uses wp_options table with atomic INSERT...ON DUPLICATE KEY UPDATE
+    #   - Lock format: hostname-timestamp
+    #   - Same hostname: Immediate override (pod restart)
+    #   - Different hostname + stale (>300s): Override
+    #   - Different hostname + fresh: Wait and retry (up to 300s)
+    claim_config_lock() {
+      local max_retries=30  # 30 retries × 10s = 300s max wait (matches LOCK_TIMEOUT)
+      local retry_interval=10
+      local retry_count=0
+      local pod_hostname="$(hostname)"
+      local current_time=$(date +%s)
 
-      # Mark lock as completed (not just delete)
-      POD_ID="$$-$(hostname)"
-      CURRENT_TIME=$(date +%s)
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Attempting config lock, hostname: $pod_hostname" >&2
 
-      wp db query "
-        UPDATE ${TABLE_PREFIX:-wp_}options
-        SET option_value = '$POD_ID-$CURRENT_TIME-completed'
-        WHERE option_name = '_helm_init_lock'
-          AND option_value LIKE '$POD_ID-%';
-      " >/dev/null 2>&1 || true
+      while [ $retry_count -lt $max_retries ]; do
+        # Atomic lock claim: Insert or update if stale/same hostname
+        wp db query "
+          INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload)
+          VALUES ('_helm_config_lock', '$pod_hostname-$current_time', 'no')
+          ON DUPLICATE KEY UPDATE
+            option_value = IF(
+              option_value LIKE '$pod_hostname-%'
+              OR CAST(SUBSTRING_INDEX(option_value, '-', -1) AS UNSIGNED) < $current_time - $LOCK_TIMEOUT,
+              '$pod_hostname-$current_time',
+              option_value
+            );
+        " >/dev/null 2>&1
 
-      [ "${DEBUG}" = "true" ] && echo "DEBUG: Released lock and marked as completed" >&2
+        sleep 0.1
 
-      return 0
+        # Check if we got the lock
+        local lock_owner=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_config_lock';" --skip-column-names 2>/dev/null || echo "")
+
+        if [[ "$lock_owner" == "$pod_hostname-$current_time" ]]; then
+          CONFIG_LOCK_ACQUIRED=true
+          [ "${DEBUG}" = "true" ] && echo "DEBUG: Pod $pod_hostname claimed config lock" >&2
+          return 0
+        fi
+
+        # Lock held by another pod with fresh timestamp
+        retry_count=$((retry_count + 1))
+        if [ $retry_count -lt $max_retries ]; then
+          local wait_time=$((retry_count * retry_interval))
+          echo "Another pod is running init process, waiting... (${wait_time}s/300s)"
+          sleep $retry_interval
+          current_time=$(date +%s)  # Update timestamp for next attempt
+        fi
+      done
+
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Timeout waiting for config lock after 300s" >&2
+      return 1
+    }
+
+    # Release the configuration lock
+    # Removes lock entry from wp_options table
+    release_config_lock() {
+      if [ "$CONFIG_LOCK_ACQUIRED" = "true" ]; then
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Releasing config lock" >&2
+        local pod_hostname="$(hostname)"
+        wp db query "DELETE FROM ${TABLE_PREFIX}options WHERE option_name='_helm_config_lock' AND option_value LIKE '$pod_hostname-%';" >/dev/null 2>&1 || true
+        CONFIG_LOCK_ACQUIRED=false
+        echo "Config lock released!"
+      fi
     }
   # ============================================================================
   # Library: Composer Functions (lib-composer.sh)
@@ -995,7 +1024,7 @@ data:
     #
     # Libraries:
     #   - lib-core.sh: Core utilities (wp, run, handle_error, retry_command, assert)
-    #   - lib-lock.sh: Database locking (claim_lock_db, release_lock)
+    #   - lib-lock.sh: Database locking (claim_bootstrap_lock, release_bootstrap_lock, claim_config_lock, release_config_lock)
     #   - lib-composer.sh: Composer management (ensure_composer, composer_exec)
     #
     # Environment Variables:
@@ -1045,9 +1074,6 @@ data:
     # ============================================================================
 
     # Database lock configuration
-    readonly CHECK_INTERVAL=10
-    readonly STALE_LOCK_THRESHOLD=700  # 10 minutes - covers long first-time installs without heartbeat
-    readonly MAX_WAIT=700  # 10 minutes maximum wait time for lock acquisition
     readonly DB_CHECK_RETRY_INTERVAL=15  # Seconds between database connection checks
 
     # WordPress paths
@@ -1061,13 +1087,12 @@ data:
     readonly COMPOSER_INSTALL_DIR="/tmp"
 
     # Runtime variables
-    WAIT_TIME=0
     COMPOSER_PACKAGES_MODIFIED=false
     COMPOSER_PLUGINS_PENDING_ACTIVATION=()
     ASSERT_FAILURES=0
 
     # Setup exit trap for lock release
-    trap release_lock EXIT
+    trap 'release_bootstrap_lock; release_config_lock' EXIT
 
     # ============================================================================
     # Wait for Database
@@ -1093,6 +1118,34 @@ data:
     fi
     export TABLE_PREFIX
     echo "Using WordPress table prefix: ${TABLE_PREFIX}"
+
+    # ============================================================================
+    # Bootstrap Lock Acquisition (Before WordPress Installation)
+    # ============================================================================
+    # This lock prevents race conditions when multiple pods start simultaneously
+    # and try to install WordPress at the same time.
+    #
+    # Uses MySQL GET_LOCK() which works without requiring wp_options table.
+
+    # Check if WordPress is already installed (quick check before claiming lock)
+    WP_ALREADY_INSTALLED=false
+    if wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+      if run wp core is-installed --url="${WP_URL}" 2>/dev/null; then
+        WP_ALREADY_INSTALLED=true
+        echo "WordPress is already installed, skipping bootstrap lock."
+      fi
+    fi
+
+    # Only claim bootstrap lock if WordPress needs installation
+    if [ "$WP_ALREADY_INSTALLED" = "false" ] && [ "${WP_INIT}" = "true" ]; then
+      echo "WordPress not installed yet, claiming bootstrap lock..."
+      if ! claim_bootstrap_lock; then
+        echo "ERROR: Failed to claim bootstrap lock - another pod may have installation issues"
+        exit 1
+      fi
+      # Setup trap to release bootstrap lock on exit
+      trap 'release_bootstrap_lock; release_config_lock' EXIT
+    fi
 
     # ============================================================================
     # WordPress Installation (First-Time Only)
@@ -1126,13 +1179,19 @@ data:
           --admin_email="${WP_ADMIN_EMAIL}" \
           --skip-email \
           --locale="${WP_LOCALE}"
-        
+
         # Verify installation succeeded
         if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
           echo "ERROR: WordPress installation failed - wp_options table not created!"
           exit 1
         fi
         echo "WordPress core installed successfully!"
+
+        # Release bootstrap lock after successful installation
+        release_bootstrap_lock
+      else
+        # Installation was skipped, release bootstrap lock if acquired
+        release_bootstrap_lock
       fi
     else
       # WP_INIT is false - check if WordPress is already installed
@@ -1167,48 +1226,19 @@ data:
 
 
     # ============================================================================
-    # Acquire Database Lock
-    # Ensures only one pod performs initialization at a time
+    # Acquire Configuration Lock
+    # Ensures only one pod performs plugin/theme/config initialization at a time
     # ============================================================================
 
+    echo "Acquiring configuration lock for initialization..."
+    if ! claim_config_lock; then
+      echo "ERROR: Timeout waiting for configuration lock after 300s"
+      echo "Another pod may be stuck or experiencing issues."
+      echo "Check the other pod's logs for errors."
+      exit 1
+    fi
 
-    echo "Acquiring database lock for initialization..."
-    while ! claim_lock_db; do
-      if [ $WAIT_TIME -ge $MAX_WAIT ]; then
-        echo "Timeout waiting for database lock after ${MAX_WAIT}s"
-
-
-        # Final attempt to forcefully claim the lock
-        POD_ID="$$-$(hostname)"
-        CURRENT_TIME=$(date +%s)
-        # Use cached TABLE_PREFIX (set at script start)
-        wp db query "UPDATE ${TABLE_PREFIX}options SET option_value='$POD_ID-$CURRENT_TIME' WHERE option_name='_helm_init_lock';" >/dev/null 2>&1 || \
-        wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('_helm_init_lock', '$POD_ID-$CURRENT_TIME', 'no');" >/dev/null 2>&1
-
-
-        # Verify we actually got it
-        sleep 1
-        LOCK_OWNER=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_init_lock';" --skip-column-names 2>/dev/null || echo "")
-        if [[ "$LOCK_OWNER" == "$POD_ID-$CURRENT_TIME" ]]; then
-          echo "Successfully claimed lock after timeout"
-          break
-        else
-          echo "Failed to claim lock - another pod won. Exiting to avoid conflicts."
-          exit 1
-        fi
-      fi
-
-
-      echo "Another pod is currently running init process, waiting... (${WAIT_TIME}s/${MAX_WAIT}s)"
-      sleep $CHECK_INTERVAL
-      WAIT_TIME=$((WAIT_TIME + CHECK_INTERVAL))
-    done
-
-    echo "Database lock acquired, proceeding with initialization..."
-
-    # Heartbeat disabled - using 10min STALE_LOCK_THRESHOLD instead
-    # This avoids background process complexity while covering long init times
-    # start_lock_heartbeat
+    echo "Configuration lock acquired, proceeding with initialization..."
 
     # ============================================================================
     # Disable WordPress Core Auto-Updates (managed by Helm chart via image updates)
