@@ -781,6 +781,7 @@ data:
     readonly MAX_LOCK_WAIT=600      # Absolute max wait time in seconds (safety net)
 
     # Start heartbeat for a lock - updates timestamp every HEARTBEAT_INTERVAL seconds
+    # Uses lightweight PHP directly instead of wp-cli to avoid resource contention
     # Args: $1 = lock type ("bootstrap" or "config")
     _start_heartbeat() {
       local lock_type="$1"
@@ -793,14 +794,14 @@ data:
         (
           while true; do
             sleep $HEARTBEAT_INTERVAL
-            wp db query "UPDATE ${TABLE_PREFIX}helm_locks SET lock_value='$pod_hostname-$(date +%s)' WHERE lock_name='bootstrap' AND lock_value LIKE '$pod_hostname-%';" >/dev/null 2>&1 || true
+            php -r "\$m = @new mysqli('${WORDPRESS_DB_HOST}', '${WORDPRESS_DB_USER}', '${WORDPRESS_DB_PASSWORD}', '${WORDPRESS_DB_NAME}'); if(!\$m->connect_error) { \$t=time(); \$m->query(\"UPDATE ${TABLE_PREFIX}helm_locks SET lock_value='${pod_hostname}-\".\$t.\"' WHERE lock_name='bootstrap' AND lock_value LIKE '${pod_hostname}-%'\"); \$m->close(); }" 2>/dev/null || true
           done
         ) &
       else
         (
           while true; do
             sleep $HEARTBEAT_INTERVAL
-            wp db query "UPDATE ${TABLE_PREFIX}options SET option_value='$pod_hostname-$(date +%s)' WHERE option_name='_helm_config_lock' AND option_value LIKE '$pod_hostname-%';" >/dev/null 2>&1 || true
+            php -r "\$m = @new mysqli('${WORDPRESS_DB_HOST}', '${WORDPRESS_DB_USER}', '${WORDPRESS_DB_PASSWORD}', '${WORDPRESS_DB_NAME}'); if(!\$m->connect_error) { \$t=time(); \$m->query(\"UPDATE ${TABLE_PREFIX}options SET option_value='${pod_hostname}-\".\$t.\"' WHERE option_name='_helm_config_lock' AND option_value LIKE '${pod_hostname}-%'\"); \$m->close(); }" 2>/dev/null || true
           done
         ) &
       fi
