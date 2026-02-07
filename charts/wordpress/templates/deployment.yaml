@@ -120,6 +120,8 @@ spec:
         checksum/wordpress-muPlugins-{{ $name }}: {{ $name | sha256sum }}
           {{- end }}
         {{- end }}
+        # Checksum of the chart-generated init-scripts ConfigMap to trigger rollout on script changes
+        checksum/init-scripts: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       labels:
         {{- include "wordpress.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
@@ -146,6 +148,27 @@ spec:
       hostNetwork: {{ .Values.hostNetwork }}
       {{- end }}
       initContainers:
+        # Minimal root container - ONLY fixes PVC ownership for NFS-based storage
+        # (e.g. Longhorn RWX) that doesn't respect Kubernetes fsGroup settings.
+        # All subsequent containers run as non-root uid 33 (www-data).
+        - name: {{ .Chart.Name }}-fix-permissions
+          image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            privileged: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN", "DAC_OVERRIDE"]
+            seccompProfile:
+              type: RuntimeDefault
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["sh", "-c", "chown -R {{ .Values.podSecurityContext.runAsUser | default 33 }}:{{ .Values.podSecurityContext.fsGroup | default 33 }} /tmp/wordpress && echo 'PVC ownership fixed!'"]
+          volumeMounts:
+            - name: {{ include "wordpress.fullname" . }}
+              mountPath: /tmp/wordpress
         - name: {{ .Chart.Name }}-base
           image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
           {{- with .Values.containerSecurityContext }}
