@@ -81,6 +81,7 @@ metadata:
 data:
   base.sh: |
     #!/bin/bash
+    set -e
 
     # Helper function to extract WordPress version from version.php
     get_wp_version() {
@@ -756,6 +757,81 @@ data:
         fi
       done | sort -u
     }
+
+    # Enable auto-updates for a list of plugins or themes via direct DB update
+    # Consolidates duplicated PHP serialization logic for plugins and themes
+    #
+    # Args:
+    #   $1 - Type: "plugins" or "themes"
+    #   $@ - List of slugs to enable auto-updates for
+    #
+    # For plugins: resolves slug to main plugin file path (e.g., akismet -> akismet/akismet.php)
+    # For themes: uses slug directly
+    #
+    # Performance: Single DB read + PHP merge + single DB write
+    enable_autoupdates() {
+      local type="$1"
+      shift
+      local items=("$@")
+      local option_name="auto_update_${type}"
+
+      if [ ${#items[@]} -eq 0 ]; then return 0; fi
+
+      echo "Enabling auto-updates for ${#items[@]} ${type}..."
+
+      # Get current auto-update list from DB
+      local current_value=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='${option_name}';" --skip-column-names 2>/dev/null || echo "")
+
+      # Pass items as newline-separated string
+      local items_str=$(printf '%s\n' "${items[@]}")
+      export AUTOUPDATE_ITEMS="$items_str"
+      export AUTOUPDATE_TYPE="$type"
+
+      # Use PHP to merge arrays and serialize
+      local new_value=$(echo "$current_value" | php -r '
+        $current = @unserialize(file_get_contents("php://stdin"));
+        if (!is_array($current)) { $current = []; }
+        $toAddStr = trim(getenv("AUTOUPDATE_ITEMS"));
+        $toAdd = !empty($toAddStr) ? explode("\n", $toAddStr) : [];
+        $type = getenv("AUTOUPDATE_TYPE");
+
+        $merged = $current;
+        foreach ($toAdd as $slug) {
+          $slug = trim($slug);
+          if (empty($slug)) continue;
+
+          if ($type === "plugins") {
+            // Resolve plugin slug to main file path
+            $pluginDir = "/var/www/html/wp-content/plugins/" . $slug;
+            if (is_dir($pluginDir)) {
+              $mainFile = $slug . "/" . $slug . ".php";
+              if (!file_exists("/var/www/html/wp-content/plugins/" . $mainFile)) {
+                $files = glob($pluginDir . "/*.php");
+                if (!empty($files)) {
+                  $mainFile = $slug . "/" . basename($files[0]);
+                }
+              }
+              if (!in_array($mainFile, $merged)) {
+                $merged[] = $mainFile;
+              }
+            }
+          } else {
+            // Themes use slug directly
+            if (!in_array($slug, $merged)) {
+              $merged[] = $slug;
+            }
+          }
+        }
+        echo serialize(array_values(array_unique($merged)));
+      ' 2>/dev/null)
+
+      # Update database
+      if [ -n "$new_value" ]; then
+        local escaped_value=$(echo "$new_value" | sed "s/'/\\\\'/g")
+        wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('${option_name}', '$escaped_value', 'no') ON DUPLICATE KEY UPDATE option_value='$escaped_value';" >/dev/null 2>&1
+        echo "Auto-updates for ${type} enabled!"
+      fi
+    }
   # ============================================================================
   # Library: Database Lock Functions (lib-lock.sh)
   # ============================================================================
@@ -796,14 +872,28 @@ data:
         (
           while true; do
             sleep $HEARTBEAT_INTERVAL
-            php -r "\$m = @new mysqli('${WORDPRESS_DB_HOST}', '${WORDPRESS_DB_USER}', '${WORDPRESS_DB_PASSWORD}', '${WORDPRESS_DB_NAME}'); if(!\$m->connect_error) { \$t=time(); \$m->query(\"UPDATE ${TABLE_PREFIX}helm_locks SET lock_value='${pod_hostname}-\".\$t.\"' WHERE lock_name='bootstrap' AND lock_value LIKE '${pod_hostname}-%'\"); \$m->close(); }" 2>/dev/null || true
+            HEARTBEAT_TABLE="${TABLE_PREFIX}helm_locks" HEARTBEAT_HOSTNAME="${pod_hostname}" HEARTBEAT_TYPE="bootstrap" php -r '
+              $m = @new mysqli(getenv("WORDPRESS_DB_HOST"), getenv("WORDPRESS_DB_USER"), getenv("WORDPRESS_DB_PASSWORD"), getenv("WORDPRESS_DB_NAME"));
+              if(!$m->connect_error) {
+                $t=time(); $h=getenv("HEARTBEAT_HOSTNAME"); $tbl=getenv("HEARTBEAT_TABLE");
+                $m->query("UPDATE {$tbl} SET lock_value=\"" . $m->real_escape_string("{$h}-{$t}") . "\" WHERE lock_name=\"bootstrap\" AND lock_value LIKE \"" . $m->real_escape_string($h) . "-%\"");
+                $m->close();
+              }
+            ' 2>/dev/null || true
           done
         ) &
       else
         (
           while true; do
             sleep $HEARTBEAT_INTERVAL
-            php -r "\$m = @new mysqli('${WORDPRESS_DB_HOST}', '${WORDPRESS_DB_USER}', '${WORDPRESS_DB_PASSWORD}', '${WORDPRESS_DB_NAME}'); if(!\$m->connect_error) { \$t=time(); \$m->query(\"UPDATE ${TABLE_PREFIX}options SET option_value='${pod_hostname}-\".\$t.\"' WHERE option_name='_helm_config_lock' AND option_value LIKE '${pod_hostname}-%'\"); \$m->close(); }" 2>/dev/null || true
+            HEARTBEAT_TABLE="${TABLE_PREFIX}options" HEARTBEAT_HOSTNAME="${pod_hostname}" php -r '
+              $m = @new mysqli(getenv("WORDPRESS_DB_HOST"), getenv("WORDPRESS_DB_USER"), getenv("WORDPRESS_DB_PASSWORD"), getenv("WORDPRESS_DB_NAME"));
+              if(!$m->connect_error) {
+                $t=time(); $h=getenv("HEARTBEAT_HOSTNAME"); $tbl=getenv("HEARTBEAT_TABLE");
+                $m->query("UPDATE {$tbl} SET option_value=\"" . $m->real_escape_string("{$h}-{$t}") . "\" WHERE option_name=\"_helm_config_lock\" AND option_value LIKE \"" . $m->real_escape_string($h) . "-%\"");
+                $m->close();
+              }
+            ' 2>/dev/null || true
           done
         ) &
       fi
@@ -1135,11 +1225,32 @@ data:
 
     # Runtime variables
     COMPOSER_PACKAGES_MODIFIED=false
+    PLUGINS_MODIFIED=false
     COMPOSER_PLUGINS_PENDING_ACTIVATION=()
     ASSERT_FAILURES=0
 
     # Setup exit trap for lock release and heartbeat cleanup
     trap '_stop_heartbeat; release_bootstrap_lock; release_config_lock' EXIT
+
+    # ============================================================================
+    # Validate Required Environment Variables
+    # ============================================================================
+
+    for required_var in WORDPRESS_DB_HOST WORDPRESS_DB_USER WORDPRESS_DB_PASSWORD WORDPRESS_DB_NAME; do
+      eval "val=\$$required_var"
+      if [ -z "$val" ]; then
+        handle_error "Required environment variable $required_var is not set"
+      fi
+    done
+
+    if [ "${WP_INIT}" = "true" ]; then
+      for required_var in WP_URL WP_ADMIN_USER WP_ADMIN_PASSWORD WP_ADMIN_EMAIL; do
+        eval "val=\$$required_var"
+        if [ -z "$val" ]; then
+          handle_error "Required environment variable $required_var is not set (needed for WP_INIT=true)"
+        fi
+      done
+    fi
 
     # ============================================================================
     # Wait for Database
@@ -1148,7 +1259,8 @@ data:
 
     echo "Waiting for database..."
     # Direct database connection check (faster than wp db check - no WordPress bootstrap)
-    until php -r "\$m = @new mysqli('${WORDPRESS_DB_HOST}', '${WORDPRESS_DB_USER}', '${WORDPRESS_DB_PASSWORD}', '${WORDPRESS_DB_NAME}'); exit(\$m->connect_error ? 1 : 0);" 2>/dev/null; do
+    # Uses getenv() instead of inline credentials to avoid leaking them in process list
+    until php -r 'exit(@(new mysqli(getenv("WORDPRESS_DB_HOST"), getenv("WORDPRESS_DB_USER"), getenv("WORDPRESS_DB_PASSWORD"), getenv("WORDPRESS_DB_NAME")))->connect_error ? 1 : 0);' 2>/dev/null; do
       echo "Database not ready yet, waiting ${DB_CHECK_RETRY_INTERVAL} seconds..."
       sleep "${DB_CHECK_RETRY_INTERVAL}"
     done
@@ -1338,14 +1450,13 @@ data:
         fi
       fi
 
-      # Set permalinks (direct DB query - faster than wp-cli)
+      # Set permalinks (using wp-cli for proper escaping)
       if [ -n "${WP_PERMALINK_STRUCTURE}" ]; then
         echo "Checking permalink structure..."
-        CURRENT_PERMALINK=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='permalink_structure';" --skip-column-names 2>/dev/null || echo "")
+        CURRENT_PERMALINK=$(wp option get permalink_structure 2>/dev/null || echo "")
         if [ "$CURRENT_PERMALINK" != "$WP_PERMALINK_STRUCTURE" ]; then
           echo "Setting WordPress permalinks to: ${WP_PERMALINK_STRUCTURE}"
-          # Update or insert permalink structure directly in database
-          wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('permalink_structure', '${WP_PERMALINK_STRUCTURE}', 'yes') ON DUPLICATE KEY UPDATE option_value='${WP_PERMALINK_STRUCTURE}';" >/dev/null 2>&1
+          wp option update permalink_structure "${WP_PERMALINK_STRUCTURE}" >/dev/null 2>&1
           # Delete rewrite_rules to force WordPress to regenerate them on next page load
           wp db query "DELETE FROM ${TABLE_PREFIX}options WHERE option_name='rewrite_rules';" >/dev/null 2>&1 || true
           echo "Permalink structure updated (rewrite rules will be regenerated automatically)"
@@ -1386,12 +1497,12 @@ data:
     {{- range .Values.wordpress.users }}
     if ! echo "$EXISTING_USERS" | grep -q "^{{ .username }}$"; then
       echo "Creating user {{ .username }}..."
-      run wp user create "{{ .username }}" "{{ .email }}" \
-        --role="{{ .role }}" \
-        --display_name="{{ .displayname }}" \
-        --first_name="{{ .firstname }}" \
-        --last_name="{{ .lastname }}" \
-        --send-email="{{ .sendEmail }}"
+      run wp user create {{ .username | quote }} {{ .email | quote }} \
+        --role={{ .role | quote }} \
+        --display_name={{ .displayname | quote }} \
+        --first_name={{ .firstname | quote }} \
+        --last_name={{ .lastname | quote }} \
+        --send-email={{ .sendEmail | quote }}
     else
       echo "User {{ .username }} already exists, skipping."
     fi
@@ -1558,10 +1669,12 @@ data:
     #   - Composer errors: Exit with detailed message
 
     # Cache all plugin data upfront for performance (using fast DB queries)
+    # Single query with all fields, then derive individual lists (3x fewer DB queries + filesystem scans)
     echo "Caching plugin data..."
-    INSTALLED_PLUGINS=$(wp_plugin_list --field=name 2>/dev/null || echo "")
-    ACTIVE_PLUGINS=$(wp_plugin_list --status=active --field=name 2>/dev/null || echo "")
-    AUTOUPDATE_ENABLED=$(wp_plugin_list --fields=name,auto_update --format=csv 2>/dev/null | grep ",on$" | cut -d',' -f1 || echo "")
+    ALL_PLUGIN_DATA=$(wp_plugin_list --fields=name,status,auto_update --format=csv 2>/dev/null || echo "")
+    INSTALLED_PLUGINS=$(echo "$ALL_PLUGIN_DATA" | tail -n +2 | cut -d',' -f1 || echo "")
+    ACTIVE_PLUGINS=$(echo "$ALL_PLUGIN_DATA" | grep ",active," | cut -d',' -f1 || echo "")
+    AUTOUPDATE_ENABLED=$(echo "$ALL_PLUGIN_DATA" | grep ",on$" | cut -d',' -f1 || echo "")
 
     # Detect if a name is a Composer package (vendor/package format)
     #
@@ -1615,36 +1728,8 @@ data:
         PLUGINS_MODIFIED=true
       fi
 
-    else
-      # Remove plugin if WORDPRESS_METRICS is empty and plugin exists
-      if [ -n "${WORDPRESS_METRICS}" ] && [ -n "$INSTALLED_PLUGINS" ] && echo "$INSTALLED_PLUGINS" | grep -q "^${WORDPRESS_METRICS}$"; then
-        echo "Removing metrics plugin..."
-        wp plugin delete ${WORDPRESS_METRICS}
-        PLUGINS_MODIFIED=true
-      fi
     fi
 
-    # ============================================================================
-    # Plugin Management
-    # ============================================================================
-    #
-    # Process Overview:
-    #   1. Detect package type (Composer vs WP repository vs URL)
-    #   2. Validate package names for security
-    #   3. Batch operations for performance
-    #   4. Install with retry logic for network resilience
-    #   5. Activate and configure auto-updates
-    #
-    # Performance Optimizations:
-    #   - Batch installation (wp plugin install plugin1 plugin2 plugin3)
-    #   - Cached plugin lists (avoid repeated wp-cli calls)
-    #   - Skip already installed packages
-    #
-    # Error Handling:
-    #   - Validation errors: Skip package with warning
-    #   - Network errors: Retry with exponential backoff
-    #   - Composer errors: Exit with detailed message
-    #
     # Handle custom plugins
     {{- if .Values.wordpress.plugins }}
     echo "========================================="
@@ -1768,7 +1853,6 @@ data:
     # Install Composer plugins (batch operation for performance)
     if [ ${#COMPOSER_PLUGINS_TO_INSTALL[@]} -gt 0 ]; then
       echo "Installing ${#COMPOSER_PLUGINS_TO_INSTALL[@]} Composer plugin(s)..."
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
       # Try batch install first (faster: single dependency resolution)
       all_packages="${COMPOSER_PLUGINS_TO_INSTALL[@]}"
@@ -1798,7 +1882,6 @@ data:
     # Update Composer plugins (auto-update for packages without fixed version)
     if [ ${#COMPOSER_PLUGINS_TO_UPDATE[@]} -gt 0 ]; then
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Checking for Composer plugin updates..."
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
       # Get list of outdated packages once (performance optimization)
       OUTDATED_PACKAGES=$(composer outdated --direct --format=json 2>/dev/null | php -r '
@@ -1841,14 +1924,15 @@ data:
     echo "========================================="
     echo "Checking plugin Composer dependencies..."
     echo "========================================="
-    cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
     # Run composer install for main project first (only if composer.json exists and was modified)
+    COMPOSER_INSTALL_DONE=false
     if [ -f composer.json ] && { [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ${#COMPOSER_PLUGINS_TO_INSTALL[@]} -gt 0 ]; }; then
       if ! COMPOSER_OUTPUT=$(retry_command composer install --no-interaction 2>&1 | grep -v "suggest" | grep -v "funding"); then
         echo "$COMPOSER_OUTPUT"
         handle_error "Error installing Composer dependencies (failed after retries)"
       fi
+      COMPOSER_INSTALL_DONE=true
     fi
 
       # Build list of Composer-installed plugin slugs
@@ -1913,19 +1997,25 @@ data:
     <?php
     /**
      * Plugin Name: Composer Autoloader
-     * Description: Automatically loads Composer autoloaders from plugins and themes
+     * Description: Loads Composer autoloaders from active plugins and active theme
      * Author: Helm Chart
-     * Version: 1.0.0
+     * Version: 1.1.0
      */
 
-    // Load Composer autoloaders from all plugins
-    foreach ( glob( WP_CONTENT_DIR . '/plugins/*/vendor/autoload.php' ) as $autoloader ) {
-    	require_once $autoloader;
+    // Only load autoloaders for active plugins (skip deactivated ones for security)
+    $active_plugins = get_option( 'active_plugins', array() );
+    foreach ( $active_plugins as $plugin ) {
+    	$plugin_dir = dirname( WP_CONTENT_DIR . '/plugins/' . $plugin );
+    	$autoloader = $plugin_dir . '/vendor/autoload.php';
+    	if ( file_exists( $autoloader ) ) {
+    		require_once $autoloader;
+    	}
     }
 
-    // Load Composer autoloaders from all themes
-    foreach ( glob( WP_CONTENT_DIR . '/themes/*/vendor/autoload.php' ) as $autoloader ) {
-    	require_once $autoloader;
+    // Load Composer autoloader from active theme only
+    $theme_autoloader = get_template_directory() . '/vendor/autoload.php';
+    if ( file_exists( $theme_autoloader ) ) {
+    	require_once $theme_autoloader;
     }
     MUEOF
       echo "Composer autoloader MU-Plugin created!"
@@ -1971,7 +2061,7 @@ data:
       fi
     fi
 
-    # Batch enable auto-updates (direct DB update - faster than wp-cli)
+    # Batch enable auto-updates using shared helper function
     if [ ${#PLUGINS_TO_AUTOUPDATE[@]} -gt 0 ]; then
       PLUGINS_NEED_AUTOUPDATE=()
       for plugin in "${PLUGINS_TO_AUTOUPDATE[@]}"; do
@@ -1980,54 +2070,8 @@ data:
         fi
       done
 
-
       if [ ${#PLUGINS_NEED_AUTOUPDATE[@]} -gt 0 ]; then
-        echo "Enabling auto-updates for ${#PLUGINS_NEED_AUTOUPDATE[@]} plugin(s)..."
-
-        # Get current auto-update plugins from DB
-        CURRENT_AUTOUPDATE=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='auto_update_plugins';" --skip-column-names 2>/dev/null || echo "")
-
-        # Pass plugins as newline-separated string to PHP
-        PLUGINS_TO_ADD=$(printf '%s\n' "${PLUGINS_NEED_AUTOUPDATE[@]}")
-        export PLUGINS_TO_ADD
-
-        # Use PHP to merge arrays and serialize
-        NEW_AUTOUPDATE=$(echo "$CURRENT_AUTOUPDATE" | php -r '
-          $current = @unserialize(file_get_contents("php://stdin"));
-          if (!is_array($current)) { $current = []; }
-          $toAddStr = trim(getenv("PLUGINS_TO_ADD"));
-          $toAdd = !empty($toAddStr) ? explode("\n", $toAddStr) : [];
-
-          // Find plugin main file for each slug
-          $merged = $current;
-          foreach ($toAdd as $slug) {
-            // Search for plugin main file (slug/slug.php or any .php in slug/)
-            $pluginDir = "/var/www/html/wp-content/plugins/" . $slug;
-            if (is_dir($pluginDir)) {
-              // Try slug/slug.php first (most common)
-              $mainFile = $slug . "/" . $slug . ".php";
-              if (!file_exists("/var/www/html/wp-content/plugins/" . $mainFile)) {
-                // Find any .php file in the directory
-                $files = glob($pluginDir . "/*.php");
-                if (!empty($files)) {
-                  $mainFile = $slug . "/" . basename($files[0]);
-                }
-              }
-              if (!in_array($mainFile, $merged)) {
-                $merged[] = $mainFile;
-              }
-            }
-          }
-          echo serialize($merged);
-        ' 2>/dev/null)
-
-        # Update database
-        if [ -n "$NEW_AUTOUPDATE" ]; then
-          # Escape for SQL
-          ESCAPED_VALUE=$(echo "$NEW_AUTOUPDATE" | sed "s/'/\\\\'/g")
-          wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('auto_update_plugins', '$ESCAPED_VALUE', 'no') ON DUPLICATE KEY UPDATE option_value='$ESCAPED_VALUE';" >/dev/null 2>&1
-          echo "Plugin auto-updates enabled!"
-        fi
+        enable_autoupdates "plugins" "${PLUGINS_NEED_AUTOUPDATE[@]}"
       fi
     fi
     {{- end }}
@@ -2133,10 +2177,11 @@ data:
     echo "Processing themes..."
     echo "========================================="
 
-    # Cache all theme data upfront (using fast DB queries)
-    INSTALLED_THEMES=$(wp_theme_list --field=name 2>/dev/null || echo "")
-    ACTIVE_THEME=$(wp_theme_list --status=active --field=name 2>/dev/null || echo "")
-    AUTOUPDATE_ENABLED_THEMES=$(wp_theme_list --fields=name,auto_update --format=csv 2>/dev/null | grep ",on$" | cut -d',' -f1 || echo "")
+    # Cache all theme data upfront (single query, then derive individual lists)
+    ALL_THEME_DATA=$(wp_theme_list --fields=name,status,auto_update --format=csv 2>/dev/null || echo "")
+    INSTALLED_THEMES=$(echo "$ALL_THEME_DATA" | tail -n +2 | cut -d',' -f1 || echo "")
+    ACTIVE_THEME=$(echo "$ALL_THEME_DATA" | grep ",active," | cut -d',' -f1 || echo "")
+    AUTOUPDATE_ENABLED_THEMES=$(echo "$ALL_THEME_DATA" | grep ",on$" | cut -d',' -f1 || echo "")
 
     # Extract theme slug from theme name or URL
     # Handles both direct theme names and .zip URLs
@@ -2275,19 +2320,27 @@ data:
       ACTIVE_THEME=$(wp_theme_list --status=active --field=name 2>/dev/null || echo "")
     fi
 
-    # Install Composer themes
+    # Install Composer themes (batch operation for performance)
     if [ ${#COMPOSER_THEMES_TO_INSTALL[@]} -gt 0 ]; then
       echo "Installing ${#COMPOSER_THEMES_TO_INSTALL[@]} Composer theme(s)..."
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
-      for package_spec in "${COMPOSER_THEMES_TO_INSTALL[@]}"; do
-        echo "Installing Composer theme package: $package_spec"
-        # Capture output and only show on error, with retry logic
-        if ! COMPOSER_OUTPUT=$(retry_command composer require "$package_spec" --no-interaction 2>&1); then
-          echo "$COMPOSER_OUTPUT"
-          handle_error "Error installing Composer theme package: $package_spec (failed after retries)"
-        fi
-      done
+      # Try batch install first (faster: single dependency resolution)
+      all_packages="${COMPOSER_THEMES_TO_INSTALL[@]}"
+      echo "Attempting batch install: $all_packages"
+
+      if COMPOSER_OUTPUT=$(retry_command composer require $all_packages --no-interaction 2>&1); then
+        echo "Batch install successful!"
+      else
+        # Fallback: install one by one to identify failing package
+        echo "Batch install failed, falling back to individual installation..."
+        for package_spec in "${COMPOSER_THEMES_TO_INSTALL[@]}"; do
+          echo "Installing Composer theme package: $package_spec"
+          if ! COMPOSER_OUTPUT=$(retry_command composer require "$package_spec" --no-interaction 2>&1); then
+            echo "$COMPOSER_OUTPUT"
+            handle_error "Error installing Composer theme package: $package_spec (failed after retries)"
+          fi
+        done
+      fi
 
       echo "Composer themes installed!"
       COMPOSER_PACKAGES_MODIFIED=true
@@ -2298,7 +2351,6 @@ data:
     # Update Composer themes (auto-update for packages without fixed version)
     if [ ${#COMPOSER_THEMES_TO_UPDATE[@]} -gt 0 ]; then
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Checking for Composer theme updates..."
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
       # Get list of outdated packages once (performance optimization)
       # Re-use existing OUTDATED_PACKAGES if already fetched, otherwise fetch now
@@ -2347,7 +2399,7 @@ data:
       run wp theme activate "$COMPOSER_THEME_TO_ACTIVATE"
     fi
 
-    # Batch enable auto-updates (direct DB update - faster than wp-cli)
+    # Batch enable auto-updates using shared helper function
     if [ ${#THEMES_TO_AUTOUPDATE[@]} -gt 0 ]; then
       THEMES_NEED_AUTOUPDATE=()
       for theme in "${THEMES_TO_AUTOUPDATE[@]}"; do
@@ -2356,36 +2408,8 @@ data:
         fi
       done
 
-
       if [ ${#THEMES_NEED_AUTOUPDATE[@]} -gt 0 ]; then
-        echo "Enabling auto-updates for ${#THEMES_NEED_AUTOUPDATE[@]} theme(s)..."
-
-        # Get current auto-update themes from DB
-        CURRENT_AUTOUPDATE_THEMES=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='auto_update_themes';" --skip-column-names 2>/dev/null || echo "")
-
-        # Pass themes as newline-separated string to PHP
-        THEMES_TO_ADD=$(printf '%s\n' "${THEMES_NEED_AUTOUPDATE[@]}")
-        export THEMES_TO_ADD
-
-        # Use PHP to merge arrays and serialize
-        NEW_AUTOUPDATE_THEMES=$(echo "$CURRENT_AUTOUPDATE_THEMES" | php -r '
-          $current = @unserialize(file_get_contents("php://stdin"));
-          if (!is_array($current)) { $current = []; }
-          $toAddStr = trim(getenv("THEMES_TO_ADD"));
-          $toAdd = !empty($toAddStr) ? explode("\n", $toAddStr) : [];
-
-          // Merge theme slugs
-          $merged = array_unique(array_merge($current, $toAdd));
-          echo serialize($merged);
-        ' 2>/dev/null)
-
-        # Update database
-        if [ -n "$NEW_AUTOUPDATE_THEMES" ]; then
-          # Escape for SQL
-          ESCAPED_VALUE=$(echo "$NEW_AUTOUPDATE_THEMES" | sed "s/'/\\\\'/g")
-          wp db query "INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload) VALUES ('auto_update_themes', '$ESCAPED_VALUE', 'no') ON DUPLICATE KEY UPDATE option_value='$ESCAPED_VALUE';" >/dev/null 2>&1
-          echo "Theme auto-updates enabled!"
-        fi
+        enable_autoupdates "themes" "${THEMES_NEED_AUTOUPDATE[@]}"
       fi
     fi
 
@@ -2485,7 +2509,6 @@ data:
 
     # Remove Composer packages (plugins & themes) not in the keep lists
     if [ -f /var/www/html/composer.json ]; then
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
       # Ensure Composer is available for pruning operations
       ensure_composer
@@ -2604,10 +2627,9 @@ data:
     # Note: Main composer install and plugin dependencies were already done
     # before theme installation to prevent loading errors (e.g., s3-uploads AWS SDK)
     if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ! -d /var/www/html/vendor ]; then
-      cd /var/www/html || handle_error "Failed to change to /var/www/html directory"
 
-      # Ensure vendor directory exists (may have been created during plugin dependency install)
-      if [ ! -d /var/www/html/vendor ]; then
+      # Ensure vendor directory exists (skip if already installed during plugin dependency phase)
+      if [ "$COMPOSER_INSTALL_DONE" != "true" ] && [ ! -d /var/www/html/vendor ]; then
         echo "Vendor directory missing, running composer install..."
         if ! COMPOSER_OUTPUT=$(retry_command composer install --no-interaction 2>&1 | grep -v "suggest" | grep -v "funding"); then
           echo "$COMPOSER_OUTPUT"
@@ -2708,7 +2730,6 @@ data:
     test_summary
 
     # Lock will be released automatically via trap on EXIT
-    echo "Database lock released."
     echo "Init script completed successfully!"
 
     # Explicitly exit with success code
