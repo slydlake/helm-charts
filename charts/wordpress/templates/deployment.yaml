@@ -120,6 +120,39 @@ spec:
         checksum/wordpress-muPlugins-{{ $name }}: {{ $name | sha256sum }}
           {{- end }}
         {{- end }}
+        {{- /* combined muPlugins checksum */}}
+        {{- $muChecks := list -}}
+        {{- range .Values.wordpress.muPluginsConfigMaps }}
+          {{- $muChecks = append $muChecks (include "wordpress.checksum.lookup" (list .name $.Release.Namespace)) }}
+        {{- end }}
+        {{- if gt (len $muChecks) 0 }}
+        checksum/wordpress-muPlugins-combined: {{ include "wordpress.checksum.combine" (list $muChecks) }}
+        {{- end }}
+
+        {{- /* combined configmaps checksum */}}
+        {{- $allChecks := list -}}
+        {{- if .Values.extraEnvVarsCM }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.extraEnvVarsCM $.Release.Namespace)) }}
+        {{- end }}
+        {{- if .Values.wordpress.htaccessConfigMap }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.wordpress.htaccessConfigMap $.Release.Namespace)) }}
+        {{- end }}
+        {{- if .Values.wordpress.configExtraConfigMap.name }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.wordpress.configExtraConfigMap.name $.Release.Namespace)) }}
+        {{- end }}
+        {{- if .Values.apache.customDefaultSiteConfigMap }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.apache.customDefaultSiteConfigMap $.Release.Namespace)) }}
+        {{- end }}
+        {{- if .Values.apache.customPortsConfigMap }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.apache.customPortsConfigMap $.Release.Namespace)) }}
+        {{- end }}
+        {{- if .Values.apache.customPhpConfigMap }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.apache.customPhpConfigMap $.Release.Namespace)) }}
+        {{- end }}
+        {{- if gt (len $allChecks) 0 }}
+        checksum/wordpress-configmaps-combined: {{ include "wordpress.checksum.combine" (list $allChecks) }}
+        {{- end }}
+
         # Checksum of the chart-generated init-scripts ConfigMap to trigger rollout on script changes
         checksum/init-scripts: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       labels:

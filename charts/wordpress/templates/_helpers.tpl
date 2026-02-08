@@ -162,4 +162,30 @@ Returns: registry/repository:tag (e.g. "docker.io/wordpress:6.8.3-php8.1-apache"
 {{- printf "%s:%s" $repository $tag -}}
 {{- end -}}
 {{- end -}}
+{{/* Checksum helpers */}}
+{{- define "wordpress.checksum.lookup" -}}
+{{- $name := index . 0 -}}
+{{- $ns := index . 1 -}}
+{{- if $ns }}
+  {{- $cm := lookup "v1" "ConfigMap" $ns $name -}}
+  {{- if $cm }}
+{{- toJson $cm.data | sha256sum }}
+  {{- else }}
+{{- $name | sha256sum }}
+  {{- end }}
+{{- else }}
+{{- $name | sha256sum }}
+{{- end -}}
+{{- end -}}
 
+{{- define "wordpress.checksum.rendered" -}}
+{{- $path := index . 0 -}}
+{{- $ctx := index . 1 -}}
+{{- include $path $ctx | sha256sum -}}
+{{- end -}}
+
+{{- define "wordpress.checksum.combine" -}}
+{{- $list := index . 0 -}}
+{{- $joined := $list | join "" -}}
+{{- $joined | sha256sum -}}
+{{- end -}}

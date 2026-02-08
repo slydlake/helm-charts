@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 3.0.0-beta.17
+version: 3.0.0-beta.18
 appVersion: "6.9.0" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -28,12 +28,16 @@ annotations:
   artifacthub.io/changes: |
     - kind: changed
       description: "Split init pipeline into 3 containers: fix-permissions (root), base (non-root), init (non-root)"
+    - kind: changed
+      description: "Split script library into separate ConfigMap for better modularity and maintainability"
     - kind: added
       description: "Add dedicated fix-permissions init container for NFS-based PVC ownership (Longhorn RWX)"
     - kind: added
       description: "Add SIGTERM/SIGINT trap for graceful lock release on container termination"
     - kind: added
       description: "Add ConfigMap checksum annotation for automatic rollout on init script changes"
+    - kind: added
+      description: "Add combined mu-plugins and configmaps checksum annotations"
     - kind: added
       description: "Add heartbeat-based distributed locking for multi-pod init containers"
     - kind: added
@@ -45,7 +49,7 @@ annotations:
     - kind: changed
       description: "sample file advanced2.values.yaml now uses fixed storageClass longhorn"
     - kind: changed
-      description: "Replace wp-cli with direct database queries for much faster initialization"
+      description: "Replace wp-cli with direct database queries for much faster initialization. Up to 200% reduction in init time, especially with many plugins."
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.9.0-php8.3-apache
