@@ -12,6 +12,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      statuses: write
 
     steps:
       - name: Detect Renovate PR
@@ -159,6 +160,42 @@ jobs:
               core.warning(`Could not enable auto-merge: ${err.message}`);
               core.warning('Ensure the GITHUB_TOKEN has appropriate permissions to enable auto-merge.');
             }
+
+      - name: Get head SHA for status posting
+        if: steps.renovate.outputs.is_renovate == 'true'
+        run: echo "HEAD_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: Post success status to commit
+        if: steps.renovate.outputs.is_renovate == 'true' && success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = process.env.HEAD_SHA || process.env.GITHUB_SHA;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: 'success',
+              context: 'update-chart-metadata',
+              target_url: `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+              description: 'Chart metadata updated'
+            });
+
+      - name: Post failure status to commit
+        if: steps.renovate.outputs.is_renovate == 'true' && failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = process.env.HEAD_SHA || process.env.GITHUB_SHA;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              state: 'failure',
+              context: 'update-chart-metadata',
+              target_url: `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+              description: 'Chart metadata update failed'
+            });
 
       - name: Skip non-Renovate PRs
         if: steps.renovate.outputs.is_renovate != 'true'
