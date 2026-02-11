@@ -8,6 +8,7 @@ on:
 
 jobs:
   update-chart-metadata:
+    if: ${{ github.actor == 'renovate[bot]' || github.event.pull_request.user.login == 'renovate[bot]' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
