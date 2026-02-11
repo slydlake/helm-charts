@@ -244,6 +244,13 @@ wordpress:
 
 ## Notable changes
 
+### To 3.0.0
+- Split init pipeline into three containers: `fix-permissions` (runs as root), `base`, and `init` — enables correct ownership handling on RWX storage (e.g., Longhorn). ⚠️ **`fix-permissions` requires root permissions.**
+- Moved the init script library into a separate ConfigMap and added ConfigMap checksum annotations to trigger automatic rollouts on script/config changes. **If the ConfigMap is managed outside the Helm release (e.g. applied via Kustomize), you may need to manually restart the deployment to run the init containers again:**
+  `kubectl rollout restart deployment/wordpress-wordpress`
+- Improved multi-pod init safety with heartbeat-based distributed locking, a bootstrap `helm_locks` table, and automatic stale-lock detection (60s without heartbeat).
+- Replaced `wp-cli` with direct database queries for much faster initialization (up to ~200% speed improvement in many scenarios).
+
 ### To 2.0.0
 - WordPress version from 6.8.3 to 6.9.0
 - WordPress image tag from PHP version 8.1 to 8.3 (default)

@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 2.1.0
+version: 3.0.0
 appVersion: "6.9.0" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -27,30 +27,29 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "Update docker.io/lusotycoon/apache-exporter"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/95
+      description: "Split init pipeline into 3 containers: fix-permissions (root), base (non-root), init (non-root)"
     - kind: changed
-      description: "Update docker.io/mariadb"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/95
+      description: "Split script library into separate ConfigMap for better modularity and maintainability"
+    - kind: added
+      description: "Add dedicated fix-permissions init container for NFS-based PVC ownership (Longhorn RWX)"
+    - kind: added
+      description: "Add SIGTERM/SIGINT trap for graceful lock release on container termination"
+    - kind: added
+      description: "Add ConfigMap checksum annotation for automatic rollout on init script changes"
+    - kind: added
+      description: "Add combined mu-plugins and configmaps checksum annotations"
+    - kind: added
+      description: "Add heartbeat-based distributed locking for multi-pod init containers"
+    - kind: added
+      description: "Add bootstrap lock using dedicated helm_locks table (before WordPress installation)"
+    - kind: added
+      description: "Add automatic stale lock detection (60s without heartbeat) for crash recovery"
+    - kind: added
+      description: "sample file composer2.values.yaml for using Composer packages and two replicas with shared storage"
     - kind: changed
-      description: "Update docker.io/memcached"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/95
+      description: "sample file advanced2.values.yaml now uses fixed storageClass longhorn"
     - kind: changed
-      description: "Update mariadb to ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/mariadb))"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/95
-    - kind: changed
-      description: "Update memcached to ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/memcached))"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/95
+      description: "Replace wp-cli with direct database queries for much faster initialization. Up to 200% reduction in init time, especially with many plugins."
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.9.0-php8.3-apache

@@ -53,6 +53,7 @@ service:
   nodePorts:
     http: 30111
 storage:
+  storageClass: "longhorn"
   resourcePolicy: "" # Delete PVC on helm uninstall
   accessModes:
     - ReadWriteMany

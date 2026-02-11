@@ -434,6 +434,7 @@ podLabels: {}
 ## @descriptionEnd
 podSecurityContext:
   fsGroup: 33
+  fsGroupChangePolicy: "Always"
   runAsUser: 33
   runAsNonRoot: true
   seccompProfile:
