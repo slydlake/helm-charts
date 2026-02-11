@@ -3,7 +3,7 @@ name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
 version: 3.0.0
-appVersion: "6.9.0" # renovate: image=docker.io/wordpress
+appVersion: "6.9.1" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
@@ -52,7 +52,7 @@ annotations:
       description: "Replace wp-cli with direct database queries for much faster initialization. Up to 200% reduction in init time, especially with many plugins."
   artifacthub.io/images: |
     - name: wordpress
-      image: docker.io/wordpress:6.9.0-php8.3-apache
+      image: docker.io/wordpress:6.9.1-php8.3-apache
     - name: wordpress-cli
       image: docker.io/wordpress:cli-2.12.0-php8.3
     - name: metrics-apache
@@ -65,11 +65,11 @@ dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.9.5
+    version: 0.9.6
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.13.2
+    version: 0.13.5
 keywords:
   - wordpress
   - blog
