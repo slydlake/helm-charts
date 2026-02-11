@@ -2,6 +2,7 @@
     "extends": [
         "config:recommended"
     ],
+    "platformAutomerge": true,
     "semanticCommits": "disabled",
     "enabledManagers": [
         "helm-values",
@@ -122,6 +123,7 @@
                 "minor",
                 "patch"
             ],
+            "automerge": true,
             "groupName": "charts/{{{ replace \"charts/\" \"\" parentDir }}}",
             "labels": [
                 "dependencies",
