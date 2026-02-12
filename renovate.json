@@ -56,7 +56,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "custom.regex"
+                "regex"
             ],
             "matchPackageNames": [
                 "linuxserver/wireguard",
@@ -69,7 +69,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "custom.regex",
+                "regex",
                 "helmv3"
             ],
             "matchPackagePatterns": [
@@ -87,7 +87,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "custom.regex",
+                "regex",
                 "helmv3"
             ],
             "matchPackageNames": [
@@ -106,7 +106,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "custom.regex"
+                "regex"
             ],
             "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}}",
             "labels": [
@@ -125,7 +125,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "custom.regex"
+                "regex"
             ],
             "matchUpdateTypes": [
                 "minor",
