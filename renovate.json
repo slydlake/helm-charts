@@ -7,7 +7,7 @@
     "enabledManagers": [
         "helm-values",
         "helmv3",
-        "regex"
+        "custom.regex"
     ],
     "pinDigests": true,
     "prHourlyLimit": 5,
@@ -62,7 +62,8 @@
                 "linuxserver/wireguard",
                 "/^docker\\.io\\/linuxserver\\/wireguard$/"
             ],
-            "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$",
+            "versionCompatibility": "^(?<version>[^-]+)(?<compatibility>-.*)$",
+            "versioning": "loose",
             "groupName": "linuxserver/wireguard",
             "description": "Handle linuxserver wireguard updates with full version including -rX-lsY suffix"
         },
