@@ -7,7 +7,7 @@
     "enabledManagers": [
         "helm-values",
         "helmv3",
-        "regex"
+        "custom.regex"
     ],
     "pinDigests": true,
     "prHourlyLimit": 5,
@@ -56,20 +56,21 @@
         {
             "matchManagers": [
                 "helm-values",
-                "regex"
+                "custom.regex"
             ],
             "matchPackageNames": [
                 "linuxserver/wireguard",
                 "/^docker\\.io\\/linuxserver\\/wireguard$/"
             ],
-            "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$",
+            "versionCompatibility": "^(?<version>[^-]+)(?<compatibility>-.*)$",
+            "versioning": "loose",
             "groupName": "linuxserver/wireguard",
             "description": "Handle linuxserver wireguard updates with full version including -rX-lsY suffix"
         },
         {
             "matchManagers": [
                 "helm-values",
-                "regex",
+                "custom.regex",
                 "helmv3"
             ],
             "matchPackagePatterns": [
@@ -87,7 +88,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "regex",
+                "custom.regex",
                 "helmv3"
             ],
             "matchPackageNames": [
@@ -106,7 +107,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "regex"
+                "custom.regex"
             ],
             "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}}",
             "labels": [
@@ -125,7 +126,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "regex"
+                "custom.regex"
             ],
             "matchUpdateTypes": [
                 "minor",
