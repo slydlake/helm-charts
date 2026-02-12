@@ -10,7 +10,7 @@ image:
   ## @param image.repository string WordPress container image repository
   repository: wordpress
   ## @param image.tag string Image tag (default is the chart appVersion)
-  tag: "6.9.0-php8.3-apache"
+  tag: "6.9.1-php8.3-apache"
   ## @param image.pullPolicy string Image pull policy
   pullPolicy: IfNotPresent
 
@@ -914,7 +914,7 @@ mariadb:
     ## @param mariadb.image.repository string MariaDB image repository
     repository: "docker.io/mariadb"
     ## @param mariadb.image.tag string MariaDB image tag
-    tag: "12.1.2-noble@sha256:f54db0cb3ccfe9431aba6d08c65a1763c499789b116b4cb651dd7fcf325965b3"
+    tag: "12.1.2-noble@sha256:e487701b1f7e3f47319fe005b417c72becb67824a58b7bd35c6505f070f66dcd"
     ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
     imagePullPolicy: IfNotPresent
 
