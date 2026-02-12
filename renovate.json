@@ -87,6 +87,25 @@
         {
             "matchManagers": [
                 "helm-values",
+                "custom.regex",
+                "helmv3"
+            ],
+            "matchPackageNames": [
+                "ghcr.io/wg-easy/wg-easy",
+                "/(^|/)wg-easy/wg-easy$/"
+            ],
+            "addLabels": [
+                "dependencies",
+                "renovate",
+                "automerge"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "description": "Auto-commit and auto-merge wg-easy image bumps"
+        },
+        {
+            "matchManagers": [
+                "helm-values",
                 "custom.regex"
             ],
             "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}}",
