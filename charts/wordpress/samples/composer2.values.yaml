@@ -1,0 +1,90 @@
+# Example configuration for using Composer packages with WordPress
+# This demonstrates how to install plugins and themes via Composer that are not available in the WordPress.org repository
+replicaCount: 2
+
+# Storage configuration for multi-replica setup
+storage:
+  storageClass: "longhorn"
+  accessModes:
+    - ReadWriteMany # Required for replicaCount > 1
+  size: 1Gi
+
+wordpress:
+  tablePrefix: xztab_
+  init:
+    enabled: true
+    existingSecret: "wordpress-test-secret"
+    firstname: "John"
+    lastname: "Doe"
+    title: "John Does's Blog"
+  url: "https://example.com"
+
+  permalinks:
+    structure: postName
+
+  # Example Composer plugins
+  plugins:
+    # Regular WordPress.org plugin for comparison
+    - name: "classic-editor"
+      activate: true
+      autoupdate: true
+
+    # Composer package from GitHub
+    # This is a popular S3 uploads plugin for WordPress
+    - name: "humanmade/s3-uploads"
+      activate: true
+      autoupdate: true # Will always install latest on each init run
+
+    # Composer package with fixed version
+    - name: "wpackagist-plugin/wordpress-seo"
+      version: "22.0"
+      activate: true
+      # autoupdate ignored when version is specified
+
+  # Example Composer themes
+  themes:
+    # Composer package theme with auto-update
+    - name: "wpackagist-theme/astra"
+      autoupdate: true
+      activate: true
+
+    # Regular theme for comparison
+    - name: "twentytwentyfour"
+      activate: false
+  composer:
+    # @param wordpress.composer.repositories array Custom Composer repositories to add to composer.json
+    # By default, the following repositories are already configured:
+    # - packagist.org (Composer default - always available)
+    # - wpackagist.org (mirrors all WordPress.org plugins and themes)
+    #
+    # Add additional repositories for:
+    # - Private/premium plugins from GitHub, GitLab, or Bitbucket
+    # - Custom Satis/Private Packagist servers
+    # - Premium plugin vendors (e.g., ACF Pro, Gravity Forms)
+    #
+    # Example:
+    repositories: []
+    # Real-world examples you can test:
+
+    # WPackagist Extra - Alternative repository for WordPress plugins/themes
+    # This is safe to test as it doesn't require authentication
+    # - type: "composer"
+    #   url: "https://wpackagist.org"
+    #   options:
+    #     ssl:
+    #       verify_peer: true
+
+  pluginsPrune: true
+  themesPrune: true
+
+service:
+  nodePorts:
+    http: 30111
+# Database configuration
+mariadb:
+  enabled: true
+  auth:
+    enabled: true
+    database: "wordpress_db"
+    username: "wordpress_db_user"
+    existingSecret: "wordpress-test-secret"

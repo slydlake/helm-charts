@@ -697,6 +697,15 @@
                     "description": "File system group ID",
                     "default": 33
                 },
+                "fsGroupChangePolicy": {
+                    "type": "string",
+                    "description": "Policy for changing volume ownership/permissions (Always or OnRootMismatch)",
+                    "enum": [
+                        "Always",
+                        "OnRootMismatch"
+                    ],
+                    "default": "Always"
+                },
                 "runAsUser": {
                     "type": "integer",
                     "description": "User ID to run containers",
@@ -724,6 +733,7 @@
         },
         "containerSecurityContext": {
             "type": "object",
+            "description": "Security context for application containers",
             "properties": {
                 "readOnlyRootFilesystem": {
                     "type": "boolean",

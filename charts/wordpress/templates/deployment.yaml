@@ -120,6 +120,41 @@ spec:
         checksum/wordpress-muPlugins-{{ $name }}: {{ $name | sha256sum }}
           {{- end }}
         {{- end }}
+        {{- /* combined muPlugins checksum */}}
+        {{- $muChecks := list -}}
+        {{- range .Values.wordpress.muPluginsConfigMaps }}
+          {{- $muChecks = append $muChecks (include "wordpress.checksum.lookup" (list .name $.Release.Namespace)) }}
+        {{- end }}
+        {{- if gt (len $muChecks) 0 }}
+        checksum/wordpress-muPlugins-combined: {{ include "wordpress.checksum.combine" (list $muChecks) }}
+        {{- end }}
+
+        {{- /* combined configmaps checksum */}}
+        {{- $allChecks := list -}}
+        {{- if .Values.extraEnvVarsCM }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.extraEnvVarsCM $.Release.Namespace)) }}
+        {{- end }}
+        {{- if .Values.wordpress.htaccessConfigMap }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.wordpress.htaccessConfigMap $.Release.Namespace)) }}
+        {{- end }}
+        {{- if .Values.wordpress.configExtraConfigMap.name }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.wordpress.configExtraConfigMap.name $.Release.Namespace)) }}
+        {{- end }}
+        {{- if .Values.apache.customDefaultSiteConfigMap }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.apache.customDefaultSiteConfigMap $.Release.Namespace)) }}
+        {{- end }}
+        {{- if .Values.apache.customPortsConfigMap }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.apache.customPortsConfigMap $.Release.Namespace)) }}
+        {{- end }}
+        {{- if .Values.apache.customPhpConfigMap }}
+          {{- $allChecks = append $allChecks (include "wordpress.checksum.lookup" (list .Values.apache.customPhpConfigMap $.Release.Namespace)) }}
+        {{- end }}
+        {{- if gt (len $allChecks) 0 }}
+        checksum/wordpress-configmaps-combined: {{ include "wordpress.checksum.combine" (list $allChecks) }}
+        {{- end }}
+
+        # Checksum of the chart-generated init-scripts ConfigMap to trigger rollout on script changes
+        checksum/init-scripts: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       labels:
         {{- include "wordpress.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
@@ -146,6 +181,27 @@ spec:
       hostNetwork: {{ .Values.hostNetwork }}
       {{- end }}
       initContainers:
+        # Minimal root container - ONLY fixes PVC ownership for NFS-based storage
+        # (e.g. Longhorn RWX) that doesn't respect Kubernetes fsGroup settings.
+        # All subsequent containers run as non-root uid 33 (www-data).
+        - name: {{ .Chart.Name }}-fix-permissions
+          image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            privileged: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["CHOWN", "DAC_OVERRIDE"]
+            seccompProfile:
+              type: RuntimeDefault
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["sh", "-c", "chown -R {{ .Values.podSecurityContext.runAsUser | default 33 }}:{{ .Values.podSecurityContext.fsGroup | default 33 }} /tmp/wordpress && echo 'PVC ownership fixed!'"]
+          volumeMounts:
+            - name: {{ include "wordpress.fullname" . }}
+              mountPath: /tmp/wordpress
         - name: {{ .Chart.Name }}-base
           image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
           {{- with .Values.containerSecurityContext }}
@@ -164,12 +220,12 @@ spec:
             cp /scripts/base.sh /tmp/base.sh
             chmod +x /tmp/base.sh
             /tmp/base.sh
-            
+
             # copy and run htaccess-setup.sh
             cp /scripts/htaccess-setup.sh /tmp/htaccess-setup.sh
             chmod +x /tmp/htaccess-setup.sh
             /tmp/htaccess-setup.sh
-            
+
             # Prepare library scripts for init container
             mkdir -p /tmp/lib
             cp /scripts/lib-core.sh /tmp/lib/lib-core.sh
@@ -207,6 +263,17 @@ spec:
               cp /scripts/init.sh /tmp/init.sh
               chmod +x /tmp/init.sh
               /tmp/init.sh
+          envFrom:
+          {{- if or .Values.extraEnvVarsCM .Values.extraEnvVarsSecret }}
+            {{- if .Values.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ .Values.extraEnvVarsCM }}
+            {{- end }}
+            {{- if .Values.extraEnvVarsSecret }}
+            - secretRef:
+                name: {{ .Values.extraEnvVarsSecret }}
+            {{- end }}
+          {{- end }}
           env:
             - name: WORDPRESS_PATH
               value: /var/www/html
@@ -294,14 +361,14 @@ spec:
               value: {{ .Values.wordpress.init.lastname | quote }}
             {{- end }}
             {{- end }}
-          {{ if and .Values.wordpress.configExtraConfigMap.name  (not .Values.wordpress.configExtraSecret.name) }}  
+          {{ if and .Values.wordpress.configExtraConfigMap.name  (not .Values.wordpress.configExtraSecret.name) }}
             - name: WORDPRESS_CONFIG_EXTRA
               valueFrom:
                 configMapKeyRef:
                   name: {{ .Values.wordpress.configExtraConfigMap.name }}
                   key: {{ .Values.wordpress.configExtraConfigMap.key | default "wordpress.configExtra" }}
           {{- end }}
-          {{ if .Values.wordpress.configExtraSecret.name }}  
+          {{ if .Values.wordpress.configExtraSecret.name }}
             - name: WORDPRESS_CONFIG_EXTRA
               valueFrom:
                 secretKeyRef:
@@ -340,7 +407,7 @@ spec:
               value: {{ .Values.wordpress.url | quote }}
             - name: WP_SITEURL
               value: {{ .Values.wordpress.url | quote }}
-          {{ if .Values.wordpress.debug }}  
+          {{ if .Values.wordpress.debug }}
             - name: WORDPRESS_DEBUG
               value: "true"
           {{- end }}
@@ -377,11 +444,11 @@ spec:
             - name: WORDPRESS_DEBUG
               value: "true"
           {{- end }}
-          {{ if .Values.wordpress.init.enabled }}  
+          {{ if .Values.wordpress.init.enabled }}
             - name: WP_INIT
               value: {{ .Values.wordpress.init.enabled | quote }}
           {{- end }}
-          {{ if .Values.metrics.wordpress.enabled }}  
+          {{ if .Values.metrics.wordpress.enabled }}
             - name: SLYMETRICS_BEARER_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -393,14 +460,14 @@ spec:
                   name: {{ include "metrics.wordpress.fullname" . }}
                   key: wordpress.metrics.encryptionKey
           {{- end }}
-          {{ if and .Values.wordpress.configExtraConfigMap.name  (not .Values.wordpress.configExtraSecret.name) }}  
+          {{ if and .Values.wordpress.configExtraConfigMap.name  (not .Values.wordpress.configExtraSecret.name) }}
             - name: WORDPRESS_CONFIG_EXTRA
               valueFrom:
                 configMapKeyRef:
                   name: {{ .Values.wordpress.configExtraConfigMap.name }}
                   key: {{ .Values.wordpress.configExtraConfigMap.key | default "wordpress.configExtra" }}
           {{- end }}
-          {{ if .Values.wordpress.configExtraSecret.name }}  
+          {{ if .Values.wordpress.configExtraSecret.name }}
             - name: WORDPRESS_CONFIG_EXTRA
               valueFrom:
                 secretKeyRef:
@@ -431,7 +498,7 @@ spec:
           livenessProbe:
             {{- toYaml .Values.customLivenessProbe | nindent 12 }}
           {{- else if .Values.livenessProbe.enabled }}
-          livenessProbe: 
+          livenessProbe:
             {{- toYaml (omit .Values.livenessProbe "enabled") | nindent 12 }}
             httpGet:
               path: /wp-login.php
@@ -446,7 +513,7 @@ spec:
           readinessProbe:
             {{- toYaml .Values.customReadinessProbe | nindent 12 }}
           {{- else if .Values.readinessProbe.enabled }}
-          readinessProbe: 
+          readinessProbe:
             {{- toYaml (omit .Values.readinessProbe "enabled") | nindent 12 }}
             httpGet:
               path: /wp-login.php
@@ -499,7 +566,7 @@ spec:
         - name: metrics-apache
           image: {{ include "slycharts.image" (dict "image" .Values.metrics.apache.image) }}
           imagePullPolicy: {{ .Values.metrics.apache.image.pullPolicy | quote }}
-          command: 
+          command:
             - sh
             - -c
             - |
@@ -616,7 +683,7 @@ spec:
               name: {{ .Values.wordpress.htaccessConfigMap }}
               items:
                 - key: htaccess
-                  path: .htaccess 
+                  path: .htaccess
           {{- end }}
       - name: {{ include "wordpress.fullname" . }}-init
         configMap:
