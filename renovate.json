@@ -83,7 +83,9 @@
     ],
     "packageRules": [
         {
-            "matchManagers": ["custom.regex"],
+            "matchManagers": [
+                "custom.regex"
+            ],
             "matchPackageNames": [
                 "linuxserver/wireguard",
                 "/^docker\\.io\\/linuxserver\\/wireguard$/"
@@ -148,6 +150,29 @@
             "automerge": true,
             "automergeType": "pr",
             "description": "Auto-commit and auto-merge wg-easy image bumps"
+        },
+        {
+            "matchManagers": [
+                "helm-values",
+                "custom.regex",
+                "helmv3"
+            ],
+            "matchPackagePatterns": [
+                "(^|/)wordpress$",
+                "(^|/)mariadb$",
+                "(^|/)memcached$"
+            ],
+            "matchFileNames": [
+                "charts/wordpress/**"
+            ],
+            "addLabels": [
+                "dependencies",
+                "renovate",
+                "automerge"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "description": "Auto-commit and auto-merge wordpress chart dependency bumps"
         },
         {
             "matchManagers": [
