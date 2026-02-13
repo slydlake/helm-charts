@@ -59,7 +59,7 @@ annotations:
     - name: metrics-apache
       image: docker.io/lusotycoon/apache-exporter:v1.0.12
     - name: mariadb
-      image: docker.io/mariadb:12.1.2-noble
+      image: docker.io/mariadb:12.2.2-noble
     - name: memcached
       image: docker.io/memcached:1.6.40
 dependencies:
