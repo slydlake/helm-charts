@@ -178,7 +178,12 @@
                 "patch",
                 "digest"
             ],
-            "automerge": true
+            "addLabels": [
+                "automerge"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "description": "Auto-merge minor, patch, and digest updates"
         },
         {
             "matchManagers": [
@@ -188,7 +193,11 @@
                 "minor",
                 "patch"
             ],
+            "addLabels": [
+                "automerge"
+            ],
             "automerge": true,
+            "automergeType": "pr",
             "groupName": "charts/{{{ replace \"charts/\" \"\" parentDir }}}",
             "labels": [
                 "dependencies",
