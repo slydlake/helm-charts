@@ -70,6 +70,15 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **Activation and Auto-Updates**: Activate themes after installation and enable auto-updates.
 - **Custom Themes**: Support for custom theme ZIPs via direct URLs.
 
+### WordPress Multisite
+- **Subdirectory and Subdomain modes**: Configure multisite with either `example.com/blog` or `blog.example.com` style URLs.
+- **Automatic Site Creation**: Define sub-sites declaratively in values and they are created/updated on every init.
+- **Network-wide Plugin/Theme Activation**: Use `networkActivate` for plugins or `networkEnable` for themes to make them available across all sites.
+- **Independent Main Site and Sub-Site Control**: `activate` controls the main site, `sites[]` controls sub-sites — both can be combined.
+- **Per-Site User Roles**: Assign users to specific sub-sites with individual roles.
+- **Site Pruning**: Optionally archive sites not defined in the configuration.
+- **URL Plugin/Theme Slug Override**: Use the `slug` property for URL-based plugins/themes to enable full feature support (autoupdate, sites, network activation).
+
 ### Database
 - **External Database**: Use an external MariaDB/MySQL database.
 - **Embedded MariaDB**: Enable the integrated MariaDB chart for local database.
@@ -114,9 +123,11 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 ## WordPress configuration
 
 ### Mandatory parameters
-- `wordpress.url`: Is needed to set wp-config with correct settings
+- `wordpress.url`: The WordPress site URL. Used to automatically set `WP_HOME` and `WP_SITEURL` — both as environment variables in the container and as PHP constants in `wp-config.php` (via `WORDPRESS_CONFIG_EXTRA`). If no protocol is provided, it is auto-prefixed with `https://` (when Ingress TLS is configured) or `http://` (otherwise).
 - `storage`: Set your storage settings for WordPress
 - By default `mariadb.enabled` is true. You have to set `mariadb.auth` and `mariadb.persistence`. Alternatively, it is also possible to use an external database.
+
+> **Note:** If you need full manual control over `WP_HOME` / `WP_SITEURL` (e.g. different values for each, or a reverse proxy setup), set `wordpress.configExtraInject: false` to disable the automatic injection into `wp-config.php` and define the constants yourself via `wordpress.configExtra`. The environment variables `WP_HOME` and `WP_SITEURL` in the container are always derived from `wordpress.url`.
 
 ### Recommended parameters
 - `wordpress.init`: Admin credentials and blog setup
@@ -241,6 +252,78 @@ wordpress:
     - name: "mycompany/private-plugin"
       activate: true
 ```
+
+### WordPress Multisite
+Full multisite configuration with automatic site creation, network-wide plugin/theme management, and per-site user roles. See `samples/multisite.values.yaml` and `samples/multisite.secrets.yaml`.
+
+```bash
+kubectl apply -f ./samples/multisite.secrets.yaml
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/multisite.values.yaml
+```
+
+> **Important:** Do **not** add multisite constants (`WP_ALLOW_MULTISITE`, `MULTISITE`, `SUBDOMAIN_INSTALL`, `DOMAIN_CURRENT_SITE`, `PATH_CURRENT_SITE`, `SITE_ID_CURRENT_SITE`, `BLOG_ID_CURRENT_SITE`) to `configExtra`, `configExtraConfigMap`, or `configExtraSecret`. These constants are automatically written to `wp-config.php` by the init container during multisite setup and persist on the PVC. Defining them again would cause PHP "Constant already defined" warnings.
+
+#### Plugin/Theme Activation in Multisite
+
+In multisite mode, `activate` and `sites` work **independently**:
+
+| Property | Effect |
+|---|---|
+| `activate: true` | Activate on the **main site** |
+| `sites: [blog, shop]` | Activate on specific **sub-sites** |
+| `activate: true` + `sites: [blog]` | Activate on **main + blog** |
+| `networkActivate: true` | Activate across **entire network** (overrides activate and sites) |
+
+Example:
+```yaml
+wordpress:
+  plugins:
+    # Network-wide: available on ALL sites
+    - name: "wordpress-seo"
+      activate: true
+      networkActivate: true
+
+    # Sub-sites only: NOT on main site
+    - name: "contact-form-7"
+      activate: false
+      sites:
+        - blog
+        - shop
+
+    # Main site + specific sub-sites
+    - name: "woocommerce"
+      activate: true
+      sites:
+        - shop
+```
+
+The same pattern applies to themes with `networkEnable` (make theme available to all sites) and `activate`/`sites` (control which site uses it as active theme).
+
+#### URL Plugins/Themes with `slug` Property
+
+When installing plugins or themes from a URL, the slug (directory name after installation) cannot always be determined from the URL. Use the `slug` property to explicitly specify it:
+
+```yaml
+wordpress:
+  plugins:
+    - name: "https://example.com/downloads/my-premium-plugin-v2.3.zip"
+      slug: "my-premium-plugin"   # Required: actual plugin directory name
+      activate: true
+      autoupdate: true
+      sites:
+        - blog
+  themes:
+    - name: "https://creativethemes.com/downloads/blocksy-child.zip"
+      slug: "blocksy-child"       # Required: actual theme directory name
+      activate: true
+      autoupdate: true
+```
+
+Without `slug`, URL plugins/themes use `basename` of the URL as a best-effort guess, but this fails for URLs like `download?id=123` or versioned filenames like `plugin-v2.3.1.zip`. Setting `slug` explicitly enables:
+- **Skip-if-installed** detection (no unnecessary reinstalls)
+- **Auto-updates**
+- **Site-specific activation** (`sites[]`)
+- **Network activation** (`networkActivate` / `networkEnable`)
 
 ## Notable changes
 

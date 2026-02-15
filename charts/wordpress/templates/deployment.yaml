@@ -284,7 +284,7 @@ spec:
             - name: WORDPRESS_TABLE_PREFIX
               value: {{ .Values.wordpress.tablePrefix| default "wp_" | quote }}
             - name: WP_URL
-              value: {{ .Values.wordpress.url | quote }}
+              value: {{ include "wordpress.normalizedUrl" . | quote }}
             - name: WORDPRESS_METRICS
               value: {{ include "metrics.wordpress.pluginname" . }}
             - name: WP_LOCALE
@@ -360,20 +360,70 @@ spec:
             - name: WP_ADMIN_LASTNAME
               value: {{ .Values.wordpress.init.lastname | quote }}
             {{- end }}
+            {{- if .Values.wordpress.init.title }}
+            - name: WP_INIT_TITLE
+              value: {{ .Values.wordpress.init.title | quote }}
             {{- end }}
-          {{ if and .Values.wordpress.configExtraConfigMap.name  (not .Values.wordpress.configExtraSecret.name) }}
+            {{- if .Values.wordpress.init.multiSites.enabled }}
+            - name: WP_MULTISITE_ENABLED
+              value: "true"
+            - name: WP_MULTISITE_TITLE
+              value: {{ .Values.wordpress.init.multiSites.title | default .Values.wordpress.init.title | quote }}
+            - name: WP_MULTISITE_SUBDOMAIN
+              value: {{ .Values.wordpress.init.multiSites.subdomain | quote }}
+            - name: WP_MULTISITE_PRUNE
+              value: {{ .Values.wordpress.init.multiSites.prune | quote }}
+            {{- if .Values.wordpress.init.multiSites.sites }}
+            - name: WP_MULTISITE_SITES
+              value: {{ .Values.wordpress.init.multiSites.sites | toJson | quote }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+          {{- if and .Values.wordpress.configExtraConfigMap.name (not .Values.wordpress.configExtraSecret.name) }}
+          {{- if .Values.wordpress.configExtraInject }}
+          {{/* Combine external ConfigMap + chart-managed inject via K8s env var interpolation */}}
+            - name: _WP_CONFIG_INJECT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: _WP_CONFIG_INJECT
+            - name: _WP_CONFIG_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.wordpress.configExtraConfigMap.name }}
+                  key: {{ .Values.wordpress.configExtraConfigMap.key | default "wordpress.configExtra" }}
+            - name: WORDPRESS_CONFIG_EXTRA
+              value: "$(_WP_CONFIG_USER)$(_WP_CONFIG_INJECT)"
+          {{- else }}
             - name: WORDPRESS_CONFIG_EXTRA
               valueFrom:
                 configMapKeyRef:
                   name: {{ .Values.wordpress.configExtraConfigMap.name }}
                   key: {{ .Values.wordpress.configExtraConfigMap.key | default "wordpress.configExtra" }}
           {{- end }}
-          {{ if .Values.wordpress.configExtraSecret.name }}
+          {{- end }}
+          {{- if .Values.wordpress.configExtraSecret.name }}
+          {{- if .Values.wordpress.configExtraInject }}
+          {{/* Combine external Secret + chart-managed inject via K8s env var interpolation */}}
+            - name: _WP_CONFIG_INJECT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: _WP_CONFIG_INJECT
+            - name: _WP_CONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.wordpress.configExtraSecret.name }}
+                  key: {{ .Values.wordpress.configExtraSecret.key | default "wordpress.configExtra" }}
+            - name: WORDPRESS_CONFIG_EXTRA
+              value: "$(_WP_CONFIG_USER)$(_WP_CONFIG_INJECT)"
+          {{- else }}
             - name: WORDPRESS_CONFIG_EXTRA
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.wordpress.configExtraSecret.name }}
                   key: {{ .Values.wordpress.configExtraSecret.key | default "wordpress.configExtra" }}
+          {{- end }}
           {{- end }}
           volumeMounts:
             - name: {{ include "wordpress.fullname" . }}
@@ -404,9 +454,9 @@ spec:
           {{- toYaml .Values.extraEnvVars | nindent 12 }}
           {{- end }}
             - name: WP_HOME
-              value: {{ .Values.wordpress.url | quote }}
+              value: {{ include "wordpress.normalizedUrl" . | quote }}
             - name: WP_SITEURL
-              value: {{ .Values.wordpress.url | quote }}
+              value: {{ include "wordpress.normalizedUrl" . | quote }}
           {{ if .Values.wordpress.debug }}
             - name: WORDPRESS_DEBUG
               value: "true"
@@ -460,19 +510,51 @@ spec:
                   name: {{ include "metrics.wordpress.fullname" . }}
                   key: wordpress.metrics.encryptionKey
           {{- end }}
-          {{ if and .Values.wordpress.configExtraConfigMap.name  (not .Values.wordpress.configExtraSecret.name) }}
+          {{- if and .Values.wordpress.configExtraConfigMap.name (not .Values.wordpress.configExtraSecret.name) }}
+          {{- if .Values.wordpress.configExtraInject }}
+          {{/* Combine external ConfigMap + chart-managed inject via K8s env var interpolation */}}
+            - name: _WP_CONFIG_INJECT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: _WP_CONFIG_INJECT
+            - name: _WP_CONFIG_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.wordpress.configExtraConfigMap.name }}
+                  key: {{ .Values.wordpress.configExtraConfigMap.key | default "wordpress.configExtra" }}
+            - name: WORDPRESS_CONFIG_EXTRA
+              value: "$(_WP_CONFIG_USER)$(_WP_CONFIG_INJECT)"
+          {{- else }}
             - name: WORDPRESS_CONFIG_EXTRA
               valueFrom:
                 configMapKeyRef:
                   name: {{ .Values.wordpress.configExtraConfigMap.name }}
                   key: {{ .Values.wordpress.configExtraConfigMap.key | default "wordpress.configExtra" }}
           {{- end }}
-          {{ if .Values.wordpress.configExtraSecret.name }}
+          {{- end }}
+          {{- if .Values.wordpress.configExtraSecret.name }}
+          {{- if .Values.wordpress.configExtraInject }}
+          {{/* Combine external Secret + chart-managed inject via K8s env var interpolation */}}
+            - name: _WP_CONFIG_INJECT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "wordpress.fullname" . }}
+                  key: _WP_CONFIG_INJECT
+            - name: _WP_CONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.wordpress.configExtraSecret.name }}
+                  key: {{ .Values.wordpress.configExtraSecret.key | default "wordpress.configExtra" }}
+            - name: WORDPRESS_CONFIG_EXTRA
+              value: "$(_WP_CONFIG_USER)$(_WP_CONFIG_INJECT)"
+          {{- else }}
             - name: WORDPRESS_CONFIG_EXTRA
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.wordpress.configExtraSecret.name }}
                   key: {{ .Values.wordpress.configExtraSecret.key | default "wordpress.configExtra" }}
+          {{- end }}
           {{- end }}
           envFrom:
             - secretRef:
@@ -503,11 +585,11 @@ spec:
             httpGet:
               path: /wp-login.php
               port: http
+              {{- if .Values.wordpress.init.multiSites.enabled }}
               httpHeaders:
                 - name: Host
-                  value: localhost:{{ .Values.service.ports.http }}
-                - name: x-forwarded-proto
-                  value: https
+                  value: {{ include "wordpress.urlHost" . | quote }}
+              {{- end }}
           {{- end }}
           {{- if .Values.customReadinessProbe }}
           readinessProbe:
@@ -518,11 +600,11 @@ spec:
             httpGet:
               path: /wp-login.php
               port: http
+              {{- if .Values.wordpress.init.multiSites.enabled }}
               httpHeaders:
                 - name: Host
-                  value: localhost:{{ .Values.service.ports.http }}
-                - name: x-forwarded-proto
-                  value: https
+                  value: {{ include "wordpress.urlHost" . | quote }}
+              {{- end }}
           {{- end }}
           {{- if .Values.customStartupProbe }}
           startupProbe:
@@ -533,11 +615,11 @@ spec:
             httpGet:
               path: /wp-login.php
               port: http
+              {{- if .Values.wordpress.init.multiSites.enabled }}
               httpHeaders:
                 - name: Host
-                  value: localhost:{{ .Values.service.ports.http }}
-                - name: x-forwarded-proto
-                  value: https
+                  value: {{ include "wordpress.urlHost" . | quote }}
+              {{- end }}
           {{- end }}
           {{- with .Values.resources }}
           resources:
