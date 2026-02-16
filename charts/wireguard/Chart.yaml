@@ -2,7 +2,7 @@ apiVersion: v2
 name: wireguard
 description: "Using the offical linuxserver/wireguard image with almost any environment variables for K8S. Supporting server and client mode."
 type: application
-version: 0.3.7
+version: 0.4.0
 appVersion: 1.0.20250521-r1-ls102 # renovate: image=docker.io/linuxserver/wireguard
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
 home: https://github.com/slydlake/helm-charts
@@ -22,11 +22,11 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: changed
-      description: "Update docker.io/linuxserver/wireguard to ([source](https://redirect.github.com/linuxserver/docker-wireguard))"
+    - kind: added
+      description: "runtimeClassName added. Thanks to Crypt0s"
       links:
         - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/125
+          url: https://github.com/slydlake/helm-charts/pull/126
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wireguard
