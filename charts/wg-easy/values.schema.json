@@ -172,6 +172,11 @@
         "additionalProperties": true
       }
     },
+    "runtimeClassName":{
+      "type": "string",
+      "title": "Runtime Class Name",
+      "description": "The kubernetes runtime class which will execute the containers. Defaults to the default runtimeClassName."
+    },
     "storage": {
       "title": "Persistent storage",
       "type": "object",

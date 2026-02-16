@@ -46,6 +46,9 @@ spec:
       {{- if .Values.hostNetwork }}
       hostNetwork: {{ .Values.hostNetwork }}
       {{- end }}
+      {{- if .Values.runtimeClassName }}
+      runtimeClassName: {{ .Values.runtimeClassName }}
+      {{- end }}
       {{- if .Values.initContainers }}
       initContainers:
         {{- toYaml .Values.initContainers | nindent 8 }}
