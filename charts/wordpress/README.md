@@ -327,6 +327,9 @@ Without `slug`, URL plugins/themes use `basename` of the URL as a best-effort gu
 
 ## Notable changes
 
+### To 3.2.0
+- Introducing multisite for WordPress, including users, plugins, and themes
+
 ### To 3.0.0
 - Split init pipeline into three containers: `fix-permissions` (runs as root), `base`, and `init` — enables correct ownership handling on RWX storage (e.g., Longhorn). ⚠️ **`fix-permissions` requires root permissions.**
 - Moved the init script library into a separate ConfigMap and added ConfigMap checksum annotations to trigger automatic rollouts on script/config changes. **If the ConfigMap is managed outside the Helm release (e.g. applied via Kustomize), you may need to manually restart the deployment to run the init containers again:**
