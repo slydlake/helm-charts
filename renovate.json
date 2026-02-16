@@ -19,6 +19,45 @@
     "customManagers": [
         {
             "customType": "regex",
+            "description": "Update tag in values.yaml for linuxserver/wireguard",
+            "fileMatch": [
+                "^charts/wireguard/values\\.yaml$"
+            ],
+            "matchStrings": [
+                "repository:\\s+linuxserver/wireguard[\\s\\S]*?tag:\\s+['\"]?(?<currentValue>[^'\"\\s@]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?"
+            ],
+            "depNameTemplate": "docker.io/linuxserver/wireguard",
+            "datasourceTemplate": "docker",
+            "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$"
+        },
+        {
+            "customType": "regex",
+            "description": "Update appVersion in Chart.yaml for linuxserver/wireguard",
+            "fileMatch": [
+                "^charts/wireguard/Chart\\.yaml$"
+            ],
+            "matchStrings": [
+                "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*image=(?<packageName>[^\\s]+)"
+            ],
+            "depNameTemplate": "{{{packageName}}}",
+            "datasourceTemplate": "docker",
+            "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$"
+        },
+        {
+            "customType": "regex",
+            "description": "Update artifacthub.io/images in Chart.yaml for linuxserver/wireguard",
+            "fileMatch": [
+                "^charts/wireguard/Chart\\.yaml$"
+            ],
+            "matchStrings": [
+                "image: (?<packageName>[^:]+):(?<currentValue>[^\\s]+)"
+            ],
+            "depNameTemplate": "{{{packageName}}}",
+            "datasourceTemplate": "docker",
+            "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$"
+        },
+        {
+            "customType": "regex",
             "description": "Update appVersion in Chart.yaml",
             "fileMatch": [
                 "^charts/.*/Chart\\.yaml$"
@@ -27,8 +66,7 @@
                 "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*image=(?<packageName>[^\\s]+)"
             ],
             "depNameTemplate": "{{{packageName}}}",
-            "datasourceTemplate": "docker",
-            "versioningTemplate": "docker"
+            "datasourceTemplate": "docker"
         },
         {
             "customType": "regex",
@@ -40,11 +78,31 @@
                 "image: (?<packageName>[^:]+):(?<currentValue>[^\\s]+)"
             ],
             "depNameTemplate": "{{{packageName}}}",
-            "datasourceTemplate": "docker",
-            "versioningTemplate": "docker"
+            "datasourceTemplate": "docker"
         }
     ],
     "packageRules": [
+        {
+            "matchManagers": [
+                "custom.regex"
+            ],
+            "matchPackageNames": [
+                "linuxserver/wireguard",
+                "/^docker\\.io\\/linuxserver\\/wireguard$/"
+            ],
+            "groupName": "linuxserver/wireguard",
+            "description": "Group linuxserver wireguard updates (versioning from customManagers)"
+        },
+        {
+            "matchManagers": [
+                "helm-values"
+            ],
+            "matchPackageNames": [
+                "docker.io/linuxserver/wireguard"
+            ],
+            "enabled": false,
+            "description": "Disable helm-values for wireguard (handled by custom.regex instead)"
+        },
         {
             "matchUpdateTypes": [
                 "digest"
@@ -52,20 +110,6 @@
             "automerge": true,
             "automergeType": "pr",
             "description": "Auto-merge digest-only updates for security patches"
-        },
-        {
-            "matchManagers": [
-                "helm-values",
-                "custom.regex"
-            ],
-            "matchPackageNames": [
-                "linuxserver/wireguard",
-                "/^docker\\.io\\/linuxserver\\/wireguard$/"
-            ],
-            "versionCompatibility": "^(?<version>[^-]+)(?<compatibility>-.*)$",
-            "versioning": "loose",
-            "groupName": "linuxserver/wireguard",
-            "description": "Handle linuxserver wireguard updates with full version including -rX-lsY suffix"
         },
         {
             "matchManagers": [
@@ -107,6 +151,29 @@
         {
             "matchManagers": [
                 "helm-values",
+                "custom.regex",
+                "helmv3"
+            ],
+            "matchPackagePatterns": [
+                "(^|/)wordpress$",
+                "(^|/)mariadb$",
+                "(^|/)memcached$"
+            ],
+            "matchFileNames": [
+                "charts/wordpress/**"
+            ],
+            "addLabels": [
+                "dependencies",
+                "renovate",
+                "automerge"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "description": "Auto-commit and auto-merge wordpress chart dependency bumps"
+        },
+        {
+            "matchManagers": [
+                "helm-values",
                 "custom.regex"
             ],
             "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}}",
@@ -133,7 +200,25 @@
                 "patch",
                 "digest"
             ],
-            "automerge": true
+            "addLabels": [
+                "automerge"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "description": "Auto-merge minor, patch, and digest updates"
+        },
+        {
+            "matchManagers": [
+                "helm-values",
+                "custom.regex"
+            ],
+            "matchPackageNames": [
+                "linuxserver/wireguard",
+                "/^docker\\.io\\/linuxserver\\/wireguard$/"
+            ],
+            "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$",
+            "groupName": "linuxserver/wireguard",
+            "description": "Handle linuxserver wireguard updates with regex versioning (overrides general rule)"
         },
         {
             "matchManagers": [
@@ -144,6 +229,7 @@
                 "patch"
             ],
             "automerge": true,
+            "automergeType": "pr",
             "groupName": "charts/{{{ replace \"charts/\" \"\" parentDir }}}",
             "labels": [
                 "dependencies",
@@ -151,6 +237,7 @@
                 "helm-chart"
             ],
             "addLabels": [
+                "automerge",
                 "{{#if isMajor}}major{{/if}}{{#if isMinor}}minor{{/if}}{{#if isPatch}}patch{{/if}}"
             ],
             "semanticCommits": "disabled",
