@@ -88,6 +88,9 @@ initContainers: []
 ## @param sidecars list Sidecar containers to add to the pod
 sidecars: []
 
+## @param runtimeclass that the wireguard pod will have
+runtimeClassName: {}
+
 ## @section Storage configuration
 storage:
   ## @param storage.existingClaim string Name of an existing PVC to use
