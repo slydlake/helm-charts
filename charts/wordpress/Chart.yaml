@@ -46,11 +46,11 @@ dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.9.6
+    version: 0.10.0
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.13.6
+    version: 0.14.0
 keywords:
   - wordpress
   - blog
