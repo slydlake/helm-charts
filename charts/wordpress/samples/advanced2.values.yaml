@@ -45,6 +45,9 @@ wordpress:
       lastname: "Smith"
       role: "contributor"
       sendEmail: false
+  # configExtraInject: true (default) automatically adds WP_HOME, WP_SITEURL,
+  # multisite constants, and memcached config to WORDPRESS_CONFIG_EXTRA.
+  # Your configExtraSecret values will be combined with these inject values.
   configExtraSecret:
     name: "wordpress-test-secret"
   htaccessConfigMap: "wordpress-custom-config"

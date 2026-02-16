@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 3.1.2
+version: 3.2.0
 appVersion: "6.9.1" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,11 +26,34 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
+    - kind: added
+      description: "Add support for WordPress Multisite configuration with both subdirectory and subdomain modes, including pruning and renaming of sites in the network"
     - kind: changed
-      description: "Update mariadb to 0.13.6"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/132
+      description: "Multisite: Persistent site tracking via blog_id mapping in wp_sitemeta — enables site slug renames without data loss"
+    - kind: added
+      description: "Multisite: Support previousName field for explicit site slug renames with automatic mapping migration"
+    - kind: added
+      description: "Multisite: User assignment to specific sites in multisite mode"
+    - kind: added
+      description: "Multisite: Plugins network-wide activation, with optional site-specific overrides"
+    - kind: added
+      description: "Multisite: Metrics plugin (SlyMetrics) — network-activate in multisite and enable autoupdates by default"
+    - kind: added
+      description: "Multisite: Themes network-wide activation, with optional site-specific overrides"
+    - kind: added
+      description: "Add support for injecting custom configuration into wp-config.php (e.g. WP_DEBUG, multisite constants, memcached config)"
+    - kind: added
+      description: "WordPress debug mode via the Helm values (WORDPRESS_DEBUG constant in wp-config.php) to facilitate troubleshooting and development"
+    - kind: changed
+      description: "WordPress site URL via the Helm values to ensure correct URL configuration in multisite setups and simplify configuration management"
+    - kind: fixed
+      description: "Remove --force flag from wp plugin/theme install commands - prevents incorrect file ownership (www-data:root) causing unnecessary reinstallations on pod restarts"
+    - kind: fixed
+      description: "Fix stale autoupdate DB entries by replacing old incorrect plugin file paths (full-replace instead of merge)"
+    - kind: added
+      description: "Add slug property for URL plugins/themes to enable sites, autoupdate and network activation support"
+    - kind: fixed
+      description: "Auto-prefix http:// or https:// to URL when no protocol is specified (derived from Ingress TLS config) to prevent redirect loops"
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.9.1-php8.3-apache

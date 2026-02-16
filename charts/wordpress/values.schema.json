@@ -311,6 +311,77 @@
                                     "default": "commands.sh"
                                 }
                             }
+                        },
+                        "multiSites": {
+                            "type": "object",
+                            "description": "WordPress Multisite configuration",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "description": "Enable multisite configuration",
+                                    "default": false
+                                },
+                                "title": {
+                                    "type": "string",
+                                    "description": "Title for the multisite network"
+                                },
+                                "subdomain": {
+                                    "type": "boolean",
+                                    "description": "Use subdomain configuration (true) or subdirectory (false)",
+                                    "default": false
+                                },
+                                "prune": {
+                                    "type": "boolean",
+                                    "description": "Remove all sites not defined in wordpress.init.multiSites.sites list",
+                                    "default": false
+                                },
+                                "sites": {
+                                    "type": "array",
+                                    "description": "List of sites to create",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "type": "string",
+                                                "description": "Site slug"
+                                            },
+                                            "title": {
+                                                "type": "string",
+                                                "description": "Site title"
+                                            },
+                                            "private": {
+                                                "type": "boolean",
+                                                "description": "Not indexed by search engines",
+                                                "default": false
+                                            },
+                                            "active": {
+                                                "type": "boolean",
+                                                "description": "Site is active",
+                                                "default": true
+                                            },
+                                            "archived": {
+                                                "type": "boolean",
+                                                "description": "Site is archived",
+                                                "default": false
+                                            },
+                                            "previousName": {
+                                                "type": "string",
+                                                "description": "Previous site name/slug for rename tracking. The mapping will be migrated from the old name to the new name, and the site URL slug will be updated. Remove this field after one successful deployment."
+                                            }
+                                        },
+                                        "required": [
+                                            "name"
+                                        ]
+                                    },
+                                    "default": []
+                                }
+                            },
+                            "default": {
+                                "enabled": false,
+                                "subdomain": false,
+                                "prune": false,
+                                "sites": []
+                            }
                         }
                     }
                 },
@@ -350,11 +421,26 @@
                             },
                             "activate": {
                                 "type": "boolean",
-                                "description": "Activate the plugin after install"
+                                "description": "Activate the plugin on the main site. Can be combined with sites[] for independent sub-site activation. Ignored when networkActivate is true."
                             },
                             "autoupdate": {
                                 "type": "boolean",
                                 "description": "Enable auto-updates for the plugin"
+                            },
+                            "networkActivate": {
+                                "type": "boolean",
+                                "description": "Multisite: activate on all sites (network-wide activation). Takes precedence over activate and sites."
+                            },
+                            "sites": {
+                                "type": "array",
+                                "description": "Multisite: activate on specific sub-sites. Can be combined with activate for main site control. Ignored when networkActivate is true.",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "slug": {
+                                "type": "string",
+                                "description": "Override plugin slug (required for URL plugins when using sites, autoupdate or networkActivate). The slug is the plugin directory name after installation."
                             }
                         },
                         "required": [
@@ -384,11 +470,26 @@
                             },
                             "activate": {
                                 "type": "boolean",
-                                "description": "Activate the theme after install"
+                                "description": "Activate the theme on the main site. Can be combined with sites[] for independent sub-site activation."
                             },
                             "autoupdate": {
                                 "type": "boolean",
                                 "description": "Enable auto-updates for the theme"
+                            },
+                            "networkEnable": {
+                                "type": "boolean",
+                                "description": "Multisite: enable theme on network (make available to all sites)"
+                            },
+                            "sites": {
+                                "type": "array",
+                                "description": "Multisite: activate theme on specific sub-sites. Can be combined with activate for main site control.",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "slug": {
+                                "type": "string",
+                                "description": "Override theme slug (required for URL themes when using sites, autoupdate or networkEnable). The slug is the theme directory name after installation."
                             }
                         },
                         "required": [
@@ -472,6 +573,38 @@
                             "sendEmail": {
                                 "type": "boolean",
                                 "description": "Send email to user"
+                            },
+                            "superAdmin": {
+                                "type": "boolean",
+                                "description": "Multisite: grant super-admin privileges"
+                            },
+                            "sites": {
+                                "type": "array",
+                                "description": "Multisite: assign to specific sites with roles",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string",
+                                            "description": "Site slug"
+                                        },
+                                        "role": {
+                                            "type": "string",
+                                            "enum": [
+                                                "administrator",
+                                                "editor",
+                                                "author",
+                                                "contributor",
+                                                "subscriber"
+                                            ],
+                                            "description": "Role of the user on this site"
+                                        }
+                                    },
+                                    "required": [
+                                        "name",
+                                        "role"
+                                    ]
+                                }
                             }
                         },
                         "required": [
@@ -493,7 +626,12 @@
                 },
                 "url": {
                     "type": "string",
-                    "description": "WordPress URL"
+                    "description": "WordPress URL (including protocol, e.g. http://example.com or https://example.com). If no protocol is provided, it is auto-detected from the Ingress TLS config (https:// if TLS is configured, http:// otherwise)."
+                },
+                "configExtraInject": {
+                    "type": "boolean",
+                    "description": "Automatically inject WP_HOME, WP_SITEURL and memcached config into WORDPRESS_CONFIG_EXTRA. Combined with configExtra, configExtraConfigMap or configExtraSecret values when set. Multisite constants are managed by the init container.",
+                    "default": true
                 },
                 "configExtra": {
                     "type": "string",
@@ -1156,6 +1294,16 @@
                             "type": "string",
                             "description": "Override the plugin name",
                             "default": ""
+                        },
+                        "networkActivate": {
+                            "type": "boolean",
+                            "description": "Network-activate the metrics plugin in WordPress Multisite. When enabled in a multisite setup, the plugin is activated network-wide instead of only on the main site.",
+                            "default": true
+                        },
+                        "autoupdate": {
+                            "type": "boolean",
+                            "description": "Enable automatic updates for the metrics plugin.",
+                            "default": true
                         },
                         "serviceMonitor": {
                             "type": "object",

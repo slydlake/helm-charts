@@ -181,6 +181,32 @@ wordpress:
     ## @param wordpress.init.debug bool Enable debug mode in Job "setter"
     debug: false
 
+    ## @section Multisite configuration
+    multiSites:
+      ## @param wordpress.init.multiSites.enabled bool Enable multisite configuration
+      enabled: false
+      ## @param wordpress.init.multiSites.title string Title for the multisite network (required if multiSites.enabled is true)
+      title: ""
+      ## @param wordpress.init.multiSites.subdomain bool Use subdomain configuration (true) or subdirectory (false)
+      subdomain: false
+
+      ## @param wordpress.init.multiSites.prune bool Remove all sites not defined in wordpress.init.multiSites.sites list
+      prune: false
+
+      ## @param wordpress.init.multiSites.sites list List of sites to create
+      ## E.g.
+      ## ```yaml
+      ##  sites:
+      ##  - name: blog          # mandatory, site slug (e.g. blog → example.com/blog or blog.example.com)
+      ##    title: "Blog"       # optional, site title (default: same as name)
+      ##    private: false       # optional, not indexed by search engines (default: false)
+      ##    active: true         # optional, site is active (default: true)
+      ##    archived: false      # optional, site is archived (default: false)
+      ##  - name: shop
+      ##    title: "Online Shop"
+      ## ```
+      sites: []
+
     ## @section Custom init commands
     customInitConfigMap:
       ## @param wordpress.init.customInitConfigMap.name string Name of ConfigMap with custom init commands
@@ -199,7 +225,7 @@ wordpress:
     structure: postName
     ## @extra wordpress.permalinks.customStructure string Custom permalink structure (overrides structure)
 
-  ## @param wordpress.plugins list WordPress plugins to install (name, version, activate, autoupdate)
+  ## @param wordpress.plugins list WordPress plugins to install (name, version, activate, autoupdate, networkActivate, sites)
   ## E.g.
   ## ```yaml
   ## plugins:
@@ -207,6 +233,12 @@ wordpress:
   ##     version: latest
   ##     activate: true
   ##     autoupdate: true
+  ##     networkActivate: true   # Multisite: activate on all sites (default if multisite enabled)
+  ##   - name: contact-form-7
+  ##     activate: true
+  ##     sites:                  # Multisite: activate only on these sites (overrides networkActivate)
+  ##       - blog
+  ##       - shop
   ##   - name: akismet
   ##     activate: false
   ## ```
@@ -215,7 +247,7 @@ wordpress:
   ## @param wordpress.pluginsPrune bool Remove all plugins not defined in wordpress.plugins list
   pluginsPrune: false
 
-  ## @param wordpress.themes list WordPress themes to install (name, version, activate, autoupdate)
+  ## @param wordpress.themes list WordPress themes to install (name, version, activate, autoupdate, networkEnable, sites)
   ## E.g.
   ## ```yaml
   ## themes:
@@ -223,9 +255,12 @@ wordpress:
   ##     version: 1.0.4
   ##     activate: true
   ##     autoupdate: true
+  ##     networkEnable: true     # Multisite: enable on network (default: true if multisite)
   ##   - name: flavor-child
   ##     source: "https://example.com/flavor-child.zip"
-  ##     activate: false
+  ##     activate: true
+  ##     sites:                  # Multisite: activate on specific sites
+  ##       - blog
   ## ```
   themes: []
 
@@ -250,7 +285,7 @@ wordpress:
     ## @param wordpress.composer.repositories list Custom Composer repositories to add
     repositories: []
 
-  ## @param wordpress.users list WordPress users to create (username, email, displayname, firstname, lastname, role, sendEmail)
+  ## @param wordpress.users list WordPress users to create (username, email, displayname, firstname, lastname, role, sendEmail, superAdmin, sites)
   ## E.g.
   ## ```yaml
   ## users:
@@ -261,6 +296,12 @@ wordpress:
   ##     lastname: Editor
   ##     role: editor
   ##     sendEmail: false
+  ##     superAdmin: false       # Multisite: grant super-admin privileges (default: false)
+  ##     sites:                  # Multisite: assign to specific sites with roles
+  ##       - name: blog
+  ##         role: editor
+  ##       - name: shop
+  ##         role: administrator
   ##   - username: author
   ##     email: author@example.com
   ##     role: author
@@ -273,6 +314,18 @@ wordpress:
   language: ""
   ## @param wordpress.url string WordPress URL (used for WP_HOME and WP_SITEURL)
   url: ""
+
+  ## @param wordpress.configExtraInject bool Automatically inject essential wp-config.php constants
+  ## @descriptionStart
+  ## When true, the following are ALWAYS appended to WORDPRESS_CONFIG_EXTRA, even when
+  ## configExtra, configExtraConfigMap, or configExtraSecret is set by the user:
+  ##   - WP_HOME and WP_SITEURL (from wordpress.url)
+  ##   - Multisite constants (MULTISITE, SUBDOMAIN_INSTALL, DOMAIN_CURRENT_SITE, etc.) when multiSites.enabled
+  ##   - Memcached config (when memcached.enabled and memcached.createconfig)
+  ## This fixes an existing issue where WP_HOME/WP_SITEURL are lost when using configExtraConfigMap or configExtraSecret.
+  ## @descriptionEnd
+  ## @default true
+  configExtraInject: true
 
   ## @param wordpress.configExtra string Custom values for wp-config.php (WP_HOME/WP_SITEURL added automatically)
   ## E.g.
@@ -698,6 +751,10 @@ metrics:
     installPlugin: true
     ## @param metrics.wordpress.pluginNameOverride string Override the plugin name to install
     pluginNameOverride: ""
+    ## @param metrics.wordpress.networkActivate bool Network-activate the metrics plugin in WordPress Multisite (default: true)
+    networkActivate: true
+    ## @param metrics.wordpress.autoupdate bool Enable automatic updates for the metrics plugin (default: true)
+    autoupdate: true
 
     ## @section WordPress ServiceMonitor
     serviceMonitor:

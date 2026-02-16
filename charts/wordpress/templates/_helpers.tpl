@@ -163,6 +163,35 @@ Returns: registry/repository:tag (e.g. "docker.io/wordpress:6.8.3-php8.1-apache"
 {{- end -}}
 {{- end -}}
 {{/* Checksum helpers */}}
+{{/*
+Normalize WordPress URL: ensure it has a protocol prefix.
+If no protocol is provided, derive from Ingress TLS config (https:// if TLS configured, http:// otherwise).
+Usage: {{ include "wordpress.normalizedUrl" . }}
+*/}}
+{{- define "wordpress.normalizedUrl" -}}
+{{- $url := .Values.wordpress.url -}}
+{{- if and (not (hasPrefix "http://" $url)) (not (hasPrefix "https://" $url)) -}}
+  {{- if and .Values.ingress.enabled .Values.ingress.tls -}}
+    {{- printf "https://%s" $url -}}
+  {{- else -}}
+    {{- printf "http://%s" $url -}}
+  {{- end -}}
+{{- else -}}
+  {{- $url -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Extract host (without protocol) from WordPress URL for HTTP Host headers.
+Usage: {{ include "wordpress.urlHost" . }}
+*/}}
+{{- define "wordpress.urlHost" -}}
+{{- $url := include "wordpress.normalizedUrl" . -}}
+{{- $url = trimPrefix "https://" $url -}}
+{{- $url = trimPrefix "http://" $url -}}
+{{- trimSuffix "/" $url -}}
+{{- end -}}
+
 {{- define "wordpress.checksum.lookup" -}}
 {{- $name := index . 0 -}}
 {{- $ns := index . 1 -}}
