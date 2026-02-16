@@ -146,6 +146,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
               gsub(/^[ \t]+|[ \t]+$/, "", $2);  # Package name
               gsub(/^[ \t]+|[ \t]+$/, "", $3);  # Update type (major/minor/patch)
               gsub(/^[ \t]+|[ \t]+$/, "", $4);  # Change (old -> new)
+              gsub(/→/, "->", $4);  # Normalize Unicode arrow to ASCII
               split($4, versions, " -> ");
               old_version = versions[1];
               new_version = versions[2];
@@ -154,7 +155,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
               update_type = tolower($3);
               print $2 "|" old_version "|" new_version "|" update_type
             }')
-            DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
+            DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); gsub(/→/, "->", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
           fi
         fi
 
@@ -171,6 +172,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
                 gsub(/^[ \t]+|[ \t]+$/, "", $2);
                 gsub(/^[ \t]+|[ \t]+$/, "", $3);
                 gsub(/^[ \t]+|[ \t]+$/, "", $4);
+                gsub(/→/, "->", $4);  # Normalize Unicode arrow to ASCII
                 split($4, versions, " -> ");
                 old_version = versions[1];
                 new_version = versions[2];
@@ -179,7 +181,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
                 update_type = tolower($3);
                 print $2 "|" old_version "|" new_version "|" update_type
               }')
-              DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
+              DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); gsub(/→/, "->", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
             fi
           fi
         fi

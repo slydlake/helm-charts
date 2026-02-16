@@ -2,6 +2,9 @@
     "extends": [
         "config:recommended"
     ],
+    "gitIgnoredAuthors": [
+        "github-actions[bot]@users.noreply.github.com"
+    ],
     "platformAutomerge": true,
     "semanticCommits": "disabled",
     "enabledManagers": [
