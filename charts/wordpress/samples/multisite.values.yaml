@@ -1,0 +1,152 @@
+# WordPress Multisite Sample Configuration
+# This example demonstrates a full multisite setup with 3 sites (main, company-blog, shop)
+# using subdirectory configuration
+
+wordpress:
+  init:
+    enabled: true
+    debug: false # Enable debug output
+    existingSecret: "wordpress-multisite-secret"
+    firstname: "Network"
+    lastname: "Admin"
+    title: "Main Site" # Main site title
+
+    # Multisite configuration
+    multiSites:
+      enabled: true
+      title: "Main Site" # Network title
+      subdomain: false # Use subdirectory: example.com/company-blog, example.com/shop
+      prune: false # Set to true to automatically archive sites not defined below
+
+      sites:
+        - name: company-blog
+          title: "Company Blog"
+          private: false
+          active: true
+          archived: false
+
+        - name: shop
+          title: "Online Shop"
+          private: false
+          active: true
+          archived: false
+
+  language: "en_US"
+
+  plugins:
+    # Network-activated plugins (available on all sites)
+    # networkActivate takes precedence: overrides both activate and sites
+    - name: "woocommerce"
+      activate: true
+      autoupdate: true
+      networkActivate: true # Activate across entire network
+
+    - name: "wordpress-seo"
+      activate: true
+      autoupdate: true
+      networkActivate: true
+
+    # Site-specific plugin activation
+    # activate: controls the main site (independent of sites[])
+    # sites: controls sub-sites (independent of activate)
+    # Both can be combined: activate: true + sites: [company-blog] = main + company-blog
+    - name: "contact-form-7"
+      activate: false # Not on the main site
+      autoupdate: true
+      sites: # Only on these sub-sites
+        - company-blog
+        - shop
+
+    - name: "two-factor"
+      activate: true
+      autoupdate: true
+      networkActivate: true
+
+  themes:
+    # Network-enabled theme (available on all sites to choose from)
+    - name: "twentytwentythree"
+      activate: false # Not the active theme on any site
+      autoupdate: true
+      networkEnable: true # Make available to all sites in network
+
+    # activate: makes this the active theme on the main site
+    # sites: makes this the active theme on specific sub-sites
+    # Both can be combined: activate: true + sites: [company-blog] = active on main + company-blog
+    - name: "blocksy"
+      activate: true # Active theme on the main site
+      autoupdate: true
+      networkEnable: true # Available to all sites in network
+      sites: # Also active on these sub-sites
+        - company-blog
+
+  users:
+    # Super admin (has access to network admin)
+    - username: "networkadmin"
+      email: "network@example.com"
+      displayname: "Network Administrator"
+      firstname: "Network"
+      lastname: "Admin"
+      role: "administrator"
+      sendEmail: false
+      superAdmin: true # Grant super-admin privileges
+
+    # Blog editor (only has access to company-blog site)
+    - username: "blogeditor"
+      email: "blog@example.com"
+      displayname: "Blog Editor"
+      firstname: "Blog"
+      lastname: "Editor"
+      role: "administrator" # Default role for main site
+      sendEmail: false
+      sites: # Assign to specific sites with roles
+        - name: company-blog
+          role: editor
+
+    # Shop manager (has access to shop site)
+    - username: "shopmanager"
+      email: "shop@example.com"
+      displayname: "Shop Manager"
+      firstname: "Shop"
+      lastname: "Manager"
+      role: "subscriber" # Default role on main site
+      sendEmail: false
+      sites:
+        - name: shop
+          role: administrator
+
+  # Essential wp-config.php constants are auto-injected (WP_HOME, WP_SITEURL, multisite defines)
+  configExtraInject: true
+
+  # Additional custom wp-config.php defines
+  configExtra: "define('WP_DEBUG_LOG', false);"
+
+  url: "http://192.168.178.31:30280"
+
+service:
+  nodePorts:
+    http: 30280
+# MariaDB configuration
+mariadb:
+  auth:
+    database: "wordpress_multisite"
+    username: "wordpress_user"
+    existingSecret: "wordpress-multisite-secret"
+
+# Memcached for object caching (recommended for multisite)
+memcached:
+  enabled: true
+  createconfig: true # Auto-configure memcached in wp-config.php
+
+# Storage configuration
+storage:
+  size: "20Gi" # Multisite typically needs more storage
+  resourcePolicy: "keep" # Keep PVC on helm uninstall
+
+# Optional: Monitoring
+metrics:
+  wordpress:
+    enabled: true
+    networkActivate: true # Network-activate in multisite (default: true)
+    autoupdate: true # Enable automatic updates (default: true)
+    serviceMonitor:
+      existingSecret: "wordpress-multisite-secret"

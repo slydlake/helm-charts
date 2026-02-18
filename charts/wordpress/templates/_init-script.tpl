@@ -211,6 +211,53 @@ if [ "${WP_INIT}" = "true" ]; then
     fi
     echo "WordPress core installed successfully!"
 
+    # ============================================================================
+    # Multisite Configuration
+    # ============================================================================
+
+    if [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
+      echo "========================================="
+      echo "Configuring WordPress Multisite..."
+      echo "========================================="
+
+      # Extract domain from WP_URL (remove protocol)
+      DOMAIN_CURRENT_SITE=$(echo "${WP_URL}" | sed -E 's|^https?://||' | sed -E 's|/.*||')
+      echo "Network domain: ${DOMAIN_CURRENT_SITE}"
+
+      # Check if already converted to multisite (check for wp_sitemeta table)
+      if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}sitemeta';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}sitemeta"; then
+        echo "Converting WordPress to multisite..."
+
+        # Determine subdomain/subdirectory mode
+        if [ "${WP_MULTISITE_SUBDOMAIN:-false}" = "true" ]; then
+          echo "Using SUBDOMAIN multisite configuration"
+          run wp core multisite-convert --subdomains
+        else
+          echo "Using SUBDIRECTORY multisite configuration"
+          run wp core multisite-convert
+        fi
+
+        # Verify conversion succeeded
+        if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}sitemeta';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}sitemeta"; then
+          echo "ERROR: Multisite conversion failed - sitemeta table not created!"
+          exit 1
+        fi
+        echo "Multisite conversion completed successfully!"
+      else
+        echo "WordPress is already configured as multisite, skipping conversion."
+      fi
+
+      # Set network title (if provided)
+      if [ -n "${WP_MULTISITE_TITLE:-}" ]; then
+        echo "Setting network title: ${WP_MULTISITE_TITLE}"
+        wp db query "UPDATE ${TABLE_PREFIX}sitemeta SET meta_value='${WP_MULTISITE_TITLE}' WHERE meta_key='site_name' AND site_id=1;" 2>&1 | grep -v -e "^$" -e "^Success:" || true
+      fi
+
+      echo "========================================="
+      echo "Multisite conversion completed!"
+      echo "========================================="
+    fi
+
     # Release bootstrap lock after successful installation
     release_bootstrap_lock
   else
@@ -248,6 +295,249 @@ else
   echo "WordPress tables found, continuing with configuration..."
 fi
 
+# Update main site title if changed (works in both single-site and multisite mode)
+if [ -n "${WP_INIT_TITLE:-}" ]; then
+  CURRENT_MAIN_TITLE=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='blogname';" --skip-column-names 2>/dev/null | tr -d '[:space:]' || echo "")
+  EXPECTED_MAIN_TITLE=$(echo "${WP_INIT_TITLE}" | tr -d '[:space:]')
+  if [ "$CURRENT_MAIN_TITLE" != "$EXPECTED_MAIN_TITLE" ]; then
+    echo "Updating site title to: ${WP_INIT_TITLE}"
+    wp db query "UPDATE ${TABLE_PREFIX}options SET option_value='${WP_INIT_TITLE}' WHERE option_name='blogname';" 2>&1 | grep -v -e "^$" -e "^Success:" || true
+  fi
+fi
+
+
+# ============================================================================
+# Multisite Site Management (runs on every init if multisite enabled)
+# ============================================================================
+
+if [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
+  # Only proceed if wp_sitemeta table exists (multisite is actually set up)
+  if wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}sitemeta';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}sitemeta"; then
+    # Extract domain from WP_URL for site checks
+    DOMAIN_CURRENT_SITE=$(echo "${WP_URL}" | sed -E 's|^https?://||' | sed -E 's|/.*||')
+
+    # Update network title (if provided) - can be changed without reinstall
+    if [ -n "${WP_MULTISITE_TITLE:-}" ]; then
+      CURRENT_TITLE=$(wp db query "SELECT meta_value FROM ${TABLE_PREFIX}sitemeta WHERE meta_key='site_name' AND site_id=1;" --skip-column-names 2>/dev/null || echo "")
+      if [ "$CURRENT_TITLE" != "${WP_MULTISITE_TITLE}" ]; then
+        echo "Updating network title to: ${WP_MULTISITE_TITLE}"
+        wp db query "UPDATE ${TABLE_PREFIX}sitemeta SET meta_value='${WP_MULTISITE_TITLE}' WHERE meta_key='site_name' AND site_id=1;" 2>&1 | grep -v -e "^$" -e "^Success:" || true
+      fi
+    fi
+
+    # Load persistent site name → blog_id mapping
+    load_site_mapping
+
+    # Create/update sites from WP_MULTISITE_SITES JSON array
+    if [ -n "${WP_MULTISITE_SITES:-}" ]; then
+      echo "========================================="
+      echo "Managing multisite network sites..."
+      echo "========================================="
+
+      # Parse JSON array using PHP (already available in WordPress container)
+      # Export each site as "name|title|private|active|archived" format for processing
+      SITES_DATA=$(php -r '
+        $sites = json_decode(getenv("WP_MULTISITE_SITES"), true);
+        if (!is_array($sites)) { exit(1); }
+        foreach ($sites as $site) {
+          if (empty($site["name"])) continue;
+          $name = $site["name"];
+          $title = $site["title"] ?? $name;
+          $private = isset($site["private"]) && $site["private"] ? "true" : "false";
+          $active = isset($site["active"]) && !$site["active"] ? "false" : "true";
+          $archived = isset($site["archived"]) && $site["archived"] ? "true" : "false";
+          $previousName = $site["previousName"] ?? "";
+          echo "$name|$title|$private|$active|$archived|$previousName\n";
+        }
+      ' 2>/dev/null) || true
+
+      if [ -z "$SITES_DATA" ]; then
+        echo "WARNING: Failed to parse WP_MULTISITE_SITES JSON or no valid sites found"
+      else
+        MAPPING_CHANGED=false
+
+        # Process each site (using heredoc to avoid subshell variable loss)
+        while IFS='|' read -r SITE_SLUG SITE_TITLE SITE_PRIVATE SITE_ACTIVE SITE_ARCHIVED SITE_PREVIOUS_NAME; do
+          if [ -z "$SITE_SLUG" ]; then
+            continue
+          fi
+
+          echo "Processing site: ${SITE_SLUG}"
+
+          # === Rename migration: previousName → name ===
+          if [ -n "${SITE_PREVIOUS_NAME:-}" ]; then
+            OLD_BLOG_ID=$(get_blog_id_by_name "$SITE_PREVIOUS_NAME")
+            if [ -n "$OLD_BLOG_ID" ]; then
+              echo "Migrating site mapping: '${SITE_PREVIOUS_NAME}' → '${SITE_SLUG}' (blog_id: ${OLD_BLOG_ID})"
+              remove_name_from_mapping "$SITE_PREVIOUS_NAME"
+              set_blog_id_for_name "$SITE_SLUG" "$OLD_BLOG_ID"
+              MAPPING_CHANGED=true
+
+              # Update slug/URL in database to match new name
+              echo "Updating site URL slug from '${SITE_PREVIOUS_NAME}' to '${SITE_SLUG}' (blog_id: ${OLD_BLOG_ID})"
+              if [ "${WP_MULTISITE_SUBDOMAIN:-false}" = "true" ]; then
+                wp db query "UPDATE ${TABLE_PREFIX}blogs SET domain='${SITE_SLUG}.${DOMAIN_CURRENT_SITE}' WHERE blog_id=${OLD_BLOG_ID};" 2>&1 | grep -v -e "^$" || true
+                RENAME_NEW_URL="http://${SITE_SLUG}.${DOMAIN_CURRENT_SITE}"
+              else
+                wp db query "UPDATE ${TABLE_PREFIX}blogs SET path='/${SITE_SLUG}/' WHERE blog_id=${OLD_BLOG_ID};" 2>&1 | grep -v -e "^$" || true
+                RENAME_NEW_URL="${WP_URL%/}/${SITE_SLUG}"
+              fi
+              RENAME_PREFIX="${TABLE_PREFIX}"
+              if [ "$OLD_BLOG_ID" != "1" ]; then
+                RENAME_PREFIX="${TABLE_PREFIX}${OLD_BLOG_ID}_"
+              fi
+              wp db query "UPDATE ${RENAME_PREFIX}options SET option_value='${RENAME_NEW_URL}' WHERE option_name='siteurl';" 2>&1 | grep -v -e "^$" || true
+              wp db query "UPDATE ${RENAME_PREFIX}options SET option_value='${RENAME_NEW_URL}' WHERE option_name='home';" 2>&1 | grep -v -e "^$" || true
+              echo "Site URL updated to: ${RENAME_NEW_URL}"
+            else
+              echo "INFO: previousName '${SITE_PREVIOUS_NAME}' not found in mapping — ignoring"
+            fi
+          fi
+
+          # === 3-stage site lookup: mapping → slug fallback → create ===
+          SITE_ID=""
+
+          # Stage 1: Lookup by stored mapping (name → blog_id)
+          MAPPED_BLOG_ID=$(get_blog_id_by_name "$SITE_SLUG")
+          if [ -n "$MAPPED_BLOG_ID" ]; then
+            # Verify blog_id still exists in DB
+            BLOG_EXISTS=$(wp db query "SELECT blog_id FROM ${TABLE_PREFIX}blogs WHERE blog_id=${MAPPED_BLOG_ID};" --skip-column-names 2>/dev/null | tr -d '[:space:]' || echo "")
+            if [ -n "$BLOG_EXISTS" ]; then
+              SITE_ID="$MAPPED_BLOG_ID"
+              echo "Site ${SITE_SLUG} found by mapping (blog_id: ${SITE_ID})"
+
+              # Check if slug needs updating (site was renamed in values)
+              CURRENT_SLUG=$(get_site_slug_by_blog_id "$SITE_ID")
+              if [ -n "$CURRENT_SLUG" ] && [ "$CURRENT_SLUG" != "$SITE_SLUG" ]; then
+                echo "WARNING: Updating site URL slug from '${CURRENT_SLUG}' to '${SITE_SLUG}' — external links to the old URL will break!"
+                if [ "${WP_MULTISITE_SUBDOMAIN:-false}" = "true" ]; then
+                  wp db query "UPDATE ${TABLE_PREFIX}blogs SET domain='${SITE_SLUG}.${DOMAIN_CURRENT_SITE}' WHERE blog_id=${SITE_ID};" 2>&1 | grep -v -e "^$" || true
+                else
+                  wp db query "UPDATE ${TABLE_PREFIX}blogs SET path='/${SITE_SLUG}/' WHERE blog_id=${SITE_ID};" 2>&1 | grep -v -e "^$" || true
+                fi
+                # Update siteurl and home options for the renamed site
+                local site_prefix="${TABLE_PREFIX}"
+                if [ "$SITE_ID" != "1" ]; then
+                  site_prefix="${TABLE_PREFIX}${SITE_ID}_"
+                fi
+                if [ "${WP_MULTISITE_SUBDOMAIN:-false}" = "true" ]; then
+                  local new_site_url="http://${SITE_SLUG}.${DOMAIN_CURRENT_SITE}"
+                else
+                  local new_site_url="${WP_URL%/}/${SITE_SLUG}"
+                fi
+                wp db query "UPDATE ${site_prefix}options SET option_value='${new_site_url}' WHERE option_name='siteurl';" 2>&1 | grep -v -e "^$" || true
+                wp db query "UPDATE ${site_prefix}options SET option_value='${new_site_url}' WHERE option_name='home';" 2>&1 | grep -v -e "^$" || true
+              fi
+            else
+              echo "WARNING: Mapped blog_id ${MAPPED_BLOG_ID} for '${SITE_SLUG}' no longer exists in DB"
+              remove_name_from_mapping "$SITE_SLUG"
+              MAPPING_CHANGED=true
+            fi
+          fi
+
+          # Stage 2: Fallback — lookup by slug in wp_blogs (backward compatibility)
+          if [ -z "$SITE_ID" ]; then
+            if [ "${WP_MULTISITE_SUBDOMAIN:-false}" = "true" ]; then
+              SITE_ID=$(wp db query "SELECT blog_id FROM ${TABLE_PREFIX}blogs WHERE domain='${SITE_SLUG}.${DOMAIN_CURRENT_SITE}' AND path='/';" --skip-column-names 2>/dev/null | tr -d '[:space:]' || echo "")
+            else
+              SITE_ID=$(wp db query "SELECT blog_id FROM ${TABLE_PREFIX}blogs WHERE path='/${SITE_SLUG}/';" --skip-column-names 2>/dev/null | tr -d '[:space:]' || echo "")
+            fi
+            if [ -n "$SITE_ID" ]; then
+              echo "Site ${SITE_SLUG} found by slug (blog_id: ${SITE_ID}) — storing mapping"
+              set_blog_id_for_name "$SITE_SLUG" "$SITE_ID"
+              MAPPING_CHANGED=true
+            fi
+          fi
+
+          # Stage 3: Not found — create new site
+          if [ -z "$SITE_ID" ]; then
+            echo "Creating new site: ${SITE_SLUG}"
+            SITE_ID=$(wp site create --slug="${SITE_SLUG}" --title="${SITE_TITLE}" --email="${WP_ADMIN_EMAIL}" --porcelain 2>&1) || {
+              echo "ERROR: Failed to create site ${SITE_SLUG}: $SITE_ID"
+              continue
+            }
+            if [ -z "$SITE_ID" ] || [ "$SITE_ID" = "0" ]; then
+              echo "ERROR: Failed to create site ${SITE_SLUG} — invalid site ID"
+              continue
+            fi
+            echo "Site created with ID: ${SITE_ID}"
+            set_blog_id_for_name "$SITE_SLUG" "$SITE_ID"
+            MAPPING_CHANGED=true
+          fi
+
+          # Always update site title (ensures title changes in values are applied)
+          run wp_site "${SITE_SLUG}" option update blogname "${SITE_TITLE}" 2>/dev/null || true
+
+          # Update site status (public/private, active/archived)
+          SITE_PUBLIC=$([ "$SITE_PRIVATE" = "true" ] && echo "0" || echo "1")
+          SITE_ARCHIVED_FLAG=$([ "$SITE_ARCHIVED" = "true" ] && echo "1" || echo "0")
+
+          wp db query "UPDATE ${TABLE_PREFIX}blogs SET public='${SITE_PUBLIC}', archived='${SITE_ARCHIVED_FLAG}', deleted='0' WHERE blog_id=${SITE_ID};" 2>&1 | grep -v -e "^$" -e "^Success:" || true
+
+          if [ "$SITE_ACTIVE" = "false" ]; then
+            echo "Deactivating site ${SITE_SLUG}"
+            run wp site deactivate ${SITE_ID} 2>/dev/null || true
+          elif [ "$SITE_ARCHIVED" = "false" ]; then
+            echo "Activating site ${SITE_SLUG}"
+            run wp site activate ${SITE_ID} 2>/dev/null || true
+          fi
+
+          echo "Site ${SITE_SLUG} configured successfully!"
+        done <<< "$SITES_DATA"
+
+        # Persist site mapping if changed
+        if [ "$MAPPING_CHANGED" = true ]; then
+          save_site_mapping
+          echo "Site mapping saved: ${SITE_MAPPING}"
+        fi
+      fi
+
+      # Prune sites not in configuration (if WP_MULTISITE_PRUNE=true)
+      if [ "${WP_MULTISITE_PRUNE:-false}" = "true" ]; then
+        echo "Pruning sites not defined in configuration..."
+
+        # Get all configured site slugs using PHP
+        CONFIGURED_SITES=$(php -r '
+          $sites = json_decode(getenv("WP_MULTISITE_SITES"), true);
+          if (!is_array($sites)) { exit(1); }
+          $slugs = array_filter(array_map(function($s) { return $s["name"] ?? ""; }, $sites));
+          echo implode("|", $slugs);
+        ' 2>/dev/null) || true
+
+        if [ -n "$CONFIGURED_SITES" ]; then
+          # Find sites in DB that are not in configuration (exclude main site ID 1)
+          if [ "${WP_MULTISITE_SUBDOMAIN:-false}" = "true" ]; then
+            SITES_TO_ARCHIVE=$(wp db query "SELECT blog_id, SUBSTRING_INDEX(domain, '.', 1) as slug FROM ${TABLE_PREFIX}blogs WHERE blog_id != 1 AND SUBSTRING_INDEX(domain, '.', 1) NOT REGEXP '${CONFIGURED_SITES}';" --skip-column-names 2>/dev/null || echo "")
+          else
+            SITES_TO_ARCHIVE=$(wp db query "SELECT blog_id, TRIM(BOTH '/' FROM path) as slug FROM ${TABLE_PREFIX}blogs WHERE blog_id != 1 AND TRIM(BOTH '/' FROM path) != '' AND TRIM(BOTH '/' FROM path) NOT REGEXP '${CONFIGURED_SITES}';" --skip-column-names 2>/dev/null || echo "")
+          fi
+
+          PRUNE_MAPPING_CHANGED=false
+          if [ -n "$SITES_TO_ARCHIVE" ]; then
+            while IFS=$'\t' read -r site_id site_slug; do
+              [ -z "$site_id" ] && continue
+              echo "Archiving unconfigured site: ${site_slug} (ID: ${site_id})"
+              wp db query "UPDATE ${TABLE_PREFIX}blogs SET archived='1', deleted='0' WHERE blog_id=${site_id};" 2>&1 | grep -v -e "^$" -e "^Success:" || true
+              # Remove archived site from mapping
+              remove_name_from_mapping "$site_slug"
+              PRUNE_MAPPING_CHANGED=true
+            done <<< "$SITES_TO_ARCHIVE"
+            if [ "$PRUNE_MAPPING_CHANGED" = true ]; then
+              save_site_mapping
+            fi
+            echo "Site pruning completed!"
+          else
+            echo "No sites to prune."
+          fi
+        fi
+      fi
+
+      echo "========================================="
+      echo "Multisite site management completed!"
+      echo "========================================="
+    fi
+  fi
+fi
 
 # ============================================================================
 # Acquire Configuration Lock
@@ -372,6 +662,29 @@ if ! echo "$EXISTING_USERS" | grep -q "^{{ .username }}$"; then
 else
   echo "User {{ .username }} already exists, skipping."
 fi
+{{- if and .superAdmin ($.Values.wordpress.init.multiSites.enabled) }}
+# Grant super-admin privileges
+if [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
+  CURRENT_SUPERS=$(wp super-admin list 2>/dev/null || echo "")
+  if ! echo "$CURRENT_SUPERS" | grep -q "^{{ .username }}$"; then
+    echo "Granting super-admin to {{ .username }}..."
+    run wp super-admin add {{ .username | quote }} || echo "Warning: Could not grant super-admin to {{ .username }}"
+  else
+    echo "User {{ .username }} is already a super-admin."
+  fi
+fi
+{{- end }}
+{{- if and .sites ($.Values.wordpress.init.multiSites.enabled) }}
+{{- $username := .username }}
+# Assign user to specific sites with roles
+if [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
+  {{- range .sites }}
+  echo "Assigning user {{ $username }} to site {{ .name }} with role {{ .role }}..."
+  run wp_site "{{ .name }}" user set-role {{ $username | quote }} {{ .role | quote }} 2>/dev/null || \
+    echo "Warning: Could not assign {{ $username }} to site {{ .name }}"
+  {{- end }}
+fi
+{{- end }}
 {{- end }}
 {{- else }}
 echo "No custom users specified."
@@ -583,17 +896,26 @@ get_composer_slug() {
 
 # Handle metrics plugin
 if [ -n "${WORDPRESS_METRICS}" ]; then
-  if echo "$INSTALLED_PLUGINS" | grep -q "^${WORDPRESS_METRICS}$"; then
-    if ! echo "$ACTIVE_PLUGINS" | grep -q "^${WORDPRESS_METRICS}$"; then
-      wp plugin activate ${WORDPRESS_METRICS} 2>/dev/null || true
-      PLUGINS_MODIFIED=true
-    fi
-  else
+  if ! echo "$INSTALLED_PLUGINS" | grep -q "^${WORDPRESS_METRICS}$"; then
     echo "Installing WordPress metrics plugin..."
-    wp plugin install ${WORDPRESS_METRICS} --activate --force
+    wp plugin install ${WORDPRESS_METRICS}
     PLUGINS_MODIFIED=true
   fi
-
+{{- if and .Values.wordpress.init.multiSites.enabled (default true .Values.metrics.wordpress.networkActivate) }}
+  # Multisite: network-activate metrics plugin
+  NETWORK_ACTIVE_CHECK=$(wp db query "SELECT meta_value FROM ${TABLE_PREFIX}sitemeta WHERE meta_key='active_sitewide_plugins' AND site_id=1;" --skip-column-names 2>/dev/null || echo "")
+  if ! echo "$NETWORK_ACTIVE_CHECK" | grep -qF "${WORDPRESS_METRICS}"; then
+    echo "Network-activating metrics plugin: ${WORDPRESS_METRICS}"
+    run wp_network plugin activate ${WORDPRESS_METRICS} || echo "Warning: Could not network-activate metrics plugin"
+    PLUGINS_MODIFIED=true
+  fi
+{{- else }}
+  # Single-site: activate on main site only
+  if ! echo "$ACTIVE_PLUGINS" | grep -q "^${WORDPRESS_METRICS}$"; then
+    wp plugin activate ${WORDPRESS_METRICS} 2>/dev/null || true
+    PLUGINS_MODIFIED=true
+  fi
+{{- end }}
 fi
 
 # Handle custom plugins
@@ -604,11 +926,27 @@ echo "========================================="
 
 PLUGINS_TO_INSTALL=()
 PLUGINS_TO_ACTIVATE=()
+PLUGINS_TO_DEACTIVATE=()    # Plugins with explicit activate: false (deactivate on main site)
 PLUGINS_TO_AUTOUPDATE=()
+PLUGINS_TO_NETWORK_ACTIVATE=()     # Multisite: networkActivate plugins
 
 COMPOSER_PLUGINS_TO_INSTALL=()
 COMPOSER_PLUGINS_TO_ACTIVATE=()
 COMPOSER_PLUGINS_TO_UPDATE=()
+COMPOSER_PLUGINS_TO_NETWORK_ACTIVATE=()  # Multisite: networkActivate Composer plugins
+COMPOSER_PLUGINS_PENDING_NETWORK_ACTIVATION=()  # Retry after composer install
+
+{{- if and .Values.wordpress.init.enabled .Values.wordpress.init.multiSites.enabled }}
+{{- $allSites := list }}
+{{- range .Values.wordpress.init.multiSites.sites }}
+{{- $allSites = append $allSites .name }}
+{{- end }}
+# Initialize site-specific plugin activation arrays
+{{- range $allSites }}
+{{- $siteVar := . | upper | replace "-" "_" }}
+PLUGINS_SITE_ACTIVATE_{{ $siteVar }}=()
+{{- end }}
+{{- end }}
 
 {{- range .Values.wordpress.plugins }}
 # Plugin: {{ .name | lower }}
@@ -652,18 +990,71 @@ if is_composer_package "$PLUGIN_NAME"; then
     {{- end }}
   fi
 
+  {{- if and .networkActivate ($.Values.wordpress.init.multiSites.enabled) }}
+  COMPOSER_PLUGINS_TO_NETWORK_ACTIVATE+=("$COMPOSER_SLUG")
+  {{- else }}
   {{- if .activate }}
   COMPOSER_PLUGINS_TO_ACTIVATE+=("$COMPOSER_SLUG")
+  {{- end }}
+  {{- if .sites }}
+  # Build site-specific activation arrays for Composer plugin
+  {{- range .sites }}
+  {{- $siteVar := . | upper | replace "-" "_" }}
+  PLUGINS_SITE_ACTIVATE_{{ $siteVar }}+=("$COMPOSER_SLUG")
+  {{- end }}
+  {{- end }}
   {{- end }}
 # Check if it's a URL (at runtime, not template time)
 elif [[ "$PLUGIN_NAME" == http://* ]] || [[ "$PLUGIN_NAME" == https://* ]]; then
   echo "Installing URL plugin: $PLUGIN_NAME"
-  {{- if .activate }}
-  run wp plugin install "$PLUGIN_NAME" --activate --force
+  {{- if .slug }}
+  URL_SLUG="{{ .slug | lower }}"
   {{- else }}
-  run wp plugin install "$PLUGIN_NAME" --force
+  URL_SLUG=$(basename "$PLUGIN_NAME" .zip 2>/dev/null || echo "")
   {{- end }}
-  # Note: Auto-updates for URL plugins are skipped (slug cannot be reliably determined)
+
+  # Install the plugin
+  {{- if .slug }}
+  if ! echo "$INSTALLED_PLUGINS" | grep -q "^{{ .slug | lower }}$"; then
+    INSTALL_OUTPUT=$(wp plugin install "$PLUGIN_NAME" 2>&1) || echo "Warning: Failed to install URL plugin"
+    echo "$INSTALL_OUTPUT" | grep -v "already installed" || true
+  else
+    [ "${DEBUG}" = "true" ] && echo "DEBUG: URL plugin {{ .slug | lower }} already installed, skipping"
+  fi
+  {{- else }}
+  INSTALL_OUTPUT=$(wp plugin install "$PLUGIN_NAME" 2>&1) || echo "Warning: Failed to install URL plugin"
+  echo "$INSTALL_OUTPUT" | grep -v "already installed" || true
+  {{- end }}
+
+  {{- if and .networkActivate ($.Values.wordpress.init.multiSites.enabled) }}
+  # Network-activate URL plugin
+  if [ -n "$URL_SLUG" ]; then
+    PLUGINS_TO_NETWORK_ACTIVATE+=("$URL_SLUG")
+  fi
+  {{- else }}
+  {{- if .activate }}
+  # Activate on main site
+  if [ -n "$URL_SLUG" ]; then
+    PLUGINS_TO_ACTIVATE+=("$URL_SLUG")
+  fi
+  {{- end }}
+  {{- if .sites }}
+  # Activate on specific sites
+  if [ -n "$URL_SLUG" ]; then
+    {{- range .sites }}
+    {{- $siteVar := . | upper | replace "-" "_" }}
+    PLUGINS_SITE_ACTIVATE_{{ $siteVar }}+=("$URL_SLUG")
+    {{- end }}
+  fi
+  {{- end }}
+  {{- end }}
+
+  {{- if .autoupdate }}
+  # Enable auto-updates (requires known slug)
+  if [ -n "$URL_SLUG" ]; then
+    PLUGINS_TO_AUTOUPDATE+=("$URL_SLUG")
+  fi
+  {{- end }}
 else
   # Named plugin - add to batch processing
   if ! echo "$INSTALLED_PLUGINS" | grep -q "^${PLUGIN_NAME}$"; then
@@ -673,8 +1064,24 @@ else
     PLUGINS_TO_INSTALL+=("{{ .name | lower }}")
     {{- end }}
   fi
+  {{- if and .networkActivate ($.Values.wordpress.init.multiSites.enabled) }}
+  PLUGINS_TO_NETWORK_ACTIVATE+=("{{ .name | lower }}")
+  {{- else }}
   {{- if .activate }}
   PLUGINS_TO_ACTIVATE+=("{{ .name | lower }}")
+  {{- end }}
+  {{- if and (hasKey . "activate") (not .activate) }}
+  # Explicit activate: false — deactivate on main site if currently active
+  PLUGINS_TO_DEACTIVATE+=("{{ .name | lower }}")
+  {{- end }}
+  {{- if .sites }}
+  {{- $pluginName := .name | lower }}
+  # Build site-specific activation arrays for {{ $pluginName }}
+  {{- range .sites }}
+  {{- $siteVar := . | upper | replace "-" "_" }}
+  PLUGINS_SITE_ACTIVATE_{{ $siteVar }}+=("{{ $pluginName }}")
+  {{- end }}
+  {{- end }}
   {{- end }}
   {{- if .autoupdate }}
   PLUGINS_TO_AUTOUPDATE+=("{{ .name | lower }}")
@@ -701,14 +1108,24 @@ if [ ${#PLUGINS_TO_INSTALL[@]} -gt 0 ]; then
 
 
   if [ ${#PLUGINS_NO_VERSION[@]} -gt 0 ]; then
-    retry_command wp plugin install "${PLUGINS_NO_VERSION[@]}" --force || echo "Warning: Some plugins failed to install"
+    if ! OUTPUT=$(retry_command wp plugin install "${PLUGINS_NO_VERSION[@]}" 2>&1); then
+      echo "$OUTPUT" | grep -v "already installed"
+      echo "Warning: Some plugins failed to install"
+    elif [ "${DEBUG}" = "true" ]; then
+      echo "$OUTPUT"
+    fi
   fi
 
 
   for plugin_spec in "${PLUGINS_WITH_VERSION[@]}"; do
     PLUGIN_NAME="${plugin_spec%%:*}"
     PLUGIN_VERSION="${plugin_spec##*:}"
-    retry_command wp plugin install "${PLUGIN_NAME}" --version="${PLUGIN_VERSION}" --force || echo "Warning: Failed to install plugin: ${PLUGIN_NAME}"
+    if ! OUTPUT=$(retry_command wp plugin install "${PLUGIN_NAME}" --version="${PLUGIN_VERSION}" 2>&1); then
+      echo "$OUTPUT" | grep -v "already installed"
+      echo "Warning: Failed to install plugin: ${PLUGIN_NAME}"
+    elif [ "${DEBUG}" = "true" ]; then
+      echo "$OUTPUT"
+    fi
   done
 
 
@@ -887,6 +1304,22 @@ MUEOF
   echo "Composer autoloader MU-Plugin created!"
   echo "Plugin dependencies checked!"
 
+# Batch deactivate plugins (explicit activate: false)
+if [ ${#PLUGINS_TO_DEACTIVATE[@]} -gt 0 ]; then
+  PLUGINS_NEED_DEACTIVATION=()
+  for plugin in "${PLUGINS_TO_DEACTIVATE[@]}"; do
+    if echo "$ACTIVE_PLUGINS" | grep -q "^${plugin}$"; then
+      PLUGINS_NEED_DEACTIVATION+=("$plugin")
+    fi
+  done
+
+  if [ ${#PLUGINS_NEED_DEACTIVATION[@]} -gt 0 ]; then
+    echo "Deactivating ${#PLUGINS_NEED_DEACTIVATION[@]} plugin(s) on main site..."
+    wp plugin deactivate "${PLUGINS_NEED_DEACTIVATION[@]}" 2>/dev/null || echo "Warning: Some plugins could not be deactivated"
+    PLUGINS_MODIFIED=true
+  fi
+fi
+
 # Batch activate plugins
 if [ ${#PLUGINS_TO_ACTIVATE[@]} -gt 0 ]; then
   PLUGINS_NEED_ACTIVATION=()
@@ -896,10 +1329,29 @@ if [ ${#PLUGINS_TO_ACTIVATE[@]} -gt 0 ]; then
     fi
   done
 
-
   if [ ${#PLUGINS_NEED_ACTIVATION[@]} -gt 0 ]; then
     echo "Activating ${#PLUGINS_NEED_ACTIVATION[@]} plugin(s)..."
     wp plugin activate "${PLUGINS_NEED_ACTIVATION[@]}" 2>/dev/null || echo "Warning: Some plugins could not be activated"
+    PLUGINS_MODIFIED=true
+  fi
+fi
+
+# Batch network-activate plugins (multisite)
+if [ ${#PLUGINS_TO_NETWORK_ACTIVATE[@]} -gt 0 ] && [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
+  PLUGINS_NEED_NETWORK_ACTIVATION=()
+  # Check which plugins are not yet network-active
+  NETWORK_ACTIVE_PLUGINS=$(wp db query "SELECT meta_value FROM ${TABLE_PREFIX}sitemeta WHERE meta_key='active_sitewide_plugins' AND site_id=1;" --skip-column-names 2>/dev/null || echo "")
+  for plugin in "${PLUGINS_TO_NETWORK_ACTIVATE[@]}"; do
+    if [ -n "$NETWORK_ACTIVE_PLUGINS" ] && echo "$NETWORK_ACTIVE_PLUGINS" | grep -qF "$plugin"; then
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Plugin $plugin already network-active"
+    else
+      PLUGINS_NEED_NETWORK_ACTIVATION+=("$plugin")
+    fi
+  done
+
+  if [ ${#PLUGINS_NEED_NETWORK_ACTIVATION[@]} -gt 0 ]; then
+    echo "Network-activating ${#PLUGINS_NEED_NETWORK_ACTIVATION[@]} plugin(s)..."
+    run wp_network plugin activate "${PLUGINS_NEED_NETWORK_ACTIVATION[@]}" || echo "Warning: Some plugins could not be network-activated"
     PLUGINS_MODIFIED=true
   fi
 fi
@@ -927,18 +1379,61 @@ if [ ${#COMPOSER_PLUGINS_TO_ACTIVATE[@]} -gt 0 ]; then
   fi
 fi
 
-# Batch enable auto-updates using shared helper function
-if [ ${#PLUGINS_TO_AUTOUPDATE[@]} -gt 0 ]; then
-  PLUGINS_NEED_AUTOUPDATE=()
-  for plugin in "${PLUGINS_TO_AUTOUPDATE[@]}"; do
-    if ! echo "$AUTOUPDATE_ENABLED" | grep -q "^${plugin}$"; then
-      PLUGINS_NEED_AUTOUPDATE+=("$plugin")
+# Network-activate Composer plugins (multisite)
+# NOTE: This may fail if composer install hasn't run yet - will be retried after composer install
+if [ ${#COMPOSER_PLUGINS_TO_NETWORK_ACTIVATE[@]} -gt 0 ] && [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
+  echo "Network-activating ${#COMPOSER_PLUGINS_TO_NETWORK_ACTIVATE[@]} Composer plugin(s)..."
+  if ! run wp_network plugin activate "${COMPOSER_PLUGINS_TO_NETWORK_ACTIVATE[@]}"; then
+    echo "Note: Some Composer plugins couldn't be network-activated yet - will retry after composer install"
+    COMPOSER_PLUGINS_PENDING_NETWORK_ACTIVATION=("${COMPOSER_PLUGINS_TO_NETWORK_ACTIVATE[@]}")
+  else
+    PLUGINS_MODIFIED=true
+  fi
+fi
+
+{{- if and .Values.wordpress.init.enabled .Values.wordpress.init.multiSites.enabled }}
+{{- $allSites := list }}
+{{- range .Values.wordpress.init.multiSites.sites }}
+{{- $allSites = append $allSites .name }}
+{{- end }}
+# Process site-specific plugin activations
+{{- range $site := $allSites }}
+{{- $siteVar := $site | upper | replace "-" "_" }}
+if [ "${WP_MULTISITE_ENABLED:-false}" = "true" ] && [ ${#PLUGINS_SITE_ACTIVATE_{{ $siteVar }}[@]} -gt 0 ]; then
+  echo "Activating ${#PLUGINS_SITE_ACTIVATE_{{ $siteVar }}[@]} plugin(s) on site {{ $site }}..."
+  for PLUGIN in "${PLUGINS_SITE_ACTIVATE_{{ $siteVar }}[@]}"; do
+    if run wp_site "{{ $site }}" plugin is-installed "$PLUGIN"; then
+      if run wp_site "{{ $site }}" plugin is-active "$PLUGIN"; then
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Plugin $PLUGIN already active on site {{ $site }}, skipping"
+      else
+        echo "Activating plugin $PLUGIN on site {{ $site }}..."
+        run wp_site "{{ $site }}" plugin activate "$PLUGIN" || echo "Warning: Could not activate $PLUGIN on site {{ $site }}"
+      fi
+    else
+      echo "Warning: Plugin $PLUGIN not installed, skipping activation on site {{ $site }}"
     fi
   done
+fi
+{{- end }}
+{{- end }}
 
-  if [ ${#PLUGINS_NEED_AUTOUPDATE[@]} -gt 0 ]; then
-    enable_autoupdates "plugins" "${PLUGINS_NEED_AUTOUPDATE[@]}"
-  fi
+{{- if and (default true .Values.metrics.wordpress.autoupdate) (ne (include "metrics.wordpress.pluginname" .) "\"\"") }}
+# Include metrics plugin in autoupdate batch
+if [ -n "${WORDPRESS_METRICS}" ]; then
+  PLUGINS_TO_AUTOUPDATE+=("${WORDPRESS_METRICS}")
+fi
+{{- end }}
+
+# Batch enable auto-updates using shared helper function (full-replace: always runs to ensure correct file paths)
+if [ ${#PLUGINS_TO_AUTOUPDATE[@]} -gt 0 ]; then
+  enable_autoupdates "plugins" "${PLUGINS_TO_AUTOUPDATE[@]}"
+fi
+{{- end }}
+
+{{- if and (not .Values.wordpress.plugins) (default true .Values.metrics.wordpress.autoupdate) (ne (include "metrics.wordpress.pluginname" .) "\"\"") }}
+# Enable autoupdates for metrics plugin (no regular plugins configured)
+if [ -n "${WORDPRESS_METRICS}" ]; then
+  enable_autoupdates "plugins" "${WORDPRESS_METRICS}"
 fi
 {{- end }}
 
@@ -1074,10 +1569,24 @@ get_theme_slug() {
 THEMES_TO_INSTALL=()
 THEME_TO_ACTIVATE=""
 THEMES_TO_AUTOUPDATE=()
+THEMES_TO_NETWORK_ENABLE=()         # Multisite: networkEnable themes
 
 COMPOSER_THEMES_TO_INSTALL=()
 COMPOSER_THEME_TO_ACTIVATE=""
 COMPOSER_THEMES_TO_UPDATE=()
+COMPOSER_THEMES_TO_NETWORK_ENABLE=() # Multisite: networkEnable Composer themes
+
+{{- if and .Values.wordpress.init.enabled .Values.wordpress.init.multiSites.enabled }}
+{{- $allSites := list }}
+{{- range .Values.wordpress.init.multiSites.sites }}
+{{- $allSites = append $allSites .name }}
+{{- end }}
+# Initialize site-specific theme activation arrays
+{{- range $allSites }}
+{{- $siteVar := . | upper | replace "-" "_" }}
+THEMES_SITE_ACTIVATE_{{ $siteVar }}=()
+{{- end }}
+{{- end }}
 
 {{- range .Values.wordpress.themes }}
 THEME_NAME="{{ .name | lower }}"
@@ -1120,11 +1629,25 @@ if is_composer_package "$THEME_NAME"; then
     {{- end }}
   fi
 
+  {{- if and .networkEnable ($.Values.wordpress.init.multiSites.enabled) }}
+  COMPOSER_THEMES_TO_NETWORK_ENABLE+=("$COMPOSER_THEME_SLUG")
+  {{- end }}
   {{- if .activate }}
   COMPOSER_THEME_TO_ACTIVATE="$COMPOSER_THEME_SLUG"
   {{- end }}
+  {{- if .sites }}
+  # Build site-specific activation arrays for Composer theme
+  {{- range .sites }}
+  {{- $siteVar := . | upper | replace "-" "_" }}
+  THEMES_SITE_ACTIVATE_{{ $siteVar }}+=("$COMPOSER_THEME_SLUG")
+  {{- end }}
+  {{- end }}
 else
+  {{- if .slug }}
+  THEME_SLUG="{{ .slug | lower }}"
+  {{- else }}
   THEME_SLUG=$(get_theme_slug "{{ .name | lower }}")
+  {{- end }}
 
   if ! echo "$INSTALLED_THEMES" | grep -q "^${THEME_SLUG}$"; then
     {{- if .version }}
@@ -1132,9 +1655,22 @@ else
     {{- else }}
     THEMES_TO_INSTALL+=("{{ .name | lower }}")
     {{- end }}
+  else
+    [ "${DEBUG}" = "true" ] && echo "DEBUG: Theme ${THEME_SLUG} already installed, skipping installation"
   fi
+  {{- if and .networkEnable ($.Values.wordpress.init.multiSites.enabled) }}
+  THEMES_TO_NETWORK_ENABLE+=("${THEME_SLUG}")
+  {{- end }}
   {{- if .activate }}
   THEME_TO_ACTIVATE="${THEME_SLUG}"
+  {{- end }}
+  {{- if .sites }}
+  {{- $themeName := .name | lower }}
+  # Build site-specific activation arrays for {{ $themeName }}
+  {{- range .sites }}
+  {{- $siteVar := . | upper | replace "-" "_" }}
+  THEMES_SITE_ACTIVATE_{{ $siteVar }}+=("${THEME_SLUG}")
+  {{- end }}
   {{- end }}
   {{- if .autoupdate }}
   THEMES_TO_AUTOUPDATE+=("${THEME_SLUG}")
@@ -1164,13 +1700,23 @@ if [ ${#THEMES_TO_INSTALL[@]} -gt 0 ]; then
 
 
   if [ ${#THEMES_SIMPLE[@]} -gt 0 ]; then
-    retry_command wp theme install "${THEMES_SIMPLE[@]}" --force || echo "Warning: Some themes failed to install"
+    if ! OUTPUT=$(retry_command wp theme install "${THEMES_SIMPLE[@]}" 2>&1); then
+      echo "$OUTPUT" | grep -v "already installed"
+      echo "Warning: Some themes failed to install"
+    elif [ "${DEBUG}" = "true" ]; then
+      echo "$OUTPUT"
+    fi
   fi
 
 
   for theme_url in "${THEMES_URLS[@]}"; do
     echo "Installing theme from URL: $theme_url"
-    retry_command wp theme install "$theme_url" --force || echo "Warning: Failed to install theme from URL: $theme_url"
+    if ! OUTPUT=$(retry_command wp theme install "$theme_url" 2>&1); then
+      echo "$OUTPUT" | grep -v "already installed"
+      echo "Warning: Failed to install theme from URL: $theme_url"
+    elif [ "${DEBUG}" = "true" ]; then
+      echo "$OUTPUT"
+    fi
   done
 
 
@@ -1178,7 +1724,12 @@ if [ ${#THEMES_TO_INSTALL[@]} -gt 0 ]; then
     THEME_NAME="${theme_spec%%:*}"
     THEME_VERSION="${theme_spec##*:}"
     echo "Installing theme ${THEME_NAME} version ${THEME_VERSION}..."
-    retry_command wp theme install "${THEME_NAME}" --version="${THEME_VERSION}" --force || echo "Warning: Failed to install theme: ${THEME_NAME}"
+    if ! OUTPUT=$(retry_command wp theme install "${THEME_NAME}" --version="${THEME_VERSION}" 2>&1); then
+      echo "$OUTPUT" | grep -v "already installed"
+      echo "Warning: Failed to install theme: ${THEME_NAME}"
+    elif [ "${DEBUG}" = "true" ]; then
+      echo "$OUTPUT"
+    fi
   done
 
 
@@ -1253,6 +1804,56 @@ if [ ${#COMPOSER_THEMES_TO_UPDATE[@]} -gt 0 ]; then
   fi
 fi
 
+# Network-enable themes (multisite) - must run BEFORE per-site activation
+if [ ${#THEMES_TO_NETWORK_ENABLE[@]} -gt 0 ] && [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
+  echo "Network-enabling ${#THEMES_TO_NETWORK_ENABLE[@]} theme(s)..."
+  for theme in "${THEMES_TO_NETWORK_ENABLE[@]}"; do
+    # Check if already network-enabled
+    NETWORK_THEMES=$(wp db query "SELECT meta_value FROM ${TABLE_PREFIX}sitemeta WHERE meta_key='allowedthemes' AND site_id=1;" --skip-column-names 2>/dev/null || echo "")
+    if echo "$NETWORK_THEMES" | grep -qF "\"$theme\""; then
+      [ "${DEBUG}" = "true" ] && echo "DEBUG: Theme $theme already network-enabled"
+    else
+      echo "Network-enabling theme: $theme"
+      run wp_network theme enable "$theme" || echo "Warning: Could not network-enable theme $theme"
+    fi
+  done
+fi
+
+# Network-enable Composer themes
+if [ ${#COMPOSER_THEMES_TO_NETWORK_ENABLE[@]} -gt 0 ] && [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
+  for theme in "${COMPOSER_THEMES_TO_NETWORK_ENABLE[@]}"; do
+    echo "Network-enabling Composer theme: $theme"
+    run wp_network theme enable "$theme" || echo "Warning: Could not network-enable Composer theme $theme"
+  done
+fi
+
+{{- if and .Values.wordpress.init.enabled .Values.wordpress.init.multiSites.enabled }}
+{{- $allSites := list }}
+{{- range .Values.wordpress.init.multiSites.sites }}
+{{- $allSites = append $allSites .name }}
+{{- end }}
+# Process site-specific theme activations
+{{- range $site := $allSites }}
+{{- $siteVar := $site | upper | replace "-" "_" }}
+if [ "${WP_MULTISITE_ENABLED:-false}" = "true" ] && [ ${#THEMES_SITE_ACTIVATE_{{ $siteVar }}[@]} -gt 0 ]; then
+  echo "Activating ${#THEMES_SITE_ACTIVATE_{{ $siteVar }}[@]} theme(s) on site {{ $site }}..."
+  for THEME in "${THEMES_SITE_ACTIVATE_{{ $siteVar }}[@]}"; do
+    if run wp theme is-installed "$THEME"; then
+      CURRENT_THEME=$(wp_site "{{ $site }}" theme list --status=active --field=name 2>/dev/null | head -n1 || echo "")
+      if [ "$CURRENT_THEME" = "$THEME" ]; then
+        [ "${DEBUG}" = "true" ] && echo "DEBUG: Theme $THEME already active on site {{ $site }}, skipping"
+      else
+        echo "Activating theme $THEME on site {{ $site }}..."
+        run wp_site "{{ $site }}" theme activate "$THEME" || echo "Warning: Could not activate $THEME on site {{ $site }}"
+      fi
+    else
+      echo "Warning: Theme $THEME not installed, skipping activation on site {{ $site }}"
+    fi
+  done
+fi
+{{- end }}
+{{- end }}
+
 # Activate theme
 if [ -n "$THEME_TO_ACTIVATE" ] && [ "$ACTIVE_THEME" != "$THEME_TO_ACTIVATE" ]; then
   echo "Activating theme: $THEME_TO_ACTIVATE"
@@ -1265,18 +1866,9 @@ if [ -n "$COMPOSER_THEME_TO_ACTIVATE" ] && [ "$ACTIVE_THEME" != "$COMPOSER_THEME
   run wp theme activate "$COMPOSER_THEME_TO_ACTIVATE"
 fi
 
-# Batch enable auto-updates using shared helper function
+# Batch enable auto-updates using shared helper function (full-replace: always runs to ensure correct state)
 if [ ${#THEMES_TO_AUTOUPDATE[@]} -gt 0 ]; then
-  THEMES_NEED_AUTOUPDATE=()
-  for theme in "${THEMES_TO_AUTOUPDATE[@]}"; do
-    if ! echo "$AUTOUPDATE_ENABLED_THEMES" | grep -q "^${theme}$"; then
-      THEMES_NEED_AUTOUPDATE+=("$theme")
-    fi
-  done
-
-  if [ ${#THEMES_NEED_AUTOUPDATE[@]} -gt 0 ]; then
-    enable_autoupdates "themes" "${THEMES_NEED_AUTOUPDATE[@]}"
-  fi
+  enable_autoupdates "themes" "${THEMES_TO_AUTOUPDATE[@]}"
 fi
 
 {{- if .Values.wordpress.themesPrune }}
@@ -1560,6 +2152,12 @@ if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ! -d /var/www/html/vendor ]; 
       echo "Activating ${#PLUGINS_STILL_NEED_ACTIVATION[@]} Composer plugin(s)..."
       run wp plugin activate "${PLUGINS_STILL_NEED_ACTIVATION[@]}" || echo "Warning: Some plugins could not be activated"
     fi
+  fi
+
+  # Network-activate Composer plugins after dependency installation (multisite retry)
+  if [ ${#COMPOSER_PLUGINS_PENDING_NETWORK_ACTIVATION[@]} -gt 0 ] && [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
+    echo "Network-activating Composer plugins after dependency installation..."
+    run wp_network plugin activate "${COMPOSER_PLUGINS_PENDING_NETWORK_ACTIVATION[@]}" || echo "Warning: Some Composer plugins could not be network-activated"
   fi
 fi
 

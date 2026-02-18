@@ -1,0 +1,93 @@
+# WordPress Multisite Sample Configuration (Subdomain Mode)
+# This example demonstrates a subdomain-based multisite setup
+# Sites: blog.example.com, shop.example.com
+
+wordpress:
+  init:
+    enabled: true
+    existingSecret: "wordpress-multisite-subdomain-secret"
+    firstname: "Network"
+    lastname: "Admin"
+    title: "Main Site"
+
+    # Multisite configuration (subdomain mode)
+    multiSites:
+      enabled: true
+      title: "My WordPress Network"
+      subdomain: true # Use subdomains: blog.example.com, shop.example.com
+      prune: false
+
+      sites:
+        - name: blog
+          title: "Company Blog"
+          private: false
+          active: true
+
+        - name: shop
+          title: "E-Commerce Shop"
+          private: false
+          active: true
+
+  language: "en_US"
+
+  plugins:
+    # Network-wide plugins
+    - name: "woocommerce"
+      activate: true
+      autoupdate: true
+      networkActivate: true
+
+    - name: "wordpress-seo"
+      activate: true
+      autoupdate: true
+      networkActivate: true
+
+  themes:
+    - name: "twentytwentythree"
+      activate: true
+      autoupdate: true
+      networkEnable: true
+
+  users:
+    - username: "networkadmin"
+      email: "admin@example.com"
+      displayname: "Network Admin"
+      role: "administrator"
+      sendEmail: false
+      superAdmin: true
+
+  configExtraInject: true
+  url: "https://example.com"
+
+mariadb:
+  auth:
+    database: "wordpress_multisite_sub"
+    username: "wordpress_user"
+    existingSecret: "wordpress-multisite-subdomain-secret"
+
+memcached:
+  enabled: true
+  createconfig: true
+
+storage:
+  size: "20Gi"
+  resourcePolicy: "keep"
+# IMPORTANT: For subdomain multisite, you need wildcard DNS and Ingress configuration
+# Example with nginx-ingress:
+# ingress:
+#   enabled: true
+#   className: "nginx"
+#   hosts:
+#     - host: example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#     - host: "*.example.com"  # Wildcard for subdomains
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#   tls:
+#     - secretName: wildcard-example-com-tls
+#       hosts:
+#         - example.com
+#         - "*.example.com"
