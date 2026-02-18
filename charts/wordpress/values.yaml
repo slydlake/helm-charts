@@ -321,7 +321,7 @@ wordpress:
   ## configExtra, configExtraConfigMap, or configExtraSecret is set by the user:
   ##   - WP_HOME and WP_SITEURL (from wordpress.url)
   ##   - Multisite constants (MULTISITE, SUBDOMAIN_INSTALL, DOMAIN_CURRENT_SITE, etc.) when multiSites.enabled
-  ##   - Memcached config (when memcached.enabled and memcached.createconfig)
+  ##   - Memcached config (when memcached.enabled and memcached.createConfig)
   ## This fixes an existing issue where WP_HOME/WP_SITEURL are lost when using configExtraConfigMap or configExtraSecret.
   ## @descriptionEnd
   ## @default true
@@ -1048,6 +1048,33 @@ memcached:
 
   ## @param memcached.createConfig bool Create wp-config.php Memcached configuration
   createConfig: true
+
+  ## @param memcached.cacheKeySalt string Cache key salt for Memcached object cache isolation
+  ## @descriptionStart
+  ## If empty, chart generates a random salt on first deploy and persists it in Secret.
+  ## On upgrades, the existing salt is reused automatically.
+  ## @descriptionEnd
+  cacheKeySalt: ""
+
+  ## @section Existing Secret for memcached cache key salt
+  cacheKeySaltSecret:
+    ## @param memcached.cacheKeySaltSecret.name string Name of existing Secret containing cache key salt
+    name: ""
+    ## @param memcached.cacheKeySaltSecret.key string Key in Secret containing cache key salt value
+    key: "WP_CACHE_KEY_SALT"
+
+  ## @param memcached.serverGroups object Optional cache-group mapping to Memcached server lists
+  ## @descriptionStart
+  ## Explicit mapping for rendering $memcached_servers.
+  ## Keys are cache group names, values are lists of host:port entries.
+  ## If empty, chart falls back to embedded Memcached service DNS and port for group 'default'.
+  ## Example:
+  ##   default:
+  ##     - memcached-a:11211
+  ##   options:
+  ##     - memcached-b:11211
+  ## @descriptionEnd
+  serverGroups: {}
 
   ## @param memcached.nameOverride string String to partially override memcached.fullname
   nameOverride: ""

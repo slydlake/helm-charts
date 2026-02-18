@@ -438,6 +438,56 @@ spec:
             - name: custom-init-commands
               mountPath: /tmp/custom-init-commands
             {{- end }}
+        {{- if .Values.memcached.enabled }}
+        - name: {{ .Chart.Name }}-memcached-extension-bootstrap
+          image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+                - DAC_OVERRIDE
+                - FOWNER
+                - SETGID
+                - SETUID
+            seccompProfile:
+              type: RuntimeDefault
+          command:
+            - sh
+            - -ec
+            - |
+              cat >/etc/apt/apt.conf.d/99sandboxroot <<'EOF'
+              APT::Sandbox::User "root";
+              EOF
+              apt-get update
+              apt-get install -y --no-install-recommends libmemcached-dev zlib1g-dev libsasl2-dev libzstd-dev
+              pecl install memcached
+              pecl install memcache
+              mkdir -p /opt/php-ext/conf.d /opt/php-ext/lib
+              EXT_DIR="$(php-config --extension-dir)"
+              cp "${EXT_DIR}/memcache.so" /opt/php-ext/memcache.so
+              cp "${EXT_DIR}/memcached.so" /opt/php-ext/memcached.so
+              ldd "${EXT_DIR}/memcached.so" | awk '/=> \/.*/ {print $3} /^\/.*/ {print $1}' | sed 's/[[:space:]]*$//' | sort -u | while read -r lib; do
+                [ -f "$lib" ] && cp -L "$lib" /opt/php-ext/lib/
+              done
+              echo "extension=/opt/php-ext/memcache.so" > /opt/php-ext/conf.d/zz-memcache.ini
+              echo "extension=/opt/php-ext/memcached.so" > /opt/php-ext/conf.d/zz-memcached.ini
+              if [ -f /var/www/html/wp-content/plugins/memcached/object-cache.php ]; then
+                cp /var/www/html/wp-content/plugins/memcached/object-cache.php /var/www/html/wp-content/object-cache.php
+              fi
+              rm -f /etc/apt/apt.conf.d/99sandboxroot
+              rm -rf /var/lib/apt/lists/*
+          volumeMounts:
+            - name: wordpress-memcached-ext
+              mountPath: /opt/php-ext
+            - name: {{ include "wordpress.fullname" . }}
+              mountPath: /var/www/html
+        {{- end }}
       {{- if .Values.initContainers }}
         {{- toYaml .Values.initContainers | nindent 8 }}
       {{- end }}
@@ -449,9 +499,23 @@ spec:
           {{- end }}
           image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          {{- if .Values.command }}
+          command:
+            {{- toYaml .Values.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.args }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
+          {{- end }}
           env:
           {{- if .Values.extraEnvVars }}
           {{- toYaml .Values.extraEnvVars | nindent 12 }}
+          {{- end }}
+          {{- if .Values.memcached.enabled }}
+            - name: PHP_INI_SCAN_DIR
+              value: "/usr/local/etc/php/conf.d:/opt/php-ext/conf.d"
+            - name: LD_LIBRARY_PATH
+              value: "/opt/php-ext/lib"
           {{- end }}
             - name: WP_HOME
               value: {{ include "wordpress.normalizedUrl" . | quote }}
@@ -632,6 +696,10 @@ spec:
               mountPath: /tmp
             - name: run
               mountPath: /var/run
+            {{- if .Values.memcached.enabled }}
+            - name: wordpress-memcached-ext
+              mountPath: /opt/php-ext
+            {{- end }}
             {{- if .Values.extraVolumeMounts }}
             {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
             {{- end }}
@@ -716,6 +784,10 @@ spec:
         emptyDir: {}
       - name: run
         emptyDir: {}
+      {{- if .Values.memcached.enabled }}
+      - name: wordpress-memcached-ext
+        emptyDir: {}
+      {{- end }}
       - name: {{ include "wordpress.fullname" . }}-configfiles
         projected:
           defaultMode: 0664

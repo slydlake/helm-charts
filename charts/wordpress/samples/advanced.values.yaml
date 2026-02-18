@@ -19,6 +19,11 @@ wordpress:
     - name: "cache-enabler"
       activate: true
       autoupdate: true
+    # Memcached Object Cache is used in drop-in mode (object-cache.php),
+    # so the plugin should stay inactive to avoid wp_cache_* redeclare errors.
+    - name: "memcached"
+      activate: false
+      autoupdate: true
     - name: "autoptimize"
       activate: true
       autoupdate: true
@@ -72,3 +77,11 @@ mariadb:
     existingSecret: "wordpress-test-secret"
 memcached:
   enabled: true
+  createConfig: true
+  # Optional: configure cache-group-specific Memcached backends.
+  # If serverGroups is empty, chart falls back to the embedded memcached service.
+  # serverGroups:
+  #   default:
+  #     - "wp-memcached:11211"
+  #   options:
+  #     - "wp-memcached:11211"

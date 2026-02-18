@@ -2021,6 +2021,38 @@
                     "description": "Create in wp-config.php the Memcached config",
                     "default": true
                 },
+                "cacheKeySalt": {
+                    "type": "string",
+                    "description": "Cache key salt for Memcached object cache isolation. If empty, chart generates a random salt on first deploy and reuses it on upgrades.",
+                    "default": ""
+                },
+                "cacheKeySaltSecret": {
+                    "type": "object",
+                    "description": "Existing Secret reference for Memcached cache key salt.",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of existing Secret containing cache key salt",
+                            "default": ""
+                        },
+                        "key": {
+                            "type": "string",
+                            "description": "Key in Secret containing cache key salt value",
+                            "default": "WP_CACHE_KEY_SALT"
+                        }
+                    }
+                },
+                "serverGroups": {
+                    "type": "object",
+                    "description": "Optional cache-group mapping to Memcached server lists. If empty, chart falls back to embedded service for group 'default'.",
+                    "default": {},
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
                 "nameOverride": {
                     "type": "string",
                     "description": "String to partially override memcached.fullname",

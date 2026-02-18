@@ -144,6 +144,17 @@ fi
 export TABLE_PREFIX
 echo "Using WordPress table prefix: ${TABLE_PREFIX}"
 
+{{- if .Values.memcached.enabled }}
+# wp-cli in wordpress-init container runs without memcached extension.
+# If a stale object-cache.php exists on PVC, wp bootstrap can fatally fail.
+MEMCACHED_DROPIN="/var/www/html/wp-content/object-cache.php"
+MEMCACHED_DROPIN_DISABLED="/var/www/html/wp-content/object-cache.php.helm-disabled"
+if [ -f "$MEMCACHED_DROPIN" ] && ! php -m | grep -qi '^memcached$'; then
+  echo "Temporarily disabling existing object-cache.php for wp-cli init..."
+  mv "$MEMCACHED_DROPIN" "$MEMCACHED_DROPIN_DISABLED" || true
+fi
+{{- end }}
+
 # ============================================================================
 # Bootstrap Lock Acquisition (Before WordPress Installation)
 # ============================================================================
@@ -301,7 +312,7 @@ if [ -n "${WP_INIT_TITLE:-}" ]; then
   EXPECTED_MAIN_TITLE=$(echo "${WP_INIT_TITLE}" | tr -d '[:space:]')
   if [ "$CURRENT_MAIN_TITLE" != "$EXPECTED_MAIN_TITLE" ]; then
     echo "Updating site title to: ${WP_INIT_TITLE}"
-    wp db query "UPDATE ${TABLE_PREFIX}options SET option_value='${WP_INIT_TITLE}' WHERE option_name='blogname';" 2>&1 | grep -v -e "^$" -e "^Success:" || true
+    wp option update blogname "${WP_INIT_TITLE}" 2>&1 | grep -v -e "^$" -e "^Success:" || true
   fi
 fi
 
@@ -1068,7 +1079,11 @@ else
   PLUGINS_TO_NETWORK_ACTIVATE+=("{{ .name | lower }}")
   {{- else }}
   {{- if .activate }}
+  {{- if eq (.name | lower) "memcached" }}
+  echo "Info: memcached plugin is a drop-in provider; skipping normal plugin activation to avoid wp_cache_* redeclare errors."
+  {{- else }}
   PLUGINS_TO_ACTIVATE+=("{{ .name | lower }}")
+  {{- end }}
   {{- end }}
   {{- if and (hasKey . "activate") (not .activate) }}
   # Explicit activate: false — deactivate on main site if currently active
@@ -1512,6 +1527,31 @@ if [ "$PLUGINS_MODIFIED" = "true" ] || [ "$COMPOSER_PACKAGES_MODIFIED" = "true" 
   INSTALLED_PLUGINS=$(wp_plugin_list --field=name 2>/dev/null || echo "")
   ACTIVE_PLUGINS=$(wp_plugin_list --status=active --field=name 2>/dev/null || echo "")
 fi
+
+{{- if .Values.memcached.enabled }}
+# ============================================================================
+# Memcached Plugin Safety
+# ============================================================================
+
+MEMCACHED_PLUGIN_DROPIN="/var/www/html/wp-content/plugins/memcached/object-cache.php"
+MEMCACHED_DROPIN_TARGET="/var/www/html/wp-content/object-cache.php"
+
+if wp plugin is-active memcached 2>/dev/null; then
+  echo "Deactivating memcached plugin (drop-in mode)..."
+  wp plugin deactivate memcached 2>/dev/null || true
+fi
+
+if php -m | grep -qi '^memcached$'; then
+  if [ -f "$MEMCACHED_PLUGIN_DROPIN" ]; then
+    if [ ! -f "$MEMCACHED_DROPIN_TARGET" ] || ! cmp -s "$MEMCACHED_PLUGIN_DROPIN" "$MEMCACHED_DROPIN_TARGET"; then
+      echo "Installing/updating Memcached object-cache drop-in..."
+      cp "$MEMCACHED_PLUGIN_DROPIN" "$MEMCACHED_DROPIN_TARGET"
+    fi
+  fi
+else
+  echo "Memcached extension missing in init; drop-in deferred to bootstrap."
+fi
+{{- end }}
 
 # ============================================================================
 # Theme Management
