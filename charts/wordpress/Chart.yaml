@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 3.2.1
+version: 3.3.0
 appVersion: "6.9.1" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,8 +26,6 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: added
-      description: "Add support for WordPress Multisite configuration with both subdirectory and subdomain modes, including pruning and renaming of sites in the network"
     - kind: changed
       description: "Update docker.io/mariadb to b1cb255"
       links:
