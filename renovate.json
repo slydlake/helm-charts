@@ -6,6 +6,7 @@
         "github-actions[bot]@users.noreply.github.com"
     ],
     "platformAutomerge": true,
+    "rebaseWhen": "behind-base-branch",
     "semanticCommits": "disabled",
     "enabledManagers": [
         "helm-values",
@@ -123,6 +124,11 @@
             "matchPackagePatterns": [
                 "(^|/)linuxserver/wireguard$"
             ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "digest"
+            ],
             "addLabels": [
                 "dependencies",
                 "renovate",
@@ -141,6 +147,11 @@
             "matchPackageNames": [
                 "ghcr.io/wg-easy/wg-easy",
                 "/(^|/)wg-easy/wg-easy$/"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "digest"
             ],
             "addLabels": [
                 "dependencies",
@@ -164,6 +175,11 @@
             ],
             "matchFileNames": [
                 "charts/wordpress/**"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "digest"
             ],
             "addLabels": [
                 "dependencies",
@@ -192,6 +208,21 @@
             "commitMessageAction": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}} chore(deps): updates",
             "commitMessageTopic": "",
             "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "helm-values",
+                "custom.regex",
+                "helmv3"
+            ],
+            "matchUpdateTypes": [
+                "major"
+            ],
+            "addLabels": [
+                "major"
+            ],
+            "automerge": false,
+            "description": "Never auto-merge major updates"
         },
         {
             "matchManagers": [
