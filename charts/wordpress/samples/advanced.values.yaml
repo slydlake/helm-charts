@@ -52,7 +52,7 @@ wordpress:
   configExtraSecret:
     name: "wordpress-test-secret"
   htaccessConfigMap: "wordpress-custom-config"
-  url: "http://192.168.178.31:30111"
+  url: "https://example.com"
 service:
   nodePorts:
     http: 30111

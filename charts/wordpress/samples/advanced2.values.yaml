@@ -21,6 +21,11 @@ wordpress:
     - name: "cache-enabler"
       activate: true
       autoupdate: true
+    # Memcached Object Cache is used in drop-in mode (object-cache.php),
+    # so the plugin should stay inactive to avoid wp_cache_* redeclare errors.
+    - name: "memcached"
+      activate: false
+      autoupdate: true
     - name: "autoptimize"
       activate: true
       autoupdate: true
@@ -35,6 +40,7 @@ wordpress:
       activate: false
       autoupdate: true
     - name: "https://creativethemes.com/downloads/blocksy-child.zip"
+      slug: "blocksy-child" # Required for URL themes: enables autoupdate, sites[] and skip-if-installed
       activate: true
       autoupdate: true
   users:
@@ -45,9 +51,6 @@ wordpress:
       lastname: "Smith"
       role: "contributor"
       sendEmail: false
-  # configExtraInject: true (default) automatically adds WP_HOME, WP_SITEURL,
-  # multisite constants, and memcached config to WORDPRESS_CONFIG_EXTRA.
-  # Your configExtraSecret values will be combined with these inject values.
   configExtraSecret:
     name: "wordpress-test-secret"
   htaccessConfigMap: "wordpress-custom-config"
@@ -67,6 +70,9 @@ metrics:
     enabled: true
     serviceMonitor:
       existingSecret: "wordpress-test-secret"
+    grafanaDashboard:
+      enabled: true
+      namespace: "monitoring"
   apache:
     enabled: true
 mariadb:
@@ -76,3 +82,11 @@ mariadb:
     existingSecret: "wordpress-test-secret"
 memcached:
   enabled: true
+  createConfig: true
+  # Optional: configure cache-group-specific Memcached backends.
+  # If serverGroups is empty, chart falls back to the embedded memcached service.
+  # serverGroups:
+  #   default:
+  #     - "wp-memcached:11211"
+  #   options:
+  #     - "wp-memcached:11211"

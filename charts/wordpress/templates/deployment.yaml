@@ -439,7 +439,7 @@ spec:
               mountPath: /tmp/custom-init-commands
             {{- end }}
         {{- if .Values.memcached.enabled }}
-        - name: {{ .Chart.Name }}-memcached-extension-bootstrap
+        - name: {{ .Chart.Name }}-memcached-bootstrap
           image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
           securityContext:
