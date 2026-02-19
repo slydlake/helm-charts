@@ -55,7 +55,7 @@ dependencies:
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.14.1
+    version: 0.14.2
 keywords:
   - wordpress
   - blog
