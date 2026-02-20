@@ -11,22 +11,17 @@ data:
   000-default.conf: |
     {{- if .Values.apache.customDefaultSiteConfig }}
     {{ .Values.apache.customDefaultSiteConfig | nindent 4 }}
-    {{- else if .Values.metrics.apache.enabled }}
+    {{- else }}
     <VirtualHost *:{{ .Values.containerPorts.http }}>
+            ServerName {{ .Values.wordpress.url }}
             ServerAdmin webmaster@localhost
+    {{- if .Values.metrics.apache.enabled }}
             <Location "/server-status">
                     SetHandler server-status
                     Require local
             </Location>
+    {{- end }}
             DocumentRoot /var/www/html
-            ErrorLog ${APACHE_LOG_DIR}/error.log
-            CustomLog ${APACHE_LOG_DIR}/access.log combined
-    </VirtualHost>
-    {{- else }}
-    <VirtualHost *:{{ .Values.containerPorts.http }}>
-            ServerAdmin webmaster@localhost
-            DocumentRoot /var/www/html
-
             ErrorLog ${APACHE_LOG_DIR}/error.log
             CustomLog ${APACHE_LOG_DIR}/access.log combined
     </VirtualHost>
