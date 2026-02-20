@@ -571,10 +571,10 @@ spec:
           {{- end }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.ports.http }}
+              containerPort: {{ .Values.containerPorts.http }}
               protocol: TCP
             - name: https
-              containerPort: {{ .Values.service.ports.https }}
+              containerPort: {{ .Values.containerPorts.https }}
               protocol: TCP
           {{- if .Values.customLivenessProbe }}
           livenessProbe:
@@ -653,12 +653,12 @@ spec:
             - -c
             - |
               echo "Waiting for WordPress to be ready..."
-              until wget -q -O /dev/null http://localhost:{{ .Values.service.ports.http }}/server-status/?auto; do
+              until wget -q -O /dev/null http://localhost:{{ .Values.containerPorts.http }}/server-status/?auto; do
                 echo "WordPress not ready yet, waiting..."
                 sleep 10
               done
               echo "WordPress is ready, starting exporter..."
-              exec /bin/apache_exporter --scrape_uri http://localhost:{{ .Values.service.ports.http }}/server-status/?auto
+              exec /bin/apache_exporter --scrape_uri http://localhost:{{ .Values.containerPorts.http }}/server-status/?auto
           ports:
           - name: metrics
             containerPort: {{ .Values.metrics.apache.service.ports.metrics }}

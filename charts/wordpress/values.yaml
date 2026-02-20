@@ -505,6 +505,10 @@ containerSecurityContext:
     type: RuntimeDefault
   runAsNonRoot: true
 
+containerPorts:
+  http: 8080
+  https: 8443
+
 ## @section Service configuration
 service:
   ## @param service.type string Service type (NodePort, LoadBalancer, ClusterIP)
