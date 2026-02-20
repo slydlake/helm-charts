@@ -294,7 +294,7 @@ wordpress:
   ##     displayname: "John Editor"
   ##     firstname: John
   ##     lastname: Editor
-  ##     role: editor
+  ##     role: editor            # Possible values: 'administrator', 'editor', 'author', 'contributor', 'subscriber'
   ##     sendEmail: false
   ##     superAdmin: false       # Multisite: grant super-admin privileges (default: false)
   ##     sites:                  # Multisite: assign to specific sites with roles
