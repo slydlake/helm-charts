@@ -626,7 +626,8 @@
                 },
                 "url": {
                     "type": "string",
-                    "description": "WordPress URL (including protocol, e.g. http://example.com or https://example.com). If no protocol is provided, it is auto-detected from the Ingress TLS config (https:// if TLS is configured, http:// otherwise)."
+                    "description": "WordPress URL (including protocol, e.g. http://example.com or https://example.com). If no protocol is provided, it is auto-detected from the Ingress TLS config (https:// if TLS is configured, http:// otherwise).",
+                    "minLength": 1
                 },
                 "configExtraInject": {
                     "type": "boolean",
