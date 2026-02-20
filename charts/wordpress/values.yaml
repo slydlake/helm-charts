@@ -524,6 +524,48 @@ service:
   ## @param service.labels object Additional labels for service
   labels: {}
 
+## @section HTTPRoute configuration
+## @descriptionStart
+## HTTPRoute configuration for WordPress.
+## E.g.
+## ```yaml
+## httpRoute:
+##   enabled: true
+##   parentRefs:
+##     - name: my-gateway
+## ```
+## @descriptionEnd
+httpRoute:
+  # -- Enable HTTPRoute resource for Gateway API
+  enabled: false
+  # -- Annotations for HTTPRoute resource
+  annotations: {}
+  # -- Additional labels for HTTPRoute resource
+  labels: {}
+  # -- Parent references (REQUIRED when enabled - HTTPRoute will not work without this)
+  # Example:
+  # parentRefs:
+  #   - name: my-gateway
+  #     namespace: gateway-namespace
+  parentRefs: []
+  # -- Hostnames for the HTTPRoute
+  # Example:
+  # hostnames:
+  #   - wordpress.example.com
+  hostnames: []
+  # -- Custom routing rules (optional, defaults to path prefix /)
+  # If not specified, a default rule routing all traffic to the service is used
+  rules: []
+  # Example custom rules:
+  # rules:
+  #   - matches:
+  #       - path:
+  #           type: PathPrefix
+  #           value: /wordpress
+  #     backendRefs:
+  #       - name: wordpress
+  #         port: http
+
 ## @section Ingress configuration
 ## @descriptionStart
 ## Ingress configuration for WordPress.
