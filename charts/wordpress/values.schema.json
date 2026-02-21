@@ -1257,9 +1257,12 @@
             "default": {}
         },
         "topologySpreadConstraints": {
-            "type": "object",
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
             "description": "Topology spread constraints for pods",
-            "default": {}
+            "default": []
         },
         "revisionHistoryLimit": {
             "type": [
@@ -2129,6 +2132,11 @@
                         }
                     }
                 },
+                "topologySpreadConstraints": {
+                    "type": "array",
+                    "description": "Topology spread constraints for Redis pods",
+                    "default": []
+                },
                 "containerSecurityContext": {
                     "type": "object",
                     "properties": {
@@ -2179,6 +2187,484 @@
                 }
             },
             "description": "Memcached chart configuration"
+        },
+        "redis": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable Redis chart installation",
+                    "default": false
+                },
+                "createConfig": {
+                    "type": "boolean",
+                    "description": "Create in wp-config.php the Redis config",
+                    "default": true
+                },
+                "cacheKeySalt": {
+                    "type": "string",
+                    "description": "Cache key salt for Redis object cache isolation. If empty, chart generates a random salt on first deploy and reuses it on upgrades.",
+                    "default": ""
+                },
+                "cacheKeySaltSecret": {
+                    "type": "object",
+                    "description": "Existing Secret reference for Redis cache key salt.",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of existing Secret containing cache key salt",
+                            "default": ""
+                        },
+                        "key": {
+                            "type": "string",
+                            "description": "Key in Secret containing cache key salt value",
+                            "default": "WP_CACHE_KEY_SALT"
+                        }
+                    }
+                },
+                "auth": {
+                    "type": "object",
+                    "description": "Redis authentication settings. If enabled by the Redis chart and no values are set here, Redis may generate a password in its default secret.",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable or disable Redis authentication",
+                            "default": true
+                        },
+                        "password": {
+                            "type": "string",
+                            "description": "Explicit Redis password",
+                            "default": ""
+                        },
+                        "existingSecret": {
+                            "type": "string",
+                            "description": "Existing Secret containing Redis password",
+                            "default": ""
+                        },
+                        "existingSecretPasswordKey": {
+                            "type": "string",
+                            "description": "Secret key containing Redis password",
+                            "default": "redis-password"
+                        }
+                    }
+                },
+                "scaling": {
+                    "type": "object",
+                    "description": "Advanced Redis Object Cache scaling topology configuration.",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "description": "Scaling mode",
+                            "enum": [
+                                "none",
+                                "replication",
+                                "sharding",
+                                "sentinel",
+                                "cluster"
+                            ],
+                            "default": "none"
+                        },
+                        "servers": {
+                            "type": "array",
+                            "description": "Server URIs for replication/sentinel mode",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "sentinel": {
+                            "type": "string",
+                            "description": "Sentinel master/service name (required for sentinel mode)",
+                            "default": ""
+                        },
+                        "shards": {
+                            "type": "array",
+                            "description": "Server URIs for sharding mode",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "cluster": {
+                            "type": "array",
+                            "description": "Server URIs for cluster mode",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "nameOverride": {
+                    "type": "string",
+                    "description": "String to partially override redis.fullname",
+                    "default": ""
+                },
+                "fullnameOverride": {
+                    "type": "string",
+                    "description": "String to fully override redis.fullname",
+                    "default": ""
+                },
+                "commonLabels": {
+                    "type": "object",
+                    "description": "Labels to add to all deployed objects",
+                    "default": {}
+                },
+                "commonAnnotations": {
+                    "type": "object",
+                    "description": "Annotations to add to all deployed objects",
+                    "default": {}
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "registry": {
+                            "type": "string",
+                            "description": "Redis image registry",
+                            "default": "docker.io"
+                        },
+                        "repository": {
+                            "type": "string",
+                            "description": "Redis image repository",
+                            "default": "redis"
+                        },
+                        "tag": {
+                            "type": "string",
+                            "description": "Redis image tag",
+                            "default": "8.6.0"
+                        },
+                        "pullPolicy": {
+                            "type": "string",
+                            "enum": [
+                                "IfNotPresent",
+                                "Always",
+                                "Never"
+                            ],
+                            "description": "Redis image pull policy",
+                            "default": "IfNotPresent"
+                        }
+                    }
+                },
+                "replicaCount": {
+                    "type": "integer",
+                    "description": "Number of Redis replicas to deploy",
+                    "default": 1
+                },
+                "service": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "ClusterIP",
+                                "NodePort",
+                                "LoadBalancer",
+                                "ExternalName"
+                            ],
+                            "description": "Kubernetes service type",
+                            "default": "ClusterIP"
+                        },
+                        "port": {
+                            "type": "integer",
+                            "description": "Redis service port",
+                            "default": 6379
+                        }
+                    }
+                },
+                "containerSecurityContext": {
+                    "type": "object",
+                    "properties": {
+                        "runAsUser": {
+                            "type": "integer",
+                            "description": "User ID to run the container",
+                            "default": 999
+                        },
+                        "runAsGroup": {
+                            "type": "integer",
+                            "description": "Group ID to run the container",
+                            "default": 999
+                        },
+                        "runAsNonRoot": {
+                            "type": "boolean",
+                            "description": "Run as non-root user",
+                            "default": true
+                        },
+                        "allowPrivilegeEscalation": {
+                            "type": "boolean",
+                            "description": "Set Redis container's privilege escalation",
+                            "default": false
+                        },
+                        "capabilities": {
+                            "type": "object",
+                            "properties": {
+                                "drop": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "default": [
+                                        "ALL"
+                                    ]
+                                }
+                            }
+                        },
+                        "seccompProfile": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "RuntimeDefault",
+                                        "Localhost",
+                                        "Unconfined"
+                                    ],
+                                    "default": "RuntimeDefault"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "description": "Redis chart configuration"
+        },
+        "valkey": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable Valkey chart installation",
+                    "default": false
+                },
+                "createConfig": {
+                    "type": "boolean",
+                    "description": "Create in wp-config.php the Valkey config",
+                    "default": true
+                },
+                "cacheKeySalt": {
+                    "type": "string",
+                    "description": "Cache key salt for Valkey object cache isolation. If empty, chart generates a random salt on first deploy and reuses it on upgrades.",
+                    "default": ""
+                },
+                "cacheKeySaltSecret": {
+                    "type": "object",
+                    "description": "Existing Secret reference for Valkey cache key salt.",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Name of existing Secret containing cache key salt",
+                            "default": ""
+                        },
+                        "key": {
+                            "type": "string",
+                            "description": "Key in Secret containing cache key salt value",
+                            "default": "WP_CACHE_KEY_SALT"
+                        }
+                    }
+                },
+                "auth": {
+                    "type": "object",
+                    "description": "Valkey authentication settings. If enabled by the Valkey chart and no values are set here, Valkey may generate a password in its default secret.",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable or disable Valkey authentication",
+                            "default": true
+                        },
+                        "password": {
+                            "type": "string",
+                            "description": "Explicit Valkey password",
+                            "default": ""
+                        },
+                        "existingSecret": {
+                            "type": "string",
+                            "description": "Existing Secret containing Valkey password",
+                            "default": ""
+                        },
+                        "existingSecretPasswordKey": {
+                            "type": "string",
+                            "description": "Secret key containing Valkey password",
+                            "default": "password"
+                        }
+                    }
+                },
+                "scaling": {
+                    "type": "object",
+                    "description": "Advanced Redis Object Cache scaling topology configuration.",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "description": "Scaling mode",
+                            "enum": [
+                                "none",
+                                "replication",
+                                "sharding",
+                                "sentinel",
+                                "cluster"
+                            ],
+                            "default": "none"
+                        },
+                        "servers": {
+                            "type": "array",
+                            "description": "Server URIs for replication/sentinel mode",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "sentinel": {
+                            "type": "string",
+                            "description": "Sentinel master/service name (required for sentinel mode)",
+                            "default": ""
+                        },
+                        "shards": {
+                            "type": "array",
+                            "description": "Server URIs for sharding mode",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "cluster": {
+                            "type": "array",
+                            "description": "Server URIs for cluster mode",
+                            "default": [],
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "nameOverride": {
+                    "type": "string",
+                    "description": "String to partially override valkey.fullname",
+                    "default": ""
+                },
+                "fullnameOverride": {
+                    "type": "string",
+                    "description": "String to fully override valkey.fullname",
+                    "default": ""
+                },
+                "commonLabels": {
+                    "type": "object",
+                    "description": "Labels to add to all deployed objects",
+                    "default": {}
+                },
+                "commonAnnotations": {
+                    "type": "object",
+                    "description": "Annotations to add to all deployed objects",
+                    "default": {}
+                },
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "registry": {
+                            "type": "string",
+                            "description": "Valkey image registry",
+                            "default": "docker.io"
+                        },
+                        "repository": {
+                            "type": "string",
+                            "description": "Valkey image repository",
+                            "default": "valkey/valkey"
+                        },
+                        "tag": {
+                            "type": "string",
+                            "description": "Valkey image tag",
+                            "default": "9.0.2-alpine3.23"
+                        },
+                        "pullPolicy": {
+                            "type": "string",
+                            "enum": [
+                                "IfNotPresent",
+                                "Always",
+                                "Never"
+                            ],
+                            "description": "Valkey image pull policy",
+                            "default": "IfNotPresent"
+                        }
+                    }
+                },
+                "replicaCount": {
+                    "type": "integer",
+                    "description": "Number of Valkey replicas to deploy",
+                    "default": 1
+                },
+                "service": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "ClusterIP",
+                                "NodePort",
+                                "LoadBalancer",
+                                "ExternalName"
+                            ],
+                            "description": "Kubernetes service type",
+                            "default": "ClusterIP"
+                        },
+                        "port": {
+                            "type": "integer",
+                            "description": "Valkey service port",
+                            "default": 6379
+                        }
+                    }
+                },
+                "containerSecurityContext": {
+                    "type": "object",
+                    "properties": {
+                        "runAsUser": {
+                            "type": "integer",
+                            "description": "User ID to run the container",
+                            "default": 999
+                        },
+                        "runAsGroup": {
+                            "type": "integer",
+                            "description": "Group ID to run the container",
+                            "default": 1000
+                        },
+                        "runAsNonRoot": {
+                            "type": "boolean",
+                            "description": "Run as non-root user",
+                            "default": true
+                        },
+                        "allowPrivilegeEscalation": {
+                            "type": "boolean",
+                            "description": "Set Valkey container's privilege escalation",
+                            "default": false
+                        },
+                        "capabilities": {
+                            "type": "object",
+                            "properties": {
+                                "drop": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    },
+                                    "default": [
+                                        "ALL"
+                                    ]
+                                }
+                            }
+                        },
+                        "seccompProfile": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "RuntimeDefault",
+                                        "Localhost",
+                                        "Unconfined"
+                                    ],
+                                    "default": "RuntimeDefault"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "description": "Valkey chart configuration"
         }
     },
     "if": {
@@ -2204,5 +2690,67 @@
                 ]
             }
         }
-    }
+    },
+    "allOf": [
+        {
+            "not": {
+                "anyOf": [
+                    {
+                        "properties": {
+                            "memcached": {
+                                "properties": {
+                                    "enabled": {
+                                        "const": true
+                                    }
+                                }
+                            },
+                            "redis": {
+                                "properties": {
+                                    "enabled": {
+                                        "const": true
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "properties": {
+                            "memcached": {
+                                "properties": {
+                                    "enabled": {
+                                        "const": true
+                                    }
+                                }
+                            },
+                            "valkey": {
+                                "properties": {
+                                    "enabled": {
+                                        "const": true
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "properties": {
+                            "redis": {
+                                "properties": {
+                                    "enabled": {
+                                        "const": true
+                                    }
+                                }
+                            },
+                            "valkey": {
+                                "properties": {
+                                    "enabled": {
+                                        "const": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
 }

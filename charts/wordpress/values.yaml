@@ -720,8 +720,8 @@ tolerations: []
 ## @param affinity object Affinity rules for pod assignment
 affinity: {}
 
-## @param topologySpreadConstraints object Topology spread constraints for pods
-topologySpreadConstraints: {}
+## @param topologySpreadConstraints list Topology spread constraints for pods
+topologySpreadConstraints: []
 
 ## @section Other parameters
 
@@ -1041,6 +1041,7 @@ mariadb:
 ## @section Memcached configuration
 ## @descriptionStart
 ## For all values see: https://artifacthub.io/packages/helm/cloudpirates-memcached/memcached?modal=values
+## Cache backends are mutually exclusive: enable at most one of memcached.enabled, redis.enabled, valkey.enabled.
 ## @descriptionEnd
 memcached:
   ## @param memcached.enabled bool Enable Memcached chart installation
@@ -1113,6 +1114,223 @@ memcached:
     ## @param memcached.containerSecurityContext.runAsNonRoot bool Run as non-root user
     runAsNonRoot: true
     ## @param memcached.containerSecurityContext.allowPrivilegeEscalation bool Allow privilege escalation
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+## @section Redis configuration
+## @descriptionStart
+## For all values see: https://artifacthub.io/packages/helm/cloudpirates-redis/redis?modal=values
+## @descriptionEnd
+redis:
+  ## @param redis.enabled bool Enable Redis chart installation
+  enabled: false
+
+  ## @param redis.createConfig bool Create wp-config.php Redis configuration
+  createConfig: true
+
+  ## @param redis.cacheKeySalt string Cache key salt for Redis object cache isolation
+  ## @descriptionStart
+  ## If empty, chart generates a random salt on first deploy and persists it in Secret.
+  ## On upgrades, the existing salt is reused automatically.
+  ## @descriptionEnd
+  cacheKeySalt: ""
+
+  ## @section Existing Secret for redis cache key salt
+  cacheKeySaltSecret:
+    ## @param redis.cacheKeySaltSecret.name string Name of existing Secret containing cache key salt
+    name: ""
+    ## @param redis.cacheKeySaltSecret.key string Key in Secret containing cache key salt value
+    key: "WP_CACHE_KEY_SALT"
+
+  ## @section Redis Authentication
+  ## @descriptionStart
+  ## Authentication is handled by the Redis subchart.
+  ## If auth is enabled and no password/secret is provided, the Redis chart generates a random password
+  ## and stores it in the Redis secret (default key: redis-password).
+  ## WordPress will automatically read that secret and inject WP_REDIS_PASSWORD.
+  ## @descriptionEnd
+  auth:
+    ## @param redis.auth.password string Explicit Redis password (optional)
+    password: ""
+    ## @param redis.auth.existingSecret string Existing Secret containing Redis password (optional)
+    existingSecret: ""
+    ## @param redis.auth.existingSecretPasswordKey string Key in existing Secret for Redis password
+    existingSecretPasswordKey: "redis-password"
+
+  ## @section Redis Object Cache Scaling
+  ## @descriptionStart
+  ## Advanced Redis Object Cache topologies (rhubarbgroup/redis-cache):
+  ## - replication: uses WP_REDIS_SERVERS + WP_REDIS_CLIENT=predis
+  ## - sharding: uses WP_REDIS_SHARDS + WP_REDIS_CLIENT=phpredis
+  ## - sentinel: uses WP_REDIS_SENTINEL + WP_REDIS_SERVERS + WP_REDIS_CLIENT=predis
+  ## - cluster: uses WP_REDIS_CLUSTER + WP_REDIS_CLIENT=phpredis
+  ## @descriptionEnd
+  scaling:
+    ## @param redis.scaling.type string Scaling mode: none|replication|sharding|sentinel|cluster
+    type: "none"
+    ## @param redis.scaling.servers list Server URIs for replication/sentinel mode
+    ## Example: tcp://redis-0.redis:6379?database=0&role=master
+    servers: []
+    ## @param redis.scaling.sentinel string Sentinel master/service name (required for sentinel mode)
+    sentinel: ""
+    ## @param redis.scaling.shards list Server URIs for sharding mode
+    shards: []
+    ## @param redis.scaling.cluster list Server URIs for cluster mode
+    cluster: []
+
+  ## @param redis.nameOverride string String to partially override redis.fullname
+  nameOverride: ""
+  ## @param redis.fullnameOverride string String to fully override redis.fullname
+  fullnameOverride: ""
+  ## @param redis.commonLabels object Labels to add to all deployed objects
+  commonLabels: {}
+  ## @param redis.commonAnnotations object Annotations to add to all deployed objects
+  commonAnnotations: {}
+
+  ## @section Redis Image
+  image:
+    ## @param redis.image.registry string Redis image registry
+    registry: ""
+    ## @param redis.image.repository string Redis image repository
+    repository: docker.io/redis
+    ## @param redis.image.tag string Redis image tag
+    tag: "8.6.0-trixie"
+    ## @param redis.image.pullPolicy string Redis image pull policy
+    pullPolicy: IfNotPresent
+
+  ## @param redis.replicaCount int Number of Redis replicas
+  replicaCount: 1
+
+  ## @section Redis Service
+  service:
+    ## @param redis.service.type string Kubernetes service type
+    type: ClusterIP
+    ## @param redis.service.port int Redis service port
+    port: 6379
+
+  ## @param redis.topologySpreadConstraints list Topology spread constraints for Redis pods
+  topologySpreadConstraints: []
+
+  ## @section Redis Security Context
+  containerSecurityContext:
+    ## @param redis.containerSecurityContext.runAsUser int User ID to run the container
+    runAsUser: 999
+    ## @param redis.containerSecurityContext.runAsGroup int Group ID to run the container
+    runAsGroup: 999
+    ## @param redis.containerSecurityContext.runAsNonRoot bool Run as non-root user
+    runAsNonRoot: true
+    ## @param redis.containerSecurityContext.allowPrivilegeEscalation bool Allow privilege escalation
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
+## @section Valkey configuration
+## @descriptionStart
+## For all values see: https://artifacthub.io/packages/helm/cloudpirates-valkey/valkey?modal=values
+## @descriptionEnd
+valkey:
+  ## @param valkey.enabled bool Enable Valkey chart installation
+  enabled: false
+
+  ## @param valkey.createConfig bool Create wp-config.php Valkey configuration
+  createConfig: true
+
+  ## @param valkey.cacheKeySalt string Cache key salt for Valkey object cache isolation
+  ## @descriptionStart
+  ## If empty, chart generates a random salt on first deploy and persists it in Secret.
+  ## On upgrades, the existing salt is reused automatically.
+  ## @descriptionEnd
+  cacheKeySalt: ""
+
+  ## @section Existing Secret for valkey cache key salt
+  cacheKeySaltSecret:
+    ## @param valkey.cacheKeySaltSecret.name string Name of existing Secret containing cache key salt
+    name: ""
+    ## @param valkey.cacheKeySaltSecret.key string Key in Secret containing cache key salt value
+    key: "WP_CACHE_KEY_SALT"
+
+  ## @section Valkey Authentication
+  ## @descriptionStart
+  ## Authentication is handled by the Valkey subchart.
+  ## If auth is enabled and no password/secret is provided, the Valkey chart generates a random password
+  ## and stores it in the Valkey secret (default key: password).
+  ## WordPress will automatically read that secret and inject WP_REDIS_PASSWORD.
+  ## @descriptionEnd
+  auth:
+    ## @param valkey.auth.password string Explicit Valkey password (optional)
+    password: ""
+    ## @param valkey.auth.existingSecret string Existing Secret containing Valkey password (optional)
+    existingSecret: ""
+    ## @param valkey.auth.existingSecretPasswordKey string Key in existing Secret for Valkey password
+    existingSecretPasswordKey: "password"
+
+  ## @section Valkey Object Cache Scaling
+  ## @descriptionStart
+  ## Advanced Redis Object Cache topologies (rhubarbgroup/redis-cache):
+  ## - replication: uses WP_REDIS_SERVERS + WP_REDIS_CLIENT=predis
+  ## - sharding: uses WP_REDIS_SHARDS + WP_REDIS_CLIENT=phpredis
+  ## - sentinel: uses WP_REDIS_SENTINEL + WP_REDIS_SERVERS + WP_REDIS_CLIENT=predis
+  ## - cluster: uses WP_REDIS_CLUSTER + WP_REDIS_CLIENT=phpredis
+  ## @descriptionEnd
+  scaling:
+    ## @param valkey.scaling.type string Scaling mode: none|replication|sharding|sentinel|cluster
+    type: "none"
+    ## @param valkey.scaling.servers list Server URIs for replication/sentinel mode
+    ## Example: tcp://valkey-0.valkey:6379?database=0&role=master
+    servers: []
+    ## @param valkey.scaling.sentinel string Sentinel master/service name (required for sentinel mode)
+    sentinel: ""
+    ## @param valkey.scaling.shards list Server URIs for sharding mode
+    shards: []
+    ## @param valkey.scaling.cluster list Server URIs for cluster mode
+    cluster: []
+
+  ## @param valkey.nameOverride string String to partially override valkey.fullname
+  nameOverride: ""
+  ## @param valkey.fullnameOverride string String to fully override valkey.fullname
+  fullnameOverride: ""
+  ## @param valkey.commonLabels object Labels to add to all deployed objects
+  commonLabels: {}
+  ## @param valkey.commonAnnotations object Annotations to add to all deployed objects
+  commonAnnotations: {}
+
+  ## @section Valkey Image
+  image:
+    ## @param valkey.image.registry string Valkey image registry
+    registry: ""
+    ## @param valkey.image.repository string Valkey image repository
+    repository: docker.io/valkey/valkey
+    ## @param valkey.image.tag string Valkey image tag
+    tag: "9.0.2-trixie"
+    ## @param valkey.image.pullPolicy string Valkey image pull policy
+    pullPolicy: IfNotPresent
+
+  ## @param valkey.replicaCount int Number of Valkey replicas
+  replicaCount: 1
+
+  ## @section Valkey Service
+  service:
+    ## @param valkey.service.type string Kubernetes service type
+    type: ClusterIP
+    ## @param valkey.service.port int Valkey service port
+    port: 6379
+
+  ## @section Valkey Security Context
+  containerSecurityContext:
+    ## @param valkey.containerSecurityContext.runAsUser int User ID to run the container
+    runAsUser: 999
+    ## @param valkey.containerSecurityContext.runAsGroup int Group ID to run the container
+    runAsGroup: 1000
+    ## @param valkey.containerSecurityContext.runAsNonRoot bool Run as non-root user
+    runAsNonRoot: true
+    ## @param valkey.containerSecurityContext.allowPrivilegeEscalation bool Allow privilege escalation
     allowPrivilegeEscalation: false
     capabilities:
       drop:

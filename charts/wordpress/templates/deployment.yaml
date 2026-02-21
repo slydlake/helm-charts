@@ -181,10 +181,13 @@ spec:
       hostNetwork: {{ .Values.hostNetwork }}
       {{- end }}
       initContainers:
-        # Minimal root container - ONLY fixes PVC ownership for NFS-based storage
-        # (e.g. Longhorn RWX) that doesn't respect Kubernetes fsGroup settings.
-        # All subsequent containers run as non-root uid 33 (www-data).
-        - name: {{ .Chart.Name }}-fix-permissions
+        {{- if has "ReadWriteMany" .Values.storage.accessModes }}
+        # Fixes PVC ownership for RWX storage (NFS, Longhorn, CephFS, etc.)
+        # that doesn't respect Kubernetes fsGroup settings.
+        # Requires root user because DAC_OVERRIDE cannot change ownership of root-owned
+        # directories (e.g., lost+found) on network storage.
+        # Only enabled for ReadWriteMany - not needed for ReadWriteOnce.
+        - name: {{ .Chart.Name }}-rwx-permissions
           image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
           securityContext:
             runAsUser: 0
@@ -202,6 +205,7 @@ spec:
           volumeMounts:
             - name: {{ include "wordpress.fullname" . }}
               mountPath: /tmp/wordpress
+        {{- end }}
         - name: {{ .Chart.Name }}-base
           image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
           {{- with .Values.containerSecurityContext }}
@@ -274,11 +278,28 @@ spec:
                 name: {{ .Values.extraEnvVarsSecret }}
             {{- end }}
           {{- end }}
+          {{- $cacheBackends := (include "wordpress.cache.backends" . | fromYaml) }}
+          {{- $cacheMeta := dict "createConfig" false "authEnabled" false "authPassword" "" "authExistingSecret" "" "authExistingSecretPasswordKey" "" }}
+          {{- if or (eq $cacheBackends.selected "redis") (eq $cacheBackends.selected "valkey") }}
+          {{- $cacheMeta = (include "wordpress.cache.kvMeta" (dict "ctx" . "backend" $cacheBackends.selected) | fromYaml) }}
+          {{- end }}
           env:
             - name: WORDPRESS_PATH
               value: /var/www/html
             - name: WP_CLI_CACHE_DIR
               value: /tmp/wp-cli-cache
+            {{- if and (or (eq $cacheBackends.selected "redis") (eq $cacheBackends.selected "valkey")) $cacheMeta.createConfig $cacheMeta.authEnabled }}
+            {{- if $cacheMeta.authPassword }}
+            - name: WP_REDIS_PASSWORD
+              value: {{ $cacheMeta.authPassword | quote }}
+            {{- else if $cacheMeta.authExistingSecret }}
+            - name: WP_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $cacheMeta.authExistingSecret }}
+                  key: {{ $cacheMeta.authExistingSecretPasswordKey }}
+            {{- end }}
+            {{- end }}
             - name: DEBUG
               value: {{ .Values.wordpress.init.debug | default "false" | quote }}
             - name: WORDPRESS_TABLE_PREFIX
@@ -457,17 +478,29 @@ spec:
                 - SETUID
             seccompProfile:
               type: RuntimeDefault
+          env:
+            - name: DEBUG
+              value: {{ .Values.wordpress.init.debug | default "false" | quote }}
           command:
             - sh
             - -ec
             - |
+              echo "Memcached bootstrap: installation startet..."
+              export DEBIAN_FRONTEND=noninteractive
               cat >/etc/apt/apt.conf.d/99sandboxroot <<'EOF'
               APT::Sandbox::User "root";
               EOF
-              apt-get update
-              apt-get install -y --no-install-recommends libmemcached-dev zlib1g-dev libsasl2-dev libzstd-dev
-              pecl install memcached
-              pecl install memcache
+              if [ "${DEBUG:-false}" = "true" ]; then
+                apt-get update
+                apt-get install -y --no-install-recommends libmemcached-dev zlib1g-dev libsasl2-dev libzstd-dev
+                pecl install memcached
+                pecl install memcache
+              else
+                apt-get update >/dev/null
+                apt-get install -y --no-install-recommends libmemcached-dev zlib1g-dev libsasl2-dev libzstd-dev >/dev/null
+                pecl install memcached >/dev/null
+                pecl install memcache >/dev/null
+              fi
               mkdir -p /opt/php-ext/conf.d /opt/php-ext/lib
               EXT_DIR="$(php-config --extension-dir)"
               cp "${EXT_DIR}/memcache.so" /opt/php-ext/memcache.so
@@ -477,9 +510,12 @@ spec:
               done
               echo "extension=/opt/php-ext/memcache.so" > /opt/php-ext/conf.d/zz-memcache.ini
               echo "extension=/opt/php-ext/memcached.so" > /opt/php-ext/conf.d/zz-memcached.ini
+              PHP_INI_SCAN_DIR="/usr/local/etc/php/conf.d:/opt/php-ext/conf.d" LD_LIBRARY_PATH="/opt/php-ext/lib" php -m | grep -qi '^memcache$' || { echo "ERROR: memcache extension failed to load"; exit 1; }
+              PHP_INI_SCAN_DIR="/usr/local/etc/php/conf.d:/opt/php-ext/conf.d" LD_LIBRARY_PATH="/opt/php-ext/lib" php -m | grep -qi '^memcached$' || { echo "ERROR: memcached extension failed to load"; exit 1; }
               if [ -f /var/www/html/wp-content/plugins/memcached/object-cache.php ]; then
                 cp /var/www/html/wp-content/plugins/memcached/object-cache.php /var/www/html/wp-content/object-cache.php
               fi
+              echo "Memcached bootstrap: installation beendet."
               rm -f /etc/apt/apt.conf.d/99sandboxroot
               rm -rf /var/lib/apt/lists/*
           volumeMounts:
@@ -511,6 +547,11 @@ spec:
           {{- if .Values.extraEnvVars }}
           {{- toYaml .Values.extraEnvVars | nindent 12 }}
           {{- end }}
+          {{- $cacheBackends := (include "wordpress.cache.backends" . | fromYaml) }}
+          {{- $cacheMeta := dict "createConfig" false "authEnabled" false "authPassword" "" "authExistingSecret" "" "authExistingSecretPasswordKey" "" }}
+          {{- if or (eq $cacheBackends.selected "redis") (eq $cacheBackends.selected "valkey") }}
+          {{- $cacheMeta = (include "wordpress.cache.kvMeta" (dict "ctx" . "backend" $cacheBackends.selected) | fromYaml) }}
+          {{- end }}
           {{- if .Values.memcached.enabled }}
             - name: PHP_INI_SCAN_DIR
               value: "/usr/local/etc/php/conf.d:/opt/php-ext/conf.d"
@@ -521,6 +562,18 @@ spec:
               value: {{ include "wordpress.normalizedUrl" . | quote }}
             - name: WP_SITEURL
               value: {{ include "wordpress.normalizedUrl" . | quote }}
+          {{- if and (or (eq $cacheBackends.selected "redis") (eq $cacheBackends.selected "valkey")) $cacheMeta.createConfig $cacheMeta.authEnabled }}
+          {{- if $cacheMeta.authPassword }}
+            - name: WP_REDIS_PASSWORD
+              value: {{ $cacheMeta.authPassword | quote }}
+          {{- else if $cacheMeta.authExistingSecret }}
+            - name: WP_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $cacheMeta.authExistingSecret }}
+                  key: {{ $cacheMeta.authExistingSecretPasswordKey }}
+          {{- end }}
+          {{- end }}
           {{ if .Values.wordpress.debug }}
             - name: WORDPRESS_DEBUG
               value: "true"

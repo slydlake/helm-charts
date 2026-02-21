@@ -1528,6 +1528,27 @@ if [ "$PLUGINS_MODIFIED" = "true" ] || [ "$COMPOSER_PACKAGES_MODIFIED" = "true" 
   ACTIVE_PLUGINS=$(wp_plugin_list --status=active --field=name 2>/dev/null || echo "")
 fi
 
+# ============================================================================
+# Redis/Valkey Object Cache Enable (redis-cache plugin)
+# ============================================================================
+# Applies to both Redis and Valkey backends via the same redis-cache plugin.
+if wp plugin is-active redis-cache 2>/dev/null; then
+  echo "Ensuring redis-cache object cache is enabled (Redis/Valkey)..."
+  echo "redis-cache status before:"
+  (wp_with_plugins redis status 2>&1 | grep -E "Status:|Client:|Drop-in:" || true)
+
+  if ! wp_with_plugins redis update-dropin 2>/dev/null; then
+    echo "Warning: redis-cache drop-in update failed"
+  fi
+
+  if ! wp_with_plugins redis enable 2>/dev/null; then
+    echo "Warning: redis-cache enable failed"
+  fi
+
+  echo "redis-cache status after:"
+  (wp_with_plugins redis status 2>&1 | grep -E "Status:|Client:|Drop-in:" || wp_with_plugins redis status 2>&1 || true)
+fi
+
 {{- if .Values.memcached.enabled }}
 # ============================================================================
 # Memcached Plugin Safety
@@ -1546,6 +1567,9 @@ if php -m | grep -qi '^memcached$'; then
     if [ ! -f "$MEMCACHED_DROPIN_TARGET" ] || ! cmp -s "$MEMCACHED_PLUGIN_DROPIN" "$MEMCACHED_DROPIN_TARGET"; then
       echo "Installing/updating Memcached object-cache drop-in..."
       cp "$MEMCACHED_PLUGIN_DROPIN" "$MEMCACHED_DROPIN_TARGET"
+    fi
+    if [ -f "$MEMCACHED_DROPIN_DISABLED" ] && [ -f "$MEMCACHED_DROPIN_TARGET" ]; then
+      rm -f "$MEMCACHED_DROPIN_DISABLED"
     fi
   fi
 else

@@ -1,5 +1,3 @@
-replicaCount: 2
-
 wordpress:
   init:
     enabled: true
@@ -21,6 +19,9 @@ wordpress:
     - name: "cache-enabler"
       activate: true
       autoupdate: true
+    - name: "redis-cache"
+      activate: true
+      autoupdate: true
     - name: "autoptimize"
       activate: true
       autoupdate: true
@@ -35,7 +36,7 @@ wordpress:
       activate: false
       autoupdate: true
     - name: "https://creativethemes.com/downloads/blocksy-child.zip"
-      slug: "blocksy-child" # Required for URL themes: enables autoupdate, sites[] and skip-if-installed
+      slug: "blocksy-child"
       activate: true
       autoupdate: true
   users:
@@ -54,10 +55,7 @@ service:
   nodePorts:
     http: 30111
 storage:
-  storageClass: "longhorn"
   resourcePolicy: "" # Delete PVC on helm uninstall
-  accessModes:
-    - ReadWriteMany
 apache:
   customPhpConfigMap: "wordpress-custom-config"
 metrics:
@@ -75,3 +73,23 @@ mariadb:
     database: "wordpress_db"
     username: "wordpress_db_user"
     existingSecret: "wordpress-test-secret"
+redis:
+  enabled: true
+  createConfig: true
+  # Optional: Redis authentication
+  # auth:
+  #   password: "your-redis-password"
+  # Optional: Redis Object Cache scaling
+  # scaling:
+  #   type: "replication"
+  #   servers:
+  #     - "tcp://redis-0.redis:6379?database=0&role=master"
+  #     - "tcp://redis-1.redis:6379?database=0&alias=replica-01"
+  #
+  # Sentinel example:
+  # scaling:
+  #   type: "sentinel"
+  #   sentinel: "mymaster"
+  #   servers:
+  #     - "tcp://redis-sentinel-0.redis-sentinel:26379"
+  #     - "tcp://redis-sentinel-1.redis-sentinel:26379"

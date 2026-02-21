@@ -103,6 +103,23 @@ wp() {
   fi
 }
 
+# WP-CLI wrapper that keeps plugins enabled (for plugin-provided commands)
+# Still skips themes for startup performance and consistency.
+#
+# Args: All arguments are passed through to wp-cli
+wp_with_plugins() {
+  if [ "${DRY_RUN}" = "true" ]; then
+    echo "[DRY_RUN] wp(with-plugins) $*"
+    return 0
+  fi
+
+  if [ "${DEBUG}" = "true" ]; then
+    command wp --path="${WORDPRESS_PATH}" --skip-themes --debug "$@"
+  else
+    command wp --path="${WORDPRESS_PATH}" --skip-themes "$@"
+  fi
+}
+
 # Run commands with optional output suppression based on DEBUG flag
 #
 # Args: Command and arguments to execute
