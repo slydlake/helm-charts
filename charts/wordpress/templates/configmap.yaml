@@ -13,7 +13,7 @@ data:
     {{ .Values.apache.customDefaultSiteConfig | nindent 4 }}
     {{- else }}
     <VirtualHost *:{{ .Values.containerPorts.http }}>
-            ServerName {{ .Values.wordpress.url }}
+            ServerName {{ include "wordpress.urlHost" . }}
             ServerAdmin webmaster@localhost
     {{- if .Values.metrics.apache.enabled }}
             <Location "/server-status">

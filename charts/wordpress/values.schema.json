@@ -929,6 +929,25 @@
                 }
             }
         },
+        "containerPorts": {
+            "type": "object",
+            "properties": {
+                "http": {
+                    "type": "integer",
+                    "description": "HTTP port number",
+                    "default": 8080
+                },
+                "https": {
+                    "type": "integer",
+                    "description": "HTTPS port number",
+                    "default": 8443
+                }
+            },
+            "required": [
+                "http",
+                "https"
+            ]
+        },
         "service": {
             "type": "object",
             "properties": {

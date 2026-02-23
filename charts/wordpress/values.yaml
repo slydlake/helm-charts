@@ -505,6 +505,7 @@ containerSecurityContext:
     type: RuntimeDefault
   runAsNonRoot: true
 
+## @param containerPorts object Container ports (http, https)
 containerPorts:
   http: 8080
   https: 8443
