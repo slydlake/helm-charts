@@ -564,7 +564,7 @@ httpRoute:
   #           value: /wordpress
   #     backendRefs:
   #       - name: wordpress
-  #         port: http
+  #         port: 80
 
 ## @section Ingress configuration
 ## @descriptionStart
