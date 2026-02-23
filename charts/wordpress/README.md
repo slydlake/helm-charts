@@ -83,6 +83,8 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - **External Database**: Use an external MariaDB/MySQL database.
 - **Embedded MariaDB**: Enable the integrated MariaDB chart for local database.
 - **Memcached**: Enable Memcached for caching.
+- **Redis**: Enable Redis as alternative caching.
+- **Valkey**: Enable Valkey (Redis fork) as alternative caching.
 
 ### Metrics and Monitoring
 - **WordPress Metrics**: Automatically install a WordPress Plugin for Prometheus metrics.
@@ -142,6 +144,66 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 - `metrics.wordpress`: Enable WordPress metrics
 - `metrics.apache`: Enable Apache metrics
 - `memcached.enabled`: Enable embedded memcached
+- `redis.enabled`: Enable embedded redis
+- `valkey.enabled`: Enable embedded valkey
+
+> **Note:** Cache backends are mutually exclusive. Enable at most one of `memcached.enabled`, `redis.enabled`, `valkey.enabled` (validated by `values.schema.json` and templates).
+
+### Caching backends (compact)
+
+Enable exactly **one** backend via its `enabled` flag.
+
+- **Memcached** (`memcached.enabled`)
+  - Subchart on port `11211`
+  - Injects: `WP_CACHE`, `WP_CACHE_KEY_SALT`, `$memcached_servers`
+  - Additional init logic for PHP extensions `memcache`/`memcached`
+- **Redis** (`redis.enabled`)
+  - Subchart on port `6379`
+  - Injects: `WP_CACHE`, `WP_CACHE_KEY_SALT`, `WP_REDIS_HOST`, `WP_REDIS_PORT`, optional `WP_REDIS_PASSWORD`
+  - No extra PHP-extension init required (`redis-cache` uses Predis)
+- **Valkey** (`valkey.enabled`)
+  - Same behavior as Redis (Valkey is Redis-compatible), also on port `6379`
+  - Same inject pattern as Redis
+
+Common options for all backends:
+
+- `createConfig`: Enables/disables automatic config injection
+- `cacheKeySalt`: Explicit salt value
+- `cacheKeySaltSecret.{name,key}`: Salt from an existing Secret
+- Redis/Valkey auth password from `auth.password` or `auth.existingSecret`
+
+Minimal example (Redis):
+
+```yaml
+redis:
+  enabled: true
+  createConfig: true
+  cacheKeySalt: ""
+  cacheKeySaltSecret:
+    name: ""
+    key: "WP_CACHE_KEY_SALT"
+  auth:
+    password: ""
+    existingSecret: ""
+    existingSecretPasswordKey: "redis-password"
+```
+
+Quick check (same idea for Redis/Valkey):
+
+```bash
+kubectl -n default exec deploy/wp-wordpress -c wordpress -- ls -l /var/www/html/wp-content/object-cache.php
+kubectl -n default exec deploy/wp-wordpress -c wordpress -- redis-cli -h wp-redis INFO stats | grep -E 'keyspace_hits|keyspace_misses'
+```
+
+Short stats checks:
+
+```bash
+# Memcached
+kubectl -n default exec deploy/wp-wordpress -c wordpress -- php -r '$s=fsockopen("wp-memcached",11211,$e,$es,2); fwrite($s,"stats\r\n"); echo stream_get_contents($s); fclose($s);' | grep -E 'STAT cmd_get|STAT cmd_set|STAT get_hits|STAT get_misses'
+
+# Redis / Valkey
+kubectl -n default exec deploy/wp-wordpress -c wordpress -- redis-cli -h wp-redis INFO stats | grep -E 'keyspace_hits|keyspace_misses'
+```
 
 
 ## Installation samples
@@ -197,6 +259,27 @@ This setup includes everything from the advanced installation plus:
 kubectl apply -f ./samples/advanced.secrets.yaml
 kubectl apply -f ./samples/advanced.configmap.yaml
 helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/advanced2.values.yaml
+```
+
+### Memcached cache setup
+Use WordPress with Memcached object cache. See `samples/memcached.values.yaml`.
+
+```bash
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/memcached.values.yaml
+```
+
+### Redis cache setup
+Use WordPress with Redis object cache. See `samples/redis.values.yaml`.
+
+```bash
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/redis.values.yaml
+```
+
+### Valkey cache setup
+Use WordPress with Valkey object cache. See `samples/valkey.values.yaml`.
+
+```bash
+helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples/valkey.values.yaml
 ```
 
 ### Custom Init Commands
@@ -326,6 +409,19 @@ Without `slug`, URL plugins/themes use `basename` of the URL as a best-effort gu
 - **Network activation** (`networkActivate` / `networkEnable`)
 
 ## Notable changes
+
+### To 3.4.0
+- Complete Memcached object-cache support for WordPress, including runtime bootstrap of `memcache`/`memcached` PHP extensions (no custom image required).
+- `WP_CACHE` is now injected automatically (guarded) when Memcached config is enabled.
+- New `WP_CACHE_KEY_SALT` handling for stable cache isolation: explicit value, existing Secret reference, or auto-generated persisted value.
+- New `memcached.serverGroups` allows cache-group-specific Memcached backends, with fallback to the embedded Memcached service.
+- Improved init safety in drop-in mode (`object-cache.php`) to avoid plugin activation/redeclare conflicts and stale drop-in bootstrap failures.
+- Fixed blog title update in init (`blogname`) so title changes are now applied reliably.
+- Added Redis as alternative caching option using cloudpirates-redis chart and redis-cache plugin.
+- Added Valkey (Redis fork) as alternative caching option using cloudpirates-valkey chart and redis-cache plugin.
+- Automatically injects `WP_REDIS_HOST`, `WP_REDIS_PORT`, and optional `WP_REDIS_PASSWORD` into wp-config.php.
+- Uses Predis library (pure PHP) - no PHP extensions or init containers required.
+- Redis, Valkey, and Memcached can be used as mutually exclusive caching backends.
 
 ### To 3.2.0
 - Introducing multisite for WordPress, including users, plugins, and themes

@@ -94,6 +94,38 @@ memcached fullname
 {{- end }}
 
 {{/*
+redis fullname
+*/}}
+{{- define "wordpress.redis.fullname" -}}
+{{- if .Values.redis.fullnameOverride }}
+{{- .Values.redis.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default "redis" .Values.redis.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+valkey fullname
+*/}}
+{{- define "wordpress.valkey.fullname" -}}
+{{- if .Values.valkey.fullnameOverride }}
+{{- .Values.valkey.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default "valkey" .Values.valkey.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Wordpress metrics plugin
 */}}
 {{- define "metrics.wordpress.pluginname" -}}
@@ -217,4 +249,162 @@ Usage: {{ include "wordpress.urlHost" . }}
 {{- $list := index . 0 -}}
 {{- $joined := $list | join "" -}}
 {{- $joined | sha256sum -}}
+{{- end -}}
+
+{{/* Cache helper: resolve createConfig with legacy createconfig support */}}
+{{- define "wordpress.cache.createConfig" -}}
+{{- $obj := .obj -}}
+{{- $value := ($obj.createConfig | default false) -}}
+{{- if hasKey $obj "createconfig" -}}
+{{- $value = $obj.createconfig -}}
+{{- end -}}
+{{- toYaml (dict "value" $value) -}}
+{{- end -}}
+
+{{/* Cache helper: collect enabled backends and createConfig flags */}}
+{{- define "wordpress.cache.backends" -}}
+{{- $memcachedCreate := (include "wordpress.cache.createConfig" (dict "obj" .Values.memcached) | fromYaml).value -}}
+{{- $redisCreate := (include "wordpress.cache.createConfig" (dict "obj" .Values.redis) | fromYaml).value -}}
+{{- $valkeyCreate := (include "wordpress.cache.createConfig" (dict "obj" .Values.valkey) | fromYaml).value -}}
+
+{{- $enabled := list -}}
+{{- if .Values.memcached.enabled }}{{- $enabled = append $enabled "memcached" }}{{- end -}}
+{{- if .Values.redis.enabled }}{{- $enabled = append $enabled "redis" }}{{- end -}}
+{{- if .Values.valkey.enabled }}{{- $enabled = append $enabled "valkey" }}{{- end -}}
+
+{{- $selected := "" -}}
+{{- if eq (len $enabled) 1 }}{{- $selected = index $enabled 0 -}}{{- end -}}
+
+{{- toYaml (dict
+    "enabled" $enabled
+    "enabledCount" (len $enabled)
+    "selected" $selected
+    "memcachedCreateConfig" $memcachedCreate
+    "redisCreateConfig" $redisCreate
+    "valkeyCreateConfig" $valkeyCreate
+  ) -}}
+{{- end -}}
+
+{{/* Cache helper: fail-fast if more than one backend is enabled */}}
+{{- define "wordpress.cache.validateSelection" -}}
+{{- $b := (include "wordpress.cache.backends" . | fromYaml) -}}
+{{- if gt ($b.enabledCount | int) 1 -}}
+{{- fail (printf "invalid cache backend configuration: exactly one of memcached.enabled, redis.enabled, valkey.enabled can be true (got %d: %v)" ($b.enabledCount | int) $b.enabled) -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Cache helper: shared metadata for redis/valkey */}}
+{{- define "wordpress.cache.kvMeta" -}}
+{{- $ctx := .ctx -}}
+{{- $backend := .backend -}}
+{{- $meta := dict
+    "backend" $backend
+    "createConfig" false
+    "host" ""
+    "port" 0
+    "cacheKeySalt" ""
+    "cacheKeySaltSecretName" ""
+    "cacheKeySaltSecretKey" "WP_CACHE_KEY_SALT"
+  "authEnabled" false
+    "authExistingSecret" ""
+    "authExistingSecretPasswordKey" ""
+    "authPassword" ""
+    "scaling" (dict
+      "type" "none"
+      "servers" (list)
+      "sentinel" ""
+      "shards" (list)
+      "cluster" (list)
+    )
+  -}}
+
+{{- if eq $backend "redis" -}}
+{{- $_ := set $meta "createConfig" ((include "wordpress.cache.createConfig" (dict "obj" $ctx.Values.redis) | fromYaml).value) -}}
+{{- $_ := set $meta "host" (include "wordpress.redis.fullname" $ctx) -}}
+{{- $_ := set $meta "port" $ctx.Values.redis.service.port -}}
+{{- $_ := set $meta "cacheKeySalt" ($ctx.Values.redis.cacheKeySalt | default "") -}}
+{{- $_ := set $meta "cacheKeySaltSecretName" $ctx.Values.redis.cacheKeySaltSecret.name -}}
+{{- $_ := set $meta "cacheKeySaltSecretKey" ($ctx.Values.redis.cacheKeySaltSecret.key | default "WP_CACHE_KEY_SALT") -}}
+{{- $redisAuthEnabled := (default true $ctx.Values.redis.auth.enabled) -}}
+{{- $redisAuthExistingSecret := ($ctx.Values.redis.auth.existingSecret | default "") -}}
+{{- if and $redisAuthEnabled (eq $redisAuthExistingSecret "") -}}
+{{- $redisAuthExistingSecret = include "wordpress.redis.fullname" $ctx -}}
+{{- end -}}
+{{- $_ := set $meta "authEnabled" $redisAuthEnabled -}}
+{{- $_ := set $meta "authExistingSecret" $redisAuthExistingSecret -}}
+{{- $_ := set $meta "authExistingSecretPasswordKey" ($ctx.Values.redis.auth.existingSecretPasswordKey | default "redis-password") -}}
+{{- if $ctx.Values.redis.auth.password }}{{- $_ := set $meta "authPassword" $ctx.Values.redis.auth.password -}}{{- end -}}
+{{- $_ := set $meta "scaling" ($ctx.Values.redis.scaling | default (dict "type" "none" "servers" (list) "sentinel" "" "shards" (list) "cluster" (list))) -}}
+{{- else if eq $backend "valkey" -}}
+{{- $_ := set $meta "createConfig" ((include "wordpress.cache.createConfig" (dict "obj" $ctx.Values.valkey) | fromYaml).value) -}}
+{{- $_ := set $meta "host" (include "wordpress.valkey.fullname" $ctx) -}}
+{{- $_ := set $meta "port" $ctx.Values.valkey.service.port -}}
+{{- $_ := set $meta "cacheKeySalt" ($ctx.Values.valkey.cacheKeySalt | default "") -}}
+{{- $_ := set $meta "cacheKeySaltSecretName" $ctx.Values.valkey.cacheKeySaltSecret.name -}}
+{{- $_ := set $meta "cacheKeySaltSecretKey" ($ctx.Values.valkey.cacheKeySaltSecret.key | default "WP_CACHE_KEY_SALT") -}}
+{{- $valkeyAuthEnabled := (default true $ctx.Values.valkey.auth.enabled) -}}
+{{- $valkeyAuthExistingSecret := ($ctx.Values.valkey.auth.existingSecret | default "") -}}
+{{- if and $valkeyAuthEnabled (eq $valkeyAuthExistingSecret "") -}}
+{{- $valkeyAuthExistingSecret = include "wordpress.valkey.fullname" $ctx -}}
+{{- end -}}
+{{- $_ := set $meta "authEnabled" $valkeyAuthEnabled -}}
+{{- $_ := set $meta "authExistingSecret" $valkeyAuthExistingSecret -}}
+{{- $_ := set $meta "authExistingSecretPasswordKey" ($ctx.Values.valkey.auth.existingSecretPasswordKey | default "password") -}}
+{{- if $ctx.Values.valkey.auth.password }}{{- $_ := set $meta "authPassword" $ctx.Values.valkey.auth.password -}}{{- end -}}
+{{- $_ := set $meta "scaling" ($ctx.Values.valkey.scaling | default (dict "type" "none" "servers" (list) "sentinel" "" "shards" (list) "cluster" (list))) -}}
+{{- end -}}
+
+{{- toYaml $meta -}}
+{{- end -}}
+
+{{/* Cache helper: resolve cache key salt */}}
+{{- define "wordpress.cache.resolveSalt" -}}
+{{- $ctx := .ctx -}}
+{{- $backend := .backend -}}
+{{- $valueSalt := (.valueSalt | default "") -}}
+{{- $secretName := (.secretName | default "") -}}
+{{- $secretKey := (.secretKey | default "WP_CACHE_KEY_SALT") -}}
+
+{{- $salt := $valueSalt -}}
+{{- if and (eq $salt "") (ne $secretName "") -}}
+{{- $cacheKeySaltSecret := lookup "v1" "Secret" $ctx.Release.Namespace $secretName -}}
+{{- if not $cacheKeySaltSecret -}}
+{{- fail (printf "%s.cacheKeySaltSecret.name '%s' not found in namespace '%s'" $backend $secretName $ctx.Release.Namespace) -}}
+{{- end -}}
+{{- if not (hasKey $cacheKeySaltSecret.data $secretKey) -}}
+{{- fail (printf "%s.cacheKeySaltSecret.key '%s' not found in secret '%s'" $backend $secretKey $secretName) -}}
+{{- end -}}
+{{- $salt = (index $cacheKeySaltSecret.data $secretKey | b64dec) -}}
+{{- end -}}
+
+{{- if eq $salt "" -}}
+{{- $existingSecret := lookup "v1" "Secret" $ctx.Release.Namespace (include "wordpress.fullname" $ctx) -}}
+{{- if and $existingSecret (hasKey $existingSecret.data "WORDPRESS_CACHE_KEY_SALT") -}}
+{{- $salt = (index $existingSecret.data "WORDPRESS_CACHE_KEY_SALT" | b64dec) -}}
+{{- else -}}
+{{- $salt = randAlphaNum 48 -}}
+{{- end -}}
+{{- end -}}
+
+{{- toYaml (dict "salt" $salt) -}}
+{{- end -}}
+
+{{/* Cache helper: resolve auth password from existing secret or explicit value */}}
+{{- define "wordpress.cache.resolveAuthPassword" -}}
+{{- $ctx := .ctx -}}
+{{- $secretName := (.secretName | default "") -}}
+{{- $secretKey := (.secretKey | default "") -}}
+{{- $explicitPassword := (.explicitPassword | default "") -}}
+
+{{- $password := "" -}}
+{{- if $secretName -}}
+{{- $authSecret := lookup "v1" "Secret" $ctx.Release.Namespace $secretName -}}
+{{- if and $authSecret (hasKey $authSecret.data $secretKey) -}}
+{{- $password = (index $authSecret.data $secretKey | b64dec) -}}
+{{- end -}}
+{{- else if $explicitPassword -}}
+{{- $password = $explicitPassword -}}
+{{- end -}}
+
+{{- toYaml (dict "password" $password) -}}
 {{- end -}}

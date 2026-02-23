@@ -1,5 +1,3 @@
-replicaCount: 2
-
 wordpress:
   init:
     enabled: true
@@ -21,6 +19,9 @@ wordpress:
     - name: "cache-enabler"
       activate: true
       autoupdate: true
+    - name: "redis-cache"
+      activate: true
+      autoupdate: true
     - name: "autoptimize"
       activate: true
       autoupdate: true
@@ -35,7 +36,7 @@ wordpress:
       activate: false
       autoupdate: true
     - name: "https://creativethemes.com/downloads/blocksy-child.zip"
-      slug: "blocksy-child" # Required for URL themes: enables autoupdate, sites[] and skip-if-installed
+      slug: "blocksy-child"
       activate: true
       autoupdate: true
   users:
@@ -54,10 +55,7 @@ service:
   nodePorts:
     http: 30111
 storage:
-  storageClass: "longhorn"
   resourcePolicy: "" # Delete PVC on helm uninstall
-  accessModes:
-    - ReadWriteMany
 apache:
   customPhpConfigMap: "wordpress-custom-config"
 metrics:
@@ -75,3 +73,9 @@ mariadb:
     database: "wordpress_db"
     username: "wordpress_db_user"
     existingSecret: "wordpress-test-secret"
+valkey:
+  enabled: true
+  createConfig: true
+  # Optional: Valkey authentication
+  # auth:
+  #   password: "your-valkey-password"
