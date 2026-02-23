@@ -17,7 +17,7 @@ metadata:
   {{- end }}
 spec:
   parentRefs:
-    {{- required "A valid .Values.httpRoute.parentRefs entry is required when httpRoute.enabled is true" .Values.httpRoute.parentRefs | toYaml | nindent 4 }}
+    {{- .Values.httpRoute.parentRefs | toYaml | nindent 4 }}
   {{- with .Values.httpRoute.hostnames }}
   hostnames:
     {{- toYaml . | nindent 4 }}

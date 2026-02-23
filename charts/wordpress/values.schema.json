@@ -996,19 +996,23 @@
             "properties": {
                 "enabled": {
                     "type": "boolean",
-                    "description": "Enable HTTPRoute resource for Gateway API"
+                    "description": "Enable HTTPRoute resource for Gateway API",
+                    "default": false
                 },
                 "annotations": {
                     "type": "object",
-                    "description": "Annotations for HTTPRoute resource"
+                    "description": "Annotations for HTTPRoute resource",
+                    "default": {}
                 },
                 "labels": {
                     "type": "object",
-                    "description": "Additional labels for HTTPRoute resource"
+                    "description": "Additional labels for HTTPRoute resource",
+                    "default": {}
                 },
                 "parentRefs": {
                     "type": "array",
                     "description": "Parent references (REQUIRED when enabled - HTTPRoute will not work without this)",
+                    "default": [],
                     "items": {
                         "type": "object",
                         "properties": {
@@ -1031,6 +1035,7 @@
                 "hostnames": {
                     "type": "array",
                     "description": "Hostnames for the HTTPRoute",
+                    "default": [],
                     "items": {
                         "type": "string"
                     }
@@ -1038,8 +1043,23 @@
                 "rules": {
                     "type": "array",
                     "description": "Custom routing rules (optional, defaults to path prefix /)",
+                    "default": [],
                     "items": {
                         "type": "object"
+                    }
+                }
+            },
+            "if": {
+                "properties": {
+                    "enabled": {
+                        "const": true
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "parentRefs": {
+                        "minItems": 1
                     }
                 }
             }
