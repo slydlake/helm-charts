@@ -728,6 +728,9 @@ affinity: {}
 ## @param topologySpreadConstraints list Topology spread constraints for pods
 topologySpreadConstraints: []
 
+## @param priorityClassName string Priority class name for the pod
+priorityClassName:
+
 ## @section Other parameters
 
 ## @param revisionHistoryLimit int Maximum number of revisions maintained in revision history
