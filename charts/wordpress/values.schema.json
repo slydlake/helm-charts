@@ -1358,6 +1358,13 @@
             "description": "Topology spread constraints for pods",
             "default": []
         },
+        "priorityClassName": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "description": "Priority class name for the pod"
+        },
         "revisionHistoryLimit": {
             "type": [
                 "integer",
