@@ -92,6 +92,18 @@ if [ -n "$MANUAL_CHART" ]; then
 else
   # Auto mode - detect from git diff
   CHANGED_CHARTS=$(git diff --name-only origin/main...HEAD | grep 'charts/.*/values.yaml\|charts/.*/Chart.yaml' | sed 's|/values.yaml||' | sed 's|/Chart.yaml||' | sort -u)
+
+  CHART_COUNT=$(echo "$CHANGED_CHARTS" | sed '/^$/d' | wc -l | tr -d ' ')
+  if [ "$CHART_COUNT" -eq 0 ]; then
+    echo "No changed charts detected; nothing to update"
+    exit 0
+  fi
+
+  if [ "$CHART_COUNT" -ne 1 ]; then
+    echo "Error: expected exactly one changed chart in Renovate PR, found $CHART_COUNT"
+    echo "$CHANGED_CHARTS"
+    exit 1
+  fi
 fi
 
 echo "Changed charts detected:"
@@ -113,7 +125,7 @@ for CHART_DIR in $CHANGED_CHARTS; do
 
   # Extract all dependency changes from commit messages
   # Renovate commits have format: "chore(deps): update <name> to <version>"
-  DEPENDENCY_CHANGES=$(git log --oneline origin/main..HEAD | grep "chore(deps): update" | grep " to " | sed 's/.*chore(deps): update //' | sed 's/ to / /')
+  DEPENDENCY_CHANGES=$(git log --oneline origin/main..HEAD -- "$CHART_DIR" | grep "chore(deps): update" | grep " to " | sed 's/.*chore(deps): update //' | sed 's/ to / /')
 
   # Initialize variables for version detection
   VERSION_INFO=""
@@ -194,6 +206,16 @@ for CHART_DIR in $CHANGED_CHARTS; do
   if [ -z "$DEPENDENCY_CHANGES" ]; then
     # Fallback
     DEPENDENCY_CHANGES="Update dependencies"
+  fi
+
+  # Idempotency guard: skip reruns if metadata was already committed and
+  # no new dependency-related chart file changes happened afterwards.
+  LAST_METADATA_COMMIT=$(git log --grep='^chore: update chart metadata$' --format=%H -n 1 -- "$CHART_YAML" || true)
+  if [ -n "$LAST_METADATA_COMMIT" ]; then
+    if git diff --quiet "$LAST_METADATA_COMMIT"..HEAD -- "$CHART_DIR/values.yaml" "$CHART_YAML"; then
+      echo "No new chart dependency changes since last metadata update; skipping $CHART_DIR"
+      continue
+    fi
   fi
 
   echo "Dependency changes for $CHART_DIR:"

@@ -9,6 +9,9 @@ on:
 jobs:
   update-chart-metadata:
     runs-on: ubuntu-latest
+    concurrency:
+      group: renovate-chart-metadata-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     permissions:
       contents: write
       pull-requests: write
@@ -39,6 +42,30 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
+      - name: Validate one-chart Renovate PR scope
+        if: steps.renovate.outputs.is_renovate == 'true'
+        id: scope
+        run: |
+          git fetch origin main --depth=1
+
+          changed_chart_roots=$(git diff --name-only origin/main...HEAD \
+            | grep '^charts/' \
+            | cut -d/ -f1-2 \
+            | sort -u || true)
+
+          count=$(echo "$changed_chart_roots" | sed '/^$/d' | wc -l | tr -d ' ')
+
+          echo "Changed chart roots:"
+          echo "$changed_chart_roots"
+
+          if [ "$count" -ne 1 ]; then
+            echo "Expected exactly one chart root in Renovate PR, got $count"
+            exit 1
+          fi
+
+          chart_dir=$(echo "$changed_chart_roots" | sed '/^$/d' | head -n1)
+          echo "chart_dir=$chart_dir" >> "$GITHUB_OUTPUT"
+
       - name: Update Chart.yaml metadata
         if: steps.renovate.outputs.is_renovate == 'true'
         env:
@@ -57,7 +84,7 @@ jobs:
             exit 0
           fi
 
-          git add charts/*/Chart.yaml
+          git add "${{ steps.scope.outputs.chart_dir }}/Chart.yaml"
           git commit -m "chore: update chart metadata"
           git push
 

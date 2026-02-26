@@ -282,6 +282,45 @@
             "commitMessageAction": "charts/{{{ replace \"charts/\" \"\" parentDir }}} chore(deps): updates",
             "commitMessageTopic": "",
             "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "helm-values",
+                "custom.regex",
+                "helmv3"
+            ],
+            "matchFileNames": [
+                "charts/wg-easy/**"
+            ],
+            "groupName": "chart/wg-easy",
+            "branchTopic": "chart-wg-easy-{{{depNameSanitized}}}",
+            "description": "Enforce one Renovate PR per chart for wg-easy"
+        },
+        {
+            "matchManagers": [
+                "helm-values",
+                "custom.regex",
+                "helmv3"
+            ],
+            "matchFileNames": [
+                "charts/wireguard/**"
+            ],
+            "groupName": "chart/wireguard",
+            "branchTopic": "chart-wireguard-{{{depNameSanitized}}}",
+            "description": "Enforce one Renovate PR per chart for wireguard"
+        },
+        {
+            "matchManagers": [
+                "helm-values",
+                "custom.regex",
+                "helmv3"
+            ],
+            "matchFileNames": [
+                "charts/wordpress/**"
+            ],
+            "groupName": "chart/wordpress",
+            "branchTopic": "chart-wordpress-{{{depNameSanitized}}}",
+            "description": "Enforce one Renovate PR per chart for wordpress"
         }
     ]
 }
