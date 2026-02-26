@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 3.4.0
+version: 3.5.0
 appVersion: "6.9.1" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,30 +26,8 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: changed
-      description: "Init container: Fixed permissions only apply when using rwx storage. No root access required for init script when using rwo storage."
-    - kind: fixed
-      description: "Init script: Blog title (blogname) update is fixed and now reliably applied via wp option update."
-    - kind: fixed
-      description: "Memcached: Providing now full memcached functionality."
-    - kind: changed
-      description: "Memcached: Automatically inject guarded WP_CACHE define when memcached config is enabled."
     - kind: added
-      description: "Memcached: Add WP_CACHE_KEY_SALT support with precedence: explicit value, existing Secret reference, persisted generated value."
-    - kind: added
-      description: "Memcached: Add memcached.serverGroups for cache-group-specific backend mapping; fallback remains embedded memcached service."
-    - kind: changed
-      description: "Memcached: Harden memcached runtime setup via extension bootstrap init container (memcache + memcached) and staged shared libraries."
-    - kind: changed
-      description: "Memcached: Enforce memcached plugin drop-in mode (object-cache.php) and avoid normal activation conflicts in init workflow."
-    - kind: added
-      description: "Redis: Added Redis as alternative caching option using cloudpirates-redis chart and redis-cache plugin."
-    - kind: added
-      description: "Valkey: Added Valkey (Redis fork) as alternative caching option using cloudpirates-valkey chart and redis-cache plugin."
-    - kind: added
-      description: "Redis/Valkey: Automatically inject WP_REDIS_HOST, WP_REDIS_PORT, and optional WP_REDIS_PASSWORD into wp-config.php."
-    - kind: added
-      description: "Redis/Valkey: Add WP_CACHE_KEY_SALT support with precedence: explicit value, existing Secret reference, persisted generated value."
+      description: "Init container: Added inline custom script property."
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.9.1-php8.3-apache
