@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 3.5.1
+version: 3.5.2
 appVersion: "6.9.1" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -26,8 +26,31 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: added
-      description: "Init container: Added inline custom script property. Thanks to Minding000"
+    - kind: changed
+      description: "Update docker.io/memcached to 572b011"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/146
+    - kind: changed
+      description: "Update docker.io/redis to 8.6.1-trixie"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/146
+    - kind: changed
+      description: "Update docker.io/valkey/valkey to 9.0.3-trixie"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/146
+    - kind: changed
+      description: "Update mariadb to 0.14.3"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/146
+    - kind: changed
+      description: "Update redis to 0.25.1"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/146
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.9.1-php8.3-apache
