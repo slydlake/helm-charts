@@ -531,6 +531,48 @@ service:
   ## @param service.labels object Additional labels for service
   labels: {}
 
+## @section HTTPRoute configuration
+## @descriptionStart
+## HTTPRoute configuration for WordPress.
+## E.g.
+## ```yaml
+## httpRoute:
+##   enabled: true
+##   parentRefs:
+##     - name: my-gateway
+## ```
+## @descriptionEnd
+httpRoute:
+  # @param httpRoute.enabled bool Enable HTTPRoute resource for Gateway API
+  enabled: false
+  # @param httpRoute.annotations object Annotations for HTTPRoute resource
+  annotations: {}
+  # @param httpRoute.labels object Additional labels for HTTPRoute resource
+  labels: {}
+  # @param httpRoute.parentRefs list Parent references (REQUIRED when enabled - HTTPRoute will not work without this)
+  # Example:
+  # parentRefs:
+  #   - name: my-gateway
+  #     namespace: gateway-namespace
+  parentRefs: []
+  # @param httpRoute.hostnames list Hostnames for the HTTPRoute
+  # Example:
+  # hostnames:
+  #   - wordpress.example.com
+  hostnames: []
+  # @param httpRoute.rules list Custom routing rules (optional, defaults to path prefix /)
+  # If not specified, a default rule routing all traffic to the service is used
+  rules: []
+  # Example custom rules:
+  # rules:
+  #   - matches:
+  #       - path:
+  #           type: PathPrefix
+  #           value: /wordpress
+  #     backendRefs:
+  #       - name: my-release-wordpress
+  #         port: 80
+
 ## @section Ingress configuration
 ## @descriptionStart
 ## Ingress configuration for WordPress.
@@ -729,6 +771,9 @@ affinity: {}
 
 ## @param topologySpreadConstraints list Topology spread constraints for pods
 topologySpreadConstraints: []
+
+## @param priorityClassName string Priority class name for the pod
+priorityClassName:
 
 ## @section Other parameters
 
