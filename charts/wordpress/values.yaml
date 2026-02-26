@@ -207,6 +207,8 @@ wordpress:
       ## ```
       sites: []
 
+    ## @section Custom init script
+    customInitScript: ""
     ## @section Custom init commands
     customInitConfigMap:
       ## @param wordpress.init.customInitConfigMap.name string Name of ConfigMap with custom init commands

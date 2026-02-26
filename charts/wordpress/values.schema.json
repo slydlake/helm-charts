@@ -296,6 +296,10 @@
                             "description": "Enable debug mode in Job setter",
                             "default": false
                         },
+                        "customInitScript": {
+                            "type": "string",
+                            "description": "Custom init commands"
+                        },
                         "customInitConfigMap": {
                             "type": "object",
                             "description": "ConfigMap for custom init commands",
