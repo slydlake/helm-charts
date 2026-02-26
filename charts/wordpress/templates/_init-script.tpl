@@ -2228,9 +2228,8 @@ fi
 # ============================================================================
 # Custom Init Commands
 # ============================================================================
+{{ .Values.wordpress.init.customInitScript }}
 {{- if .Values.wordpress.init.customInitConfigMap.name }}
-
-
 echo "Running custom init commands from ConfigMap..."
 if [ -f /tmp/custom-init-commands/{{ .Values.wordpress.init.customInitConfigMap.key | default "commands.sh" }} ]; then
   # Execute the custom commands script (already executable via defaultMode: 0755)

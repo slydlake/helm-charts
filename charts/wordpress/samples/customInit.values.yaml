@@ -6,6 +6,8 @@ wordpress:
   url: "https://example.com"
   init:
     enabled: true
+    customInitScript: |
+      wp option update timezone_string "Europe/Berlin"
     # Reference the ConfigMap with custom init commands
     customInitConfigMap:
       name: "wordpress-custom-init"
