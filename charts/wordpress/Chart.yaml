@@ -40,9 +40,9 @@ annotations:
     - name: memcached
       image: docker.io/memcached:1.6.40
     - name: redis
-      image: docker.io/redis:8.6.0-trixie
+      image: docker.io/redis:8.6.1-trixie
     - name: valkey
-      image: docker.io/valkey/valkey:9.0.2-trixie
+      image: docker.io/valkey/valkey:9.0.3-trixie
 dependencies:
   - condition: memcached.enabled
     name: memcached
@@ -51,7 +51,7 @@ dependencies:
   - condition: redis.enabled
     name: redis
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.23.0
+    version: 0.25.1
   - condition: valkey.enabled
     name: valkey
     repository: oci://registry-1.docker.io/cloudpirates
@@ -59,7 +59,7 @@ dependencies:
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.14.1
+    version: 0.14.3
 keywords:
   - wordpress
   - blog

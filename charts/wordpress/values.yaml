@@ -1145,7 +1145,7 @@ memcached:
     ## @param memcached.image.repository string Memcached image repository
     repository: docker.io/memcached
     ## @param memcached.image.tag string Memcached image tag
-    tag: "1.6.40@sha256:cc523a19da58864f1e6ddefab6df7b807f9f82252e0b1cc71260967a34ffc416"
+    tag: "1.6.40@sha256:572b011ce33954ee809066d8cecbeb3ec98912109ee3be3663a3197425fd81ac"
     ## @param memcached.image.pullPolicy string Memcached image pull policy
     pullPolicy: IfNotPresent
 
@@ -1250,7 +1250,7 @@ redis:
     ## @param redis.image.repository string Redis image repository
     repository: docker.io/redis
     ## @param redis.image.tag string Redis image tag
-    tag: "8.6.0-trixie"
+    tag: "8.6.1-trixie"
     ## @param redis.image.pullPolicy string Redis image pull policy
     pullPolicy: IfNotPresent
 
@@ -1360,7 +1360,7 @@ valkey:
     ## @param valkey.image.repository string Valkey image repository
     repository: docker.io/valkey/valkey
     ## @param valkey.image.tag string Valkey image tag
-    tag: "9.0.2-trixie"
+    tag: "9.0.3-trixie"
     ## @param valkey.image.pullPolicy string Valkey image pull policy
     pullPolicy: IfNotPresent
 
