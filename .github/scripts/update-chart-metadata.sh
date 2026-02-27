@@ -148,7 +148,56 @@ for CHART_DIR in $CHANGED_CHARTS; do
   fi
 
   if [ -z "$DEPENDENCY_CHANGES" ]; then
-    # Fallback
+    # Try to extract from Chart.lock diff (reliable for helmv3 subchart updates)
+    LOCK_FILE="$CHART_DIR/Chart.lock"
+    if [ -f "$LOCK_FILE" ]; then
+      echo "Trying to extract dependency changes from Chart.lock diff..."
+      LOCK_CHANGES=$(python3 - "$LOCK_FILE" <<'LOCK_PYTHON'
+import sys, subprocess, re
+
+lock_file = sys.argv[1]
+
+# Get lock file from main
+result = subprocess.run(['git', 'show', f'origin/main:{lock_file}'], capture_output=True, text=True)
+old_lock = result.stdout
+
+# Read current lock file
+with open(lock_file) as f:
+    new_lock = f.read()
+
+def parse_lock(content):
+    packages = {}
+    current_name = None
+    for line in content.split('\n'):
+        name_match = re.match(r'^- name: (.+)', line)
+        if name_match:
+            current_name = name_match.group(1).strip()
+        ver_match = re.match(r'^\s+version: (.+)', line)
+        if ver_match and current_name:
+            packages[current_name] = ver_match.group(1).strip()
+    return packages
+
+old_packages = parse_lock(old_lock)
+new_packages = parse_lock(new_lock)
+
+changes = []
+for name, new_ver in new_packages.items():
+    old_ver = old_packages.get(name)
+    if old_ver and old_ver != new_ver:
+        changes.append(f"{name} {new_ver}")
+
+print('\n'.join(changes))
+LOCK_PYTHON
+      )
+      if [ -n "$LOCK_CHANGES" ]; then
+        DEPENDENCY_CHANGES="$LOCK_CHANGES"
+        echo "Extracted from Chart.lock: $DEPENDENCY_CHANGES"
+      fi
+    fi
+  fi
+
+  if [ -z "$DEPENDENCY_CHANGES" ]; then
+    # Last resort fallback
     DEPENDENCY_CHANGES="Update dependencies"
   fi
 
@@ -332,14 +381,16 @@ changelog_entries = []
 for change in changes_list:
     if change:
         parts = change.split()
-        if len(parts) >= 2:
+        # Only parse as "name version" if the last part looks like a version number (starts with digit)
+        if len(parts) >= 2 and re.match(r'^\d+[.\-]', parts[-1]):
             version = parts[-1]
             name_part = ' '.join(parts[:-1])
             # Entferne Markdown-Links und nimm den ersten Wort-Teil als Name
             name = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', name_part).split()[0]
             description = f"Update {name} to {version}"
         else:
-            description = f"Update {change}"
+            # Use the string as-is (e.g. fallback "Update dependencies")
+            description = change
 
         changelog_entries.append(f"""    - kind: changed
       description: "{description}"
