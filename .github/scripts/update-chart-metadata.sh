@@ -237,21 +237,59 @@ for CHART_DIR in $CHANGED_CHARTS; do
     done <<< "$VERSION_INFO"
   else
     # Try to extract update type from PR labels (passed via PR_LABELS env var)
-    # or from PR title (Renovate format)
+    # Use precise comma-delimited matching to avoid substring false positives
     if [ -n "$PR_LABELS" ]; then
       echo "Checking PR labels: $PR_LABELS"
-      if echo "$PR_LABELS" | grep -qi "major"; then
-        HIGHEST_BUMP="major"
-      elif echo "$PR_LABELS" | grep -qi "minor"; then
-        HIGHEST_BUMP="minor"
+      if echo ",$PR_LABELS," | grep -qi ",major,"; then
+        RAW_UPDATE_TYPE="major"
+      elif echo ",$PR_LABELS," | grep -qi ",minor,"; then
+        RAW_UPDATE_TYPE="minor"
+      elif echo ",$PR_LABELS," | grep -qi ",digest,"; then
+        RAW_UPDATE_TYPE="digest"
+      else
+        RAW_UPDATE_TYPE="patch"
+      fi
+      echo "Raw update type from Renovate labels: $RAW_UPDATE_TYPE"
+
+      # Detect helmv3 subchart updates via the 'helm-chart' label
+      IS_SUBCHART_UPDATE=false
+      if echo ",$PR_LABELS," | grep -qi ",helm-chart,"; then
+        IS_SUBCHART_UPDATE=true
+        echo "Detected helmv3 subchart update (helm-chart label present)"
+      fi
+
+      # Apply bump mapping based on subchart vs. direct-dep rule
+      if [ "$IS_SUBCHART_UPDATE" = true ]; then
+        # Helm subchart: major -> minor, minor/patch/digest -> patch
+        case "$RAW_UPDATE_TYPE" in
+          major)
+            HIGHEST_BUMP="minor"
+            ;;
+          *)
+            HIGHEST_BUMP="patch"
+            ;;
+        esac
+        echo "Subchart update: $RAW_UPDATE_TYPE -> chart bump: $HIGHEST_BUMP"
+      else
+        # Direct dep: update type maps directly
+        case "$RAW_UPDATE_TYPE" in
+          major)
+            HIGHEST_BUMP="major"
+            ;;
+          minor)
+            [ "$HIGHEST_BUMP" != "major" ] && HIGHEST_BUMP="minor"
+            ;;
+          # patch/digest remain as default patch
+        esac
+        echo "Direct dep update: $RAW_UPDATE_TYPE -> chart bump: $HIGHEST_BUMP"
       fi
     fi
 
-    # Fallback to PR title check
-    if [ "$HIGHEST_BUMP" = "patch" ]; then
-      if echo "$PR_TITLE" | grep -qi "major"; then
+    # Fallback to PR title check only if no labels were available
+    if [ "$HIGHEST_BUMP" = "patch" ] && [ -z "$PR_LABELS" ]; then
+      if echo "$PR_TITLE" | grep -qiE '\bmajor\b'; then
         HIGHEST_BUMP="major"
-      elif echo "$PR_TITLE" | grep -qi "minor"; then
+      elif echo "$PR_TITLE" | grep -qiE '\bminor\b'; then
         HIGHEST_BUMP="minor"
       fi
     fi
