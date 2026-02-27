@@ -142,62 +142,6 @@ for CHART_DIR in $CHANGED_CHARTS; do
       if [ -n "$PR_COMMITS" ]; then
         DEPENDENCY_CHANGES=$(echo "$PR_COMMITS" | grep "chore(deps): update" | grep " to " | sed 's/.*chore(deps): update //' | sed 's/ to / /')
       fi
-
-      # If still no changes, try parsing PR body for the update table
-      if [ -z "$DEPENDENCY_CHANGES" ]; then
-        echo "Trying to parse PR body for updates..."
-        PR_BODY=$(gh pr view "$PR_NUMBER" --json body --jq '.body' || echo "")
-        echo "PR_BODY: $PR_BODY"
-        if [ -n "$PR_BODY" ]; then
-          # Extract lines starting with | and containing package info
-          TABLE_LINES=$(echo "$PR_BODY" | grep '^|' | grep -v 'Package.*Update.*Change' | grep -v '^---$' | tail -n +2)  # Skip header and separator
-          echo "TABLE_LINES from body: $TABLE_LINES"
-          if [ -n "$TABLE_LINES" ]; then
-            # Extract: package_name old_version new_version update_type
-            VERSION_INFO=$(echo "$TABLE_LINES" | awk -F'|' '{
-              gsub(/^[ \t]+|[ \t]+$/, "", $2);  # Package name
-              gsub(/^[ \t]+|[ \t]+$/, "", $3);  # Update type (major/minor/patch)
-              gsub(/^[ \t]+|[ \t]+$/, "", $4);  # Change (old -> new)
-              gsub(/→/, "->", $4);  # Normalize Unicode arrow to ASCII
-              split($4, versions, " -> ");
-              old_version = versions[1];
-              new_version = versions[2];
-              gsub(/`/, "", old_version);
-              gsub(/`/, "", new_version);
-              update_type = tolower($3);
-              print $2 "|" old_version "|" new_version "|" update_type
-            }')
-            DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); gsub(/→/, "->", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
-          fi
-        fi
-
-        # If still no changes, try the first comment
-        if [ -z "$DEPENDENCY_CHANGES" ]; then
-          echo "Trying to parse first PR comment for updates..."
-          FIRST_COMMENT=$(gh pr view "$PR_NUMBER" --json comments --jq '.comments[0].body' || echo "")
-          echo "FIRST_COMMENT: $FIRST_COMMENT"
-          if [ -n "$FIRST_COMMENT" ]; then
-            TABLE_LINES=$(echo "$FIRST_COMMENT" | grep '^|' | grep -v 'Package.*Update.*Change' | grep -v '^---$' | tail -n +2)
-            echo "TABLE_LINES from comment: $TABLE_LINES"
-            if [ -n "$TABLE_LINES" ]; then
-              VERSION_INFO=$(echo "$TABLE_LINES" | awk -F'|' '{
-                gsub(/^[ \t]+|[ \t]+$/, "", $2);
-                gsub(/^[ \t]+|[ \t]+$/, "", $3);
-                gsub(/^[ \t]+|[ \t]+$/, "", $4);
-                gsub(/→/, "->", $4);  # Normalize Unicode arrow to ASCII
-                split($4, versions, " -> ");
-                old_version = versions[1];
-                new_version = versions[2];
-                gsub(/`/, "", old_version);
-                gsub(/`/, "", new_version);
-                update_type = tolower($3);
-                print $2 "|" old_version "|" new_version "|" update_type
-              }')
-              DEPENDENCY_CHANGES=$(echo "$TABLE_LINES" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); gsub(/→/, "->", $4); split($4, versions, " -> "); new_version = versions[2]; gsub(/`/, "", new_version); print $2 " " new_version}')
-            fi
-          fi
-        fi
-      fi
     else
       echo "gh CLI not available"
     fi
@@ -293,21 +237,59 @@ for CHART_DIR in $CHANGED_CHARTS; do
     done <<< "$VERSION_INFO"
   else
     # Try to extract update type from PR labels (passed via PR_LABELS env var)
-    # or from PR title (Renovate format)
+    # Use precise comma-delimited matching to avoid substring false positives
     if [ -n "$PR_LABELS" ]; then
       echo "Checking PR labels: $PR_LABELS"
-      if echo "$PR_LABELS" | grep -qi "major"; then
-        HIGHEST_BUMP="major"
-      elif echo "$PR_LABELS" | grep -qi "minor"; then
-        HIGHEST_BUMP="minor"
+      if echo ",$PR_LABELS," | grep -qi ",major,"; then
+        RAW_UPDATE_TYPE="major"
+      elif echo ",$PR_LABELS," | grep -qi ",minor,"; then
+        RAW_UPDATE_TYPE="minor"
+      elif echo ",$PR_LABELS," | grep -qi ",digest,"; then
+        RAW_UPDATE_TYPE="digest"
+      else
+        RAW_UPDATE_TYPE="patch"
+      fi
+      echo "Raw update type from Renovate labels: $RAW_UPDATE_TYPE"
+
+      # Detect helmv3 subchart updates via the 'helm-chart' label
+      IS_SUBCHART_UPDATE=false
+      if echo ",$PR_LABELS," | grep -qi ",helm-chart,"; then
+        IS_SUBCHART_UPDATE=true
+        echo "Detected helmv3 subchart update (helm-chart label present)"
+      fi
+
+      # Apply bump mapping based on subchart vs. direct-dep rule
+      if [ "$IS_SUBCHART_UPDATE" = true ]; then
+        # Helm subchart: major -> minor, minor/patch/digest -> patch
+        case "$RAW_UPDATE_TYPE" in
+          major)
+            HIGHEST_BUMP="minor"
+            ;;
+          *)
+            HIGHEST_BUMP="patch"
+            ;;
+        esac
+        echo "Subchart update: $RAW_UPDATE_TYPE -> chart bump: $HIGHEST_BUMP"
+      else
+        # Direct dep: update type maps directly
+        case "$RAW_UPDATE_TYPE" in
+          major)
+            HIGHEST_BUMP="major"
+            ;;
+          minor)
+            [ "$HIGHEST_BUMP" != "major" ] && HIGHEST_BUMP="minor"
+            ;;
+          # patch/digest remain as default patch
+        esac
+        echo "Direct dep update: $RAW_UPDATE_TYPE -> chart bump: $HIGHEST_BUMP"
       fi
     fi
 
-    # Fallback to PR title check
-    if [ "$HIGHEST_BUMP" = "patch" ]; then
-      if echo "$PR_TITLE" | grep -qi "major"; then
+    # Fallback to PR title check only if no labels were available
+    if [ "$HIGHEST_BUMP" = "patch" ] && [ -z "$PR_LABELS" ]; then
+      if echo "$PR_TITLE" | grep -qiE '\bmajor\b'; then
         HIGHEST_BUMP="major"
-      elif echo "$PR_TITLE" | grep -qi "minor"; then
+      elif echo "$PR_TITLE" | grep -qiE '\bminor\b'; then
         HIGHEST_BUMP="minor"
       fi
     fi
