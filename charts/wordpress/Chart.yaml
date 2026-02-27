@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 3.6.0
+version: 3.6.1
 appVersion: "6.9.1" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -27,30 +27,10 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "Update docker.io/memcached to 572b011"
+      description: "Update Update to dependencies"
       links:
         - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/146
-    - kind: changed
-      description: "Update docker.io/redis to 8.6.1-trixie"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/146
-    - kind: changed
-      description: "Update docker.io/valkey/valkey to 9.0.3-trixie"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/146
-    - kind: changed
-      description: "Update mariadb to 0.14.3"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/146
-    - kind: changed
-      description: "Update redis to 0.25.1"
-      links:
-        - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/146
+          url: https://github.com/slydlake/helm-charts/pull/153
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.9.1-php8.3-apache
@@ -70,11 +50,11 @@ dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.10.0
+    version: 0.10.1
   - condition: redis.enabled
     name: redis
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.25.1
+    version: 0.25.2
   - condition: valkey.enabled
     name: valkey
     repository: oci://registry-1.docker.io/cloudpirates
