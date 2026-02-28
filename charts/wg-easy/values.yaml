@@ -89,7 +89,7 @@ initContainers: []
 sidecars: []
 
 ## @param runtimeclass that the wireguard pod will have
-runtimeClassName: {}
+runtimeClassName: ""
 
 ## @section Storage configuration
 storage:
