@@ -760,6 +760,9 @@ spec:
               mountPath: /etc/apache2/sites-enabled/000-default.conf
               subPath: 000-default.conf
             - name: {{ include "wordpress.fullname" . }}-configfiles
+              mountPath: /etc/apache2/conf-enabled/00-servername-global.conf
+              subPath: 00-servername-global.conf
+            - name: {{ include "wordpress.fullname" . }}-configfiles
               mountPath: /etc/apache2/ports.conf
               subPath: ports.conf
             - name: {{ include "wordpress.fullname" . }}-configfiles
@@ -848,6 +851,8 @@ spec:
           - configMap:
               name: {{ include "wordpress.fullname" . }}-configfiles
               items:
+                - key: 00-servername-global.conf
+                  path: 00-servername-global.conf
                 {{- if (not .Values.apache.customDefaultSiteConfigMap) }}
                 - key: 000-default.conf
                   path: 000-default.conf

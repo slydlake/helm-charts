@@ -714,6 +714,11 @@
         "apache": {
             "type": "object",
             "properties": {
+                "serverName": {
+                    "type": "string",
+                    "description": "Apache ServerName (defaults to host from wordpress.url when empty)",
+                    "default": ""
+                },
                 "customDefaultSiteConfig": {
                     "type": "string",
                     "description": "Custom Apache default site config"

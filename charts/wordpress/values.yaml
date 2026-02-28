@@ -408,6 +408,9 @@ wordpress:
 ## ```
 ## @descriptionEnd
 apache:
+  ## @param apache.serverName string Apache ServerName (defaults to host from wordpress.url when empty)
+  serverName: ""
+
   ## @param apache.customDefaultSiteConfig string Custom Apache default site config (000-default.conf)
   customDefaultSiteConfig: ""
 
