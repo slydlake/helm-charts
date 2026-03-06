@@ -167,8 +167,7 @@
         {
             "matchManagers": [
                 "helm-values",
-                "custom.regex",
-                "helmv3"
+                "custom.regex"
             ],
             "matchPackagePatterns": [
                 "(^|/)wordpress$",
@@ -195,6 +194,22 @@
         },
         {
             "matchManagers": [
+                "helmv3"
+            ],
+            "matchFileNames": [
+                "charts/wordpress/**"
+            ],
+            "matchUpdateTypes": [
+                "minor"
+            ],
+            "addLabels": [
+                "minor"
+            ],
+            "automerge": false,
+            "description": "Do not auto-merge wordpress helmv3 minor updates"
+        },
+        {
+            "matchManagers": [
                 "helm-values",
                 "custom.regex"
             ],
@@ -211,6 +226,32 @@
             "commitMessageAction": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}} chore(deps): updates",
             "commitMessageTopic": "",
             "commitMessageExtra": ""
+        },
+        {
+            "matchManagers": [
+                "helmv3"
+            ],
+            "matchFileNames": [
+                "charts/wordpress/**"
+            ],
+            "matchUpdateTypes": [
+                "patch",
+                "digest"
+            ],
+            "labels": [
+                "dependencies",
+                "renovate",
+                "helm-chart"
+            ],
+            "addLabels": [
+                "automerge",
+                "{{#if isPatch}}patch{{/if}}{{#if isDigest}}digest{{/if}}"
+            ],
+            "automerge": true,
+            "automergeType": "pr",
+            "groupName": "chart/wordpress",
+            "branchTopic": "chart-wordpress-{{{depNameSanitized}}}",
+            "description": "Auto-merge only wordpress helmv3 patch and digest updates"
         },
         {
             "matchManagers": [
@@ -260,6 +301,10 @@
         {
             "matchManagers": [
                 "helmv3"
+            ],
+            "matchFileNames": [
+                "charts/wg-easy/**",
+                "charts/wireguard/**"
             ],
             "matchUpdateTypes": [
                 "minor",

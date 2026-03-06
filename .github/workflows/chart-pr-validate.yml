@@ -1,0 +1,60 @@
+name: Chart Validate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "charts/**"
+      - ".github/workflows/chart-pr-validate.yml"
+
+jobs:
+  chart-validate:
+    name: chart-validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Validate changed charts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin "${{ github.base_ref }}" --depth=1
+
+          mapfile -t chart_dirs < <(
+            git diff --name-only "origin/${{ github.base_ref }}"...HEAD \
+              | awk -F/ '/^charts\/[^/]+\// && $3 != "charts" { print $1 "/" $2 }' \
+              | sort -u
+          )
+
+          if [ "${#chart_dirs[@]}" -eq 0 ]; then
+            echo "No chart changes detected"
+            exit 0
+          fi
+
+          printf 'Validating %s\n' "${chart_dirs[@]}"
+
+          for chart_dir in "${chart_dirs[@]}"; do
+            echo "::group::${chart_dir}"
+
+            helm dependency build "${chart_dir}"
+
+            if [ -f "${chart_dir}/linter_values.yaml" ]; then
+              helm lint "${chart_dir}" -f "${chart_dir}/linter_values.yaml"
+              helm template smoke "${chart_dir}" -f "${chart_dir}/linter_values.yaml" >/dev/null
+            else
+              helm lint "${chart_dir}"
+              helm template smoke "${chart_dir}" >/dev/null
+            fi
+
+            echo "::endgroup::"
+          done

@@ -123,7 +123,7 @@ jobs:
               });
             }
 
-      - name: Enable GitHub auto-merge for Renovate PRs with automerge label
+      - name: Enable and verify GitHub auto-merge for Renovate PRs with automerge label
         if: steps.renovate.outputs.is_renovate == 'true'
         uses: actions/github-script@v7
         env:
@@ -131,59 +131,40 @@ jobs:
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
         with:
           script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pull_number = context.issue.number;
             const labels = (process.env.PR_LABELS || '').split(',').map(l => l.trim()).filter(Boolean);
             const hasAutomergeLabel = labels.includes('automerge');
             core.info(`PR labels: ${labels.join(',')}`);
 
-            // Fetch current PR data to check if auto_merge is already configured
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number
-            });
-            const prAutoMerge = pr.data.auto_merge;
+            const current = await github.rest.pulls.get({ owner, repo, pull_number });
 
-            if (prAutoMerge) {
-              core.info(`PR already has auto_merge configured (merge method: ${prAutoMerge.merge_method || 'unknown'}), skipping enablePullRequestAutoMerge`);
+            if (current.data.auto_merge) {
+              core.info(`PR already has auto_merge configured (merge method: ${current.data.auto_merge.merge_method || 'unknown'})`);
               return;
             }
 
             if (!hasAutomergeLabel) {
-              core.info('automerge label not present and PR.auto_merge not set, skipping enablePullRequestAutoMerge');
+              core.info('automerge label not present; skipping auto-merge enablement');
               return;
             }
 
-            async function enableAutoMergeREST(){
-              return await github.rest.pulls.enableAutoMerge({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.issue.number,
+            let lastError = null;
+
+            try {
+              await github.rest.pulls.enableAutoMerge({
+                owner,
+                repo,
+                pull_number,
                 merge_method: 'squash'
               });
-            }
+              core.info('Auto-merge enabled via REST');
+            } catch (restErr) {
+              lastError = restErr;
+              core.warning(`REST enableAutoMerge failed: ${restErr.message}`);
 
-            // Try REST API first (more robust for token/cors issues), fallback to GraphQL on failure
-            try {
-              let attempts = 0;
-              let success = false;
-              while (attempts < 2 && !success) {
-                attempts++;
-                try {
-                  const resp = await enableAutoMergeREST();
-                  core.info(`Auto-merge enabled via REST for PR: ${JSON.stringify(resp.data)}`);
-                  success = true;
-                  break;
-                } catch (restErr) {
-                  core.warning(`REST enableAutoMerge attempt ${attempts} failed: ${restErr.message}`);
-                  if (attempts < 2) {
-                    core.info('Retrying REST enableAutoMerge...');
-                    await new Promise(r => setTimeout(r, 2000));
-                  }
-                }
-              }
-
-              if (!success) {
-                core.info('REST attempts failed; trying GraphQL as fallback');
+              try {
                 const result = await github.graphql(
                   `mutation($prId:ID!){
                     enablePullRequestAutoMerge(input:{pullRequestId:$prId, mergeMethod:SQUASH}){
@@ -193,15 +174,31 @@ jobs:
                   { prId: process.env.PR_ID }
                 );
                 core.info(`Auto-merge enabled via GraphQL for PR: ${JSON.stringify(result)}`);
+                lastError = null;
+              } catch (graphqlErr) {
+                lastError = graphqlErr;
+                core.warning(`GraphQL enablePullRequestAutoMerge failed: ${graphqlErr.message}`);
               }
-            } catch (err) {
-              core.warning(`Could not enable auto-merge: ${err.message}`);
-              core.warning('Ensure the GITHUB_TOKEN has appropriate permissions to enable auto-merge.');
             }
 
+            const refreshed = await github.rest.pulls.get({ owner, repo, pull_number });
+
+            if (!refreshed.data.auto_merge) {
+              const suffix = lastError ? ` Last error: ${lastError.message}` : '';
+              core.setFailed(`auto_merge is still null after enablement attempt.${suffix}`);
+              return;
+            }
+
+            core.info(`Verified auto_merge with merge method: ${refreshed.data.auto_merge.merge_method || 'unknown'}`);
+
       - name: Get head SHA for status posting
-        if: steps.renovate.outputs.is_renovate == 'true'
-        run: echo "HEAD_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+        if: always() && steps.renovate.outputs.is_renovate == 'true'
+        run: |
+          if git rev-parse HEAD >/dev/null 2>&1; then
+            echo "HEAD_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          else
+            echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          fi
 
       - name: Post success status to commit
         if: steps.renovate.outputs.is_renovate == 'true' && success()
