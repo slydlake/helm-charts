@@ -14,6 +14,7 @@ jobs:
       cancel-in-progress: true
     permissions:
       contents: write
+      issues: write
       pull-requests: write
       statuses: write
 
@@ -65,8 +66,67 @@ jobs:
 
             core.info(`PR branch state is ${state}`);
 
-      - name: Checkout PR branch
+      - name: Detect empty Renovate PR diff
         if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind'
+        id: pr_diff
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pull_number = context.issue.number;
+
+            const pr = await github.rest.pulls.get({ owner, repo, pull_number });
+            const changedFiles = pr.data.changed_files || 0;
+            const emptyDiff = changedFiles === 0;
+
+            core.setOutput('changed_files', String(changedFiles));
+            core.setOutput('is_empty_diff', emptyDiff ? 'true' : 'false');
+
+            if (emptyDiff) {
+              core.warning('Renovate PR has no changed files relative to the base branch');
+              return;
+            }
+
+            core.info(`Renovate PR changed_files=${changedFiles}`);
+
+      - name: Close empty Renovate PR
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.pr_diff.outputs.is_empty_diff == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pull_number = context.issue.number;
+            const body = 'This Renovate PR no longer changes any files relative to main. Its branch history is still ahead of main, but the current tree matches main, so this is a no-op duplicate PR. Closing it to keep the automerge queue clean.';
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: pull_number,
+              per_page: 100,
+            });
+
+            if (!comments.some(comment => comment.user.login === 'github-actions[bot]' && comment.body === body)) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pull_number,
+                body,
+              });
+            }
+
+            await github.rest.pulls.update({
+              owner,
+              repo,
+              pull_number,
+              state: 'closed',
+            });
+
+            core.info(`Closed empty Renovate PR #${pull_number}`);
+
+      - name: Checkout PR branch
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.pr_diff.outputs.is_empty_diff != 'true'
         uses: actions/checkout@v4
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
@@ -75,13 +135,13 @@ jobs:
           fetch-depth: 0
 
       - name: Configure Git
-        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind'
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.pr_diff.outputs.is_empty_diff != 'true'
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Validate one-chart Renovate PR scope
-        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind'
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.pr_diff.outputs.is_empty_diff != 'true'
         id: scope
         run: |
           git fetch origin main --depth=1
@@ -116,7 +176,7 @@ jobs:
           echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - name: Update Chart.yaml metadata
-        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.scope.outputs.skip != 'true'
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.pr_diff.outputs.is_empty_diff != 'true' && steps.scope.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
@@ -129,7 +189,7 @@ jobs:
 
       - name: Commit and push changes
         id: commit
-        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.scope.outputs.skip != 'true'
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.pr_diff.outputs.is_empty_diff != 'true' && steps.scope.outputs.skip != 'true'
         run: |
           if git diff --quiet; then
             echo "No changes to commit"
@@ -192,7 +252,7 @@ jobs:
             }
 
       - name: Enable and verify GitHub auto-merge for Renovate PRs with automerge label
-        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind'
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.pr_diff.outputs.is_empty_diff != 'true'
         uses: actions/github-script@v7
         env:
           PR_ID: ${{ github.event.pull_request.node_id }}
@@ -276,14 +336,18 @@ jobs:
         env:
           HEAD_SHA: ${{ env.HEAD_SHA }}
           BRANCH_STATE: ${{ steps.branch_state.outputs.mergeable_state }}
+          EMPTY_DIFF: ${{ steps.pr_diff.outputs.is_empty_diff }}
         with:
           script: |
             const branchState = process.env.BRANCH_STATE || 'unknown';
+            const emptyDiff = process.env.EMPTY_DIFF === 'true';
             const sha = process.env.HEAD_SHA || process.env.GITHUB_SHA;
             const state = branchState === 'behind' ? 'failure' : 'success';
             const description = branchState === 'behind'
               ? 'PR branch is behind main'
-              : 'PR branch is current enough for strict checks';
+              : emptyDiff
+                ? 'PR diff is empty relative to main'
+                : 'PR branch is current enough for strict checks';
 
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
@@ -300,10 +364,12 @@ jobs:
         uses: actions/github-script@v7
         env:
           JOB_STATUS: ${{ job.status }}
+          EMPTY_DIFF: ${{ steps.pr_diff.outputs.is_empty_diff }}
         with:
           script: |
             const sha = process.env.HEAD_SHA || process.env.GITHUB_SHA;
             const success = process.env.JOB_STATUS === 'success';
+            const emptyDiff = process.env.EMPTY_DIFF === 'true';
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -311,5 +377,9 @@ jobs:
               state: success ? 'success' : 'failure',
               context: 'update-chart-metadata',
               target_url: `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`,
-              description: success ? 'Chart metadata updated' : 'Chart metadata update failed'
+              description: emptyDiff
+                ? 'No-op Renovate PR closed (empty diff)'
+                : success
+                  ? 'Chart metadata updated'
+                  : 'Chart metadata update failed'
             });

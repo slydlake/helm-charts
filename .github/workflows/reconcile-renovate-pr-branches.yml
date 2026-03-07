@@ -17,7 +17,7 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - name: Update behind automerge PRs
+      - name: Reconcile automerge PRs
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -25,7 +25,27 @@ jobs:
         run: |
           set -euo pipefail
 
-          comment_body='Auto-merge is configured, but this Renovate PR is behind main and could not be updated automatically. Recreate or rebase the branch before retrying.'
+          behind_comment_body='Auto-merge is configured, but this Renovate PR is behind main and could not be updated automatically. Recreate or rebase the branch before retrying.'
+          empty_diff_comment_body='This Renovate PR no longer changes any files relative to main. Its branch history is still ahead of main, but the current tree matches main, so this is a no-op duplicate PR. Closing it to keep the automerge queue clean.'
+
+          post_comment_once() {
+            local pr="$1"
+            local body="$2"
+            local existing_comment
+
+            existing_comment=$(gh api "/repos/$REPO/issues/$pr/comments" --paginate \
+              --jq '.[] | select(.user.login == "github-actions[bot]") | .body' \
+              | grep -F -x "$body" \
+              | head -n1 || true)
+
+            if [[ -n "$existing_comment" ]]; then
+              echo "Comment already exists on PR #$pr"
+              return 0
+            fi
+
+            gh api --method POST "/repos/$REPO/issues/$pr/comments" -f body="$body" >/dev/null
+          }
+
           prs=$(gh pr list --repo "$REPO" --state open --label automerge \
             --json number,isDraft --jq '.[] | select(.isDraft == false) | .number')
 
@@ -35,14 +55,33 @@ jobs:
           fi
 
           for pr in $prs; do
-            read -r actor state head_sha < <(
+            read -r actor state head_sha changed_files < <(
               gh api "/repos/$REPO/pulls/$pr" \
-                --jq '[.user.login, (.mergeable_state // "unknown"), .head.sha] | @tsv'
+                --jq '[.user.login, (.mergeable_state // "unknown"), .head.sha, (.changed_files // 0)] | @tsv'
             )
 
-            echo "PR #$pr actor=$actor mergeable_state=$state head_sha=$head_sha"
+            echo "PR #$pr actor=$actor mergeable_state=$state head_sha=$head_sha changed_files=$changed_files"
 
-            if [[ "$actor" != 'renovate[bot]' || "$state" != 'behind' ]]; then
+            if [[ "$actor" != 'renovate[bot]' ]]; then
+              continue
+            fi
+
+            if [[ "$changed_files" == '0' ]]; then
+              if post_comment_once "$pr" "$empty_diff_comment_body"; then
+                echo "Posted or confirmed empty-diff comment on PR #$pr"
+              else
+                echo "Warning: could not post empty-diff comment on PR #$pr"
+              fi
+
+              if gh api --method PATCH "/repos/$REPO/pulls/$pr" -f state=closed >/dev/null; then
+                echo "Closed empty-diff PR #$pr"
+              else
+                echo "Warning: could not close empty-diff PR #$pr"
+              fi
+              continue
+            fi
+
+            if [[ "$state" != 'behind' ]]; then
               continue
             fi
 
@@ -51,14 +90,7 @@ jobs:
               continue
             fi
 
-            existing_comment=$(gh api "/repos/$REPO/issues/$pr/comments" --jq '.[] | select(.user.login == "github-actions[bot]") | .body' | grep -F "$comment_body" | head -n1 || true)
-
-            if [[ -n "$existing_comment" ]]; then
-              echo "Failure comment already exists on PR #$pr"
-              continue
-            fi
-
-            if gh api --method POST "/repos/$REPO/issues/$pr/comments" -f body="$comment_body" >/dev/null; then
+            if post_comment_once "$pr" "$behind_comment_body"; then
               echo "Posted fallback comment on PR #$pr"
             else
               echo "Warning: could not post comment on PR #$pr"
