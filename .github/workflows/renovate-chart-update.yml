@@ -90,7 +90,7 @@ jobs:
 
             core.info(`Renovate PR changed_files=${changedFiles}`);
 
-      - name: Close empty Renovate PR
+      - name: Comment on empty Renovate PR
         if: steps.renovate.outputs.is_renovate == 'true' && steps.pr_diff.outputs.is_empty_diff == 'true'
         uses: actions/github-script@v7
         with:
@@ -116,14 +116,8 @@ jobs:
               });
             }
 
-            await github.rest.pulls.update({
-              owner,
-              repo,
-              pull_number,
-              state: 'closed',
-            });
 
-            core.info(`Closed empty Renovate PR #${pull_number}`);
+            core.info(`Commented on empty Renovate PR #${pull_number}`);
 
       - name: Checkout PR branch
         if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.pr_diff.outputs.is_empty_diff != 'true'

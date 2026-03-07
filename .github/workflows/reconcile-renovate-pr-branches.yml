@@ -73,11 +73,6 @@ jobs:
                 echo "Warning: could not post empty-diff comment on PR #$pr"
               fi
 
-              if gh api --method PATCH "/repos/$REPO/pulls/$pr" -f state=closed >/dev/null; then
-                echo "Closed empty-diff PR #$pr"
-              else
-                echo "Warning: could not close empty-diff PR #$pr"
-              fi
               continue
             fi
 
