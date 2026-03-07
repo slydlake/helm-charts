@@ -33,20 +33,13 @@ tools: [
 handoffs:
   - label: Start Implementation
     agent: agent
-    prompt: |
-      Now implement this plan step by step.
-      You have full file editing access. Execute the steps exactly as outlined.
-      Use terminal commands as needed to validate configurations.
+    prompt: "Now implement this plan step by step.\nYou have full file editing access. Execute the steps exactly as outlined.\nUse terminal commands as needed to validate configurations."
     showContinueOn: false
     send: true
 
   - label: Open Plan in Editor
     agent: agent
-    prompt: |
-      Create a refined plan document:
-      1. Create file at `untitled:plan-${camelCaseName}.prompt.md` without frontmatter
-      2. Format as clean, iteration-ready markdown
-      3. Focus on clarity for next handoff
+    prompt: "Create a refined plan document:\n1. Create file at `untitled:plan-${camelCaseName}.prompt.md` without frontmatter\n2. Format as clean, iteration-ready markdown\n3. Focus on clarity for next handoff"
     showContinueOn: false
     send: true
 ---

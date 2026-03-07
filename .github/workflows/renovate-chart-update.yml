@@ -20,15 +20,53 @@ jobs:
     steps:
       - name: Detect Renovate PR
         id: renovate
+        env:
+          ACTOR: ${{ github.actor }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
-          if [[ "${{ github.actor }}" == "renovate[bot]" ]] || [[ "${{ github.event.pull_request.user.login }}" == "renovate[bot]" ]]; then
+          if [[ "$ACTOR" == "renovate[bot]" ]] || [[ "$PR_AUTHOR" == "renovate[bot]" ]]; then
             echo "is_renovate=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_renovate=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Checkout PR branch
+      - name: Detect stale PR branch
         if: steps.renovate.outputs.is_renovate == 'true'
+        id: branch_state
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pull_number = context.issue.number;
+
+            let state = null;
+
+            for (let attempt = 1; attempt <= 6; attempt++) {
+              const pr = await github.rest.pulls.get({ owner, repo, pull_number });
+              state = pr.data.mergeable_state;
+              core.info(`mergeable_state attempt ${attempt}: ${state ?? 'null'}`);
+
+              if (state) {
+                break;
+              }
+
+              await sleep(5000);
+            }
+
+            state = state || 'unknown';
+            core.setOutput('mergeable_state', state);
+
+            if (state === 'behind') {
+              core.setFailed('PR branch is behind main; update-branch required before auto-merge');
+              return;
+            }
+
+            core.info(`PR branch state is ${state}`);
+
+      - name: Checkout PR branch
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind'
         uses: actions/checkout@v4
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
@@ -37,13 +75,13 @@ jobs:
           fetch-depth: 0
 
       - name: Configure Git
-        if: steps.renovate.outputs.is_renovate == 'true'
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind'
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Validate one-chart Renovate PR scope
-        if: steps.renovate.outputs.is_renovate == 'true'
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind'
         id: scope
         run: |
           git fetch origin main --depth=1
@@ -78,29 +116,37 @@ jobs:
           echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - name: Update Chart.yaml metadata
-        if: steps.renovate.outputs.is_renovate == 'true' && steps.scope.outputs.skip != 'true'
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.scope.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
           bash .github/scripts/update-chart-metadata.sh \
-            "${{ github.event.pull_request.title }}" \
-            "${{ github.event.pull_request.html_url }}"
+            "$PR_TITLE" \
+            "$PR_URL"
 
       - name: Commit and push changes
-        if: steps.renovate.outputs.is_renovate == 'true' && steps.scope.outputs.skip != 'true'
+        id: commit
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind' && steps.scope.outputs.skip != 'true'
         run: |
           if git diff --quiet; then
             echo "No changes to commit"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           git add "${{ steps.scope.outputs.chart_dir }}/Chart.yaml"
           git commit -m "chore: update chart metadata"
           git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
 
       - name: Comment on PR
-        if: steps.renovate.outputs.is_renovate == 'true'
+        if: >-
+          steps.renovate.outputs.is_renovate == 'true' &&
+          steps.branch_state.outputs.mergeable_state != 'behind' &&
+          steps.commit.outputs.pushed == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -124,7 +170,7 @@ jobs:
             }
 
       - name: Enable and verify GitHub auto-merge for Renovate PRs with automerge label
-        if: steps.renovate.outputs.is_renovate == 'true'
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.branch_state.outputs.mergeable_state != 'behind'
         uses: actions/github-script@v7
         env:
           PR_ID: ${{ github.event.pull_request.node_id }}
@@ -193,46 +239,55 @@ jobs:
 
       - name: Get head SHA for status posting
         if: always() && steps.renovate.outputs.is_renovate == 'true'
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           if git rev-parse HEAD >/dev/null 2>&1; then
-            echo "HEAD_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+            echo "HEAD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           else
-            echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+            echo "HEAD_SHA=$PR_HEAD_SHA" >> "$GITHUB_ENV"
           fi
 
-      - name: Post success status to commit
-        if: steps.renovate.outputs.is_renovate == 'true' && success()
+      - name: Post branch-current status to commit
+        if: always() && steps.renovate.outputs.is_renovate == 'true'
         uses: actions/github-script@v7
+        env:
+          HEAD_SHA: ${{ env.HEAD_SHA }}
+          BRANCH_STATE: ${{ steps.branch_state.outputs.mergeable_state }}
         with:
           script: |
+            const branchState = process.env.BRANCH_STATE || 'unknown';
             const sha = process.env.HEAD_SHA || process.env.GITHUB_SHA;
+            const state = branchState === 'behind' ? 'failure' : 'success';
+            const description = branchState === 'behind'
+              ? 'PR branch is behind main'
+              : 'PR branch is current enough for strict checks';
+
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha: sha,
-              state: 'success',
-              context: 'update-chart-metadata',
+              sha,
+              state,
+              context: 'branch-current',
               target_url: `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`,
-              description: 'Chart metadata updated'
+              description,
             });
 
-      - name: Post failure status to commit
-        if: steps.renovate.outputs.is_renovate == 'true' && failure()
+      - name: Post update-chart-metadata status
+        if: always() && steps.renovate.outputs.is_renovate == 'true'
         uses: actions/github-script@v7
+        env:
+          JOB_STATUS: ${{ job.status }}
         with:
           script: |
             const sha = process.env.HEAD_SHA || process.env.GITHUB_SHA;
+            const success = process.env.JOB_STATUS === 'success';
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha: sha,
-              state: 'failure',
+              sha,
+              state: success ? 'success' : 'failure',
               context: 'update-chart-metadata',
               target_url: `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`,
-              description: 'Chart metadata update failed'
+              description: success ? 'Chart metadata updated' : 'Chart metadata update failed'
             });
-
-      - name: Skip non-Renovate PRs
-        if: steps.renovate.outputs.is_renovate != 'true'
-        run: |
-          echo "Not a Renovate PR; skipping chart metadata update."
