@@ -7,6 +7,13 @@ on:
     paths:
       - "charts/**"
       - ".github/workflows/chart-pr-validate.yml"
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: 'Base branch to diff against'
+        default: 'main'
+        required: false
+        type: string
 
 jobs:
   chart-validate:
@@ -28,10 +35,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          git fetch origin "${{ github.base_ref }}" --depth=1
+          git fetch origin "${{ github.event.inputs.base_ref || github.base_ref }}" --depth=1
 
           mapfile -t chart_dirs < <(
-            git diff --name-only "origin/${{ github.base_ref }}"...HEAD \
+            git diff --name-only "origin/${{ github.event.inputs.base_ref || github.base_ref }}"...HEAD \
               | awk -F/ '/^charts\/[^/]+\// && $3 != "charts" { print $1 "/" $2 }' \
               | sort -u
           )

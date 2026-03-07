@@ -142,6 +142,20 @@ jobs:
           git push
           echo "pushed=true" >> "$GITHUB_OUTPUT"
 
+      - name: Trigger chart-validate on new head
+        if: steps.renovate.outputs.is_renovate == 'true' && steps.commit.outputs.pushed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'chart-pr-validate.yml',
+              ref: context.payload.pull_request.head.ref,
+              inputs: { base_ref: context.payload.pull_request.base.ref }
+            });
+            core.info(`Triggered chart-validate on ${context.payload.pull_request.head.ref}`);
+
       - name: Comment on PR
         if: >-
           steps.renovate.outputs.is_renovate == 'true' &&
