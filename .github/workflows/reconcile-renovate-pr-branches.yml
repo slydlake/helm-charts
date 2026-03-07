@@ -1,0 +1,66 @@
+name: Reconcile Renovate PR Branches
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  update-behind-prs:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: reconcile-renovate-pr-branches
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Update behind automerge PRs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          comment_body='Auto-merge is configured, but this Renovate PR is behind main and could not be updated automatically. Recreate or rebase the branch before retrying.'
+          prs=$(gh pr list --repo "$REPO" --state open --label automerge \
+            --json number,isDraft --jq '.[] | select(.isDraft == false) | .number')
+
+          if [[ -z "$prs" ]]; then
+            echo "No open automerge PRs found"
+            exit 0
+          fi
+
+          for pr in $prs; do
+            read -r actor state head_sha < <(
+              gh api "/repos/$REPO/pulls/$pr" \
+                --jq '[.user.login, (.mergeable_state // "unknown"), .head.sha] | @tsv'
+            )
+
+            echo "PR #$pr actor=$actor mergeable_state=$state head_sha=$head_sha"
+
+            if [[ "$actor" != 'renovate[bot]' || "$state" != 'behind' ]]; then
+              continue
+            fi
+
+            if gh api --method PUT "/repos/$REPO/pulls/$pr/update-branch" -f expected_head_sha="$head_sha" >/dev/null; then
+              echo "Updated PR #$pr"
+              continue
+            fi
+
+            existing_comment=$(gh api "/repos/$REPO/issues/$pr/comments" --jq '.[] | select(.user.login == "github-actions[bot]") | .body' | grep -F "$comment_body" | head -n1 || true)
+
+            if [[ -n "$existing_comment" ]]; then
+              echo "Failure comment already exists on PR #$pr"
+              continue
+            fi
+
+            if gh api --method POST "/repos/$REPO/issues/$pr/comments" -f body="$comment_body" >/dev/null; then
+              echo "Posted fallback comment on PR #$pr"
+            else
+              echo "Warning: could not post comment on PR #$pr"
+            fi
+          done
