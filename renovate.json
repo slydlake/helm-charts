@@ -136,7 +136,6 @@
             ],
             "automerge": true,
             "automergeType": "pr",
-            "recreateWhen": "always",
             "description": "Auto-commit and auto-merge wireguard image bumps (recreate matching PRs when needed)"
         },
         {
@@ -161,7 +160,6 @@
             ],
             "automerge": true,
             "automergeType": "pr",
-            "recreateWhen": "always",
             "description": "Auto-commit and auto-merge wg-easy image bumps (recreate matching PRs when needed)"
         },
         {
@@ -189,7 +187,6 @@
             ],
             "automerge": true,
             "automergeType": "pr",
-            "recreateWhen": "always",
             "description": "Auto-commit and auto-merge wordpress chart dependency bumps (recreate matching PRs when needed)"
         },
         {
