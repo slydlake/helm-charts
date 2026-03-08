@@ -3,7 +3,8 @@
         "config:recommended"
     ],
     "gitIgnoredAuthors": [
-        "github-actions[bot]@users.noreply.github.com"
+        "github-actions[bot]@users.noreply.github.com",
+        "41898282+github-actions[bot]@users.noreply.github.com"
     ],
     "platformAutomerge": true,
     "rebaseWhen": "behind-base-branch",
@@ -15,7 +16,7 @@
     ],
     "pinDigests": true,
     "prHourlyLimit": 5,
-    "prConcurrentLimit": 5,
+    "prConcurrentLimit": 3,
     "timezone": "Europe/Berlin",
     "assignees": [
         "slydlake"
@@ -87,130 +88,34 @@
     ],
     "packageRules": [
         {
-            "matchManagers": [
-                "custom.regex"
-            ],
-            "matchPackageNames": [
-                "linuxserver/wireguard",
-                "/^docker\\.io\\/linuxserver\\/wireguard$/"
-            ],
-            "groupName": "linuxserver/wireguard",
-            "description": "Group linuxserver wireguard updates (versioning from customManagers)"
-        },
-        {
+            "description": "Disable helm-values for wireguard (handled by custom.regex)",
             "matchManagers": [
                 "helm-values"
             ],
             "matchPackageNames": [
                 "docker.io/linuxserver/wireguard"
             ],
-            "enabled": false,
-            "description": "Disable helm-values for wireguard (handled by custom.regex instead)"
+            "enabled": false
         },
         {
-            "matchUpdateTypes": [
-                "digest"
-            ],
-            "automerge": true,
-            "automergeType": "pr",
-            "description": "Auto-merge digest-only updates for security patches"
-        },
-        {
-            "matchManagers": [
-                "helm-values",
-                "custom.regex",
-                "helmv3"
-            ],
-            "matchPackagePatterns": [
-                "(^|/)linuxserver/wireguard$"
-            ],
-            "matchUpdateTypes": [
-                "minor",
-                "patch",
-                "digest"
-            ],
-            "addLabels": [
-                "dependencies",
-                "renovate",
-                "automerge"
-            ],
-            "automerge": true,
-            "automergeType": "pr",
-            "description": "Auto-commit and auto-merge wireguard image bumps (recreate matching PRs when needed)"
-        },
-        {
-            "matchManagers": [
-                "helm-values",
-                "custom.regex",
-                "helmv3"
-            ],
+            "description": "Wireguard regex versioning override",
             "matchPackageNames": [
-                "ghcr.io/wg-easy/wg-easy",
-                "/(^|/)wg-easy/wg-easy$/"
+                "linuxserver/wireguard",
+                "/^docker\\.io\\/linuxserver\\/wireguard$/"
             ],
-            "matchUpdateTypes": [
-                "minor",
-                "patch",
-                "digest"
-            ],
-            "addLabels": [
-                "dependencies",
-                "renovate",
-                "automerge"
-            ],
-            "automerge": true,
-            "automergeType": "pr",
-            "description": "Auto-commit and auto-merge wg-easy image bumps (recreate matching PRs when needed)"
+            "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$"
         },
         {
+            "description": "Group all updates per chart into one PR with consistent labels and commit messages",
             "matchManagers": [
                 "helm-values",
-                "custom.regex"
-            ],
-            "matchPackagePatterns": [
-                "(^|/)wordpress$",
-                "(^|/)mariadb$",
-                "(^|/)memcached$"
-            ],
-            "matchFileNames": [
-                "charts/wordpress/**"
-            ],
-            "matchUpdateTypes": [
-                "minor",
-                "patch",
-                "digest"
-            ],
-            "addLabels": [
-                "dependencies",
-                "renovate",
-                "automerge"
-            ],
-            "automerge": true,
-            "automergeType": "pr",
-            "description": "Auto-commit and auto-merge wordpress chart dependency bumps (recreate matching PRs when needed)"
-        },
-        {
-            "matchManagers": [
+                "custom.regex",
                 "helmv3"
             ],
             "matchFileNames": [
-                "charts/wordpress/**"
+                "charts/**"
             ],
-            "matchUpdateTypes": [
-                "minor"
-            ],
-            "addLabels": [
-                "minor"
-            ],
-            "automerge": false,
-            "description": "Do not auto-merge wordpress helmv3 minor updates"
-        },
-        {
-            "matchManagers": [
-                "helm-values",
-                "custom.regex"
-            ],
-            "groupName": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}}",
+            "groupName": "chart/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}}",
             "labels": [
                 "dependencies",
                 "renovate"
@@ -220,55 +125,16 @@
             ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
-            "commitMessageAction": "charts/{{{ replace \"/samples\" \"\" (replace \"charts/\" \"\" parentDir) }}} chore(deps): updates",
+            "commitMessageAction": "charts/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}} chore(deps): updates",
             "commitMessageTopic": "",
             "commitMessageExtra": ""
         },
         {
-            "matchManagers": [
-                "helmv3"
-            ],
-            "matchFileNames": [
-                "charts/wordpress/**"
-            ],
-            "matchUpdateTypes": [
-                "patch",
-                "digest"
-            ],
-            "labels": [
-                "dependencies",
-                "renovate",
-                "helm-chart"
-            ],
-            "addLabels": [
-                "automerge",
-                "{{#if isPatch}}patch{{/if}}{{#if isDigest}}digest{{/if}}"
-            ],
-            "automerge": true,
-            "automergeType": "pr",
-            "groupName": "chart/wordpress",
-            "branchTopic": "chart-wordpress-{{{depNameSanitized}}}",
-            "description": "Auto-merge only wordpress helmv3 patch and digest updates"
-        },
-        {
+            "description": "Auto-merge minor, patch, and digest updates",
             "matchManagers": [
                 "helm-values",
                 "custom.regex",
                 "helmv3"
-            ],
-            "matchUpdateTypes": [
-                "major"
-            ],
-            "addLabels": [
-                "major"
-            ],
-            "automerge": false,
-            "description": "Never auto-merge major updates"
-        },
-        {
-            "matchManagers": [
-                "helm-values",
-                "custom.regex"
             ],
             "matchUpdateTypes": [
                 "minor",
@@ -279,90 +145,22 @@
                 "automerge"
             ],
             "automerge": true,
-            "automergeType": "pr",
-            "description": "Auto-merge minor, patch, and digest updates"
+            "automergeType": "pr"
         },
         {
+            "description": "Never auto-merge major updates",
             "matchManagers": [
                 "helm-values",
-                "custom.regex"
-            ],
-            "matchPackageNames": [
-                "linuxserver/wireguard",
-                "/^docker\\.io\\/linuxserver\\/wireguard$/"
-            ],
-            "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?:-r(?<prerelease>\\d+)-ls(?<build>\\d+))?$",
-            "groupName": "linuxserver/wireguard",
-            "description": "Handle linuxserver wireguard updates with regex versioning (overrides general rule)"
-        },
-        {
-            "matchManagers": [
+                "custom.regex",
                 "helmv3"
-            ],
-            "matchFileNames": [
-                "charts/wg-easy/**",
-                "charts/wireguard/**"
             ],
             "matchUpdateTypes": [
-                "minor",
-                "patch"
-            ],
-            "automerge": true,
-            "automergeType": "pr",
-            "groupName": "charts/{{{ replace \"charts/\" \"\" parentDir }}}",
-            "labels": [
-                "dependencies",
-                "renovate",
-                "helm-chart"
+                "major"
             ],
             "addLabels": [
-                "automerge",
-                "{{#if isMajor}}major{{/if}}{{#if isMinor}}minor{{/if}}{{#if isPatch}}patch{{/if}}"
+                "major"
             ],
-            "semanticCommits": "disabled",
-            "commitMessagePrefix": "",
-            "commitMessageAction": "charts/{{{ replace \"charts/\" \"\" parentDir }}} chore(deps): updates",
-            "commitMessageTopic": "",
-            "commitMessageExtra": ""
-        },
-        {
-            "matchManagers": [
-                "helm-values",
-                "custom.regex",
-                "helmv3"
-            ],
-            "matchFileNames": [
-                "charts/wg-easy/**"
-            ],
-            "groupName": "chart/wg-easy",
-            "branchTopic": "chart-wg-easy-{{{depNameSanitized}}}",
-            "description": "Enforce one Renovate PR per chart for wg-easy"
-        },
-        {
-            "matchManagers": [
-                "helm-values",
-                "custom.regex",
-                "helmv3"
-            ],
-            "matchFileNames": [
-                "charts/wireguard/**"
-            ],
-            "groupName": "chart/wireguard",
-            "branchTopic": "chart-wireguard-{{{depNameSanitized}}}",
-            "description": "Enforce one Renovate PR per chart for wireguard"
-        },
-        {
-            "matchManagers": [
-                "helm-values",
-                "custom.regex",
-                "helmv3"
-            ],
-            "matchFileNames": [
-                "charts/wordpress/**"
-            ],
-            "groupName": "chart/wordpress",
-            "branchTopic": "chart-wordpress-{{{depNameSanitized}}}",
-            "description": "Enforce one Renovate PR per chart for wordpress"
+            "automerge": false
         }
     ]
 }

@@ -67,12 +67,9 @@ jobs:
             fi
 
             if [[ "$changed_files" == '0' ]]; then
-              if post_comment_once "$pr" "$empty_diff_comment_body"; then
-                echo "Posted or confirmed empty-diff comment on PR #$pr"
-              else
-                echo "Warning: could not post empty-diff comment on PR #$pr"
-              fi
-
+              post_comment_once "$pr" "$empty_diff_comment_body" || true
+              gh pr close "$pr" --repo "$REPO" --comment "" 2>/dev/null || true
+              echo "Closed empty-diff PR #$pr"
               continue
             fi
 
