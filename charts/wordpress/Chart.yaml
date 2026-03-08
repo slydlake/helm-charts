@@ -41,7 +41,7 @@ annotations:
     - name: mariadb
       image: docker.io/mariadb:12.2.2-noble
     - name: memcached
-      image: docker.io/memcached:1.6.40
+      image: docker.io/memcached:1.6.41
     - name: redis
       image: docker.io/redis:8.6.1-trixie
     - name: valkey
