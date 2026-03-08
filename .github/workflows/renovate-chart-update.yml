@@ -62,6 +62,26 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
+      # --- Extract per-dependency change descriptions from PR body ---
+      - name: Extract dependency changes
+        if: steps.empty_check.outputs.is_empty != 'true'
+        id: changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const regex = /\|\s*([^\|]+?)\s*\|\s*\w+\s*\|\s*`([^`]+)`\s*\u2192\s*`([^`]+)`\s*\|/g;
+            const changes = [];
+            let m;
+            while ((m = regex.exec(body)) !== null) {
+              changes.push(`Update ${m[1].trim()} to ${m[3].trim()}`);
+            }
+            if (changes.length === 0) {
+              changes.push(context.payload.pull_request.title);
+            }
+            core.setOutput('descriptions', changes.join('\n'));
+            core.info(`Extracted ${changes.length} change(s): ${changes.join(', ')}`);
+
       # --- 3. Detect chart scope ---
       - name: Detect chart scope
         if: steps.empty_check.outputs.is_empty != 'true'
@@ -91,6 +111,7 @@ jobs:
         env:
           CHART_DIR: ${{ steps.scope.outputs.chart_dir }}
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          CHANGE_DESCRIPTIONS: ${{ steps.changes.outputs.descriptions }}
         run: |
           bash .github/scripts/update-chart-metadata.sh \
             "${{ github.event.pull_request.title }}" \
@@ -111,22 +132,20 @@ jobs:
           git commit -m "chore: update chart metadata"
           git push
           echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "new_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       # --- 6. Post chart-validate status for metadata-only commit ---
       - name: Post chart-validate status
         if: steps.commit.outputs.pushed == 'true'
         uses: actions/github-script@v7
+        env:
+          NEW_SHA: ${{ steps.commit.outputs.new_sha }}
         with:
           script: |
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-            });
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha: pr.data.head.sha,
+              sha: process.env.NEW_SHA,
               state: 'success',
               context: 'chart-validate',
               description: 'Chart validated (metadata-only commit)',
@@ -178,22 +197,30 @@ jobs:
         if: always()
         uses: actions/github-script@v7
         env:
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          ORIG_SHA: ${{ github.event.pull_request.head.sha }}
+          NEW_SHA: ${{ steps.commit.outputs.new_sha }}
           JOB_STATUS: ${{ job.status }}
           IS_EMPTY: ${{ steps.empty_check.outputs.is_empty }}
         with:
           script: |
-            const sha = process.env.HEAD_SHA;
+            const sha = process.env.NEW_SHA || process.env.ORIG_SHA;
             const success = process.env.JOB_STATUS === 'success';
             const isEmpty = process.env.IS_EMPTY === 'true';
-            await github.rest.repos.createCommitStatus({
+
+            const statusParams = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha,
               state: success || isEmpty ? 'success' : 'failure',
               context: 'update-chart-metadata',
               target_url: `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`,
               description: isEmpty
                 ? 'Skipped (empty-diff PR closed)'
                 : success ? 'Chart metadata updated' : 'Failed',
-            });
+            };
+
+            // Post on new SHA (after metadata push)
+            await github.rest.repos.createCommitStatus({ ...statusParams, sha });
+            // Also post on original SHA if different (covers race conditions)
+            if (process.env.NEW_SHA && process.env.NEW_SHA !== process.env.ORIG_SHA) {
+              await github.rest.repos.createCommitStatus({ ...statusParams, sha: process.env.ORIG_SHA });
+            }

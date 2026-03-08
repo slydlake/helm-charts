@@ -81,23 +81,33 @@ else
   sed -i "s/^version: .*/version: $NEW_VERSION/" "$CHART_YAML"
 fi
 
-# Update artifacthub.io/changes annotation
+# Update artifacthub.io/changes annotation (one entry per dependency update)
 python3 -c "
-import re, sys
+import re, sys, os
 
 chart_file = sys.argv[1]
-description = sys.argv[2]
+pr_title = sys.argv[2]
 pr_url = sys.argv[3]
+
+raw = os.environ.get('CHANGE_DESCRIPTIONS', '').strip()
+if not raw:
+    raw = pr_title
+desc_list = [d.strip() for d in raw.split('\n') if d.strip()]
 
 with open(chart_file) as f:
     content = f.read()
 
-new_changes = '''  artifacthub.io/changes: |
-    - kind: changed
-      description: \"{}\"
-      links:
-        - name: Pull Request
-          url: {}'''.format(description, pr_url)
+entries = []
+for desc in desc_list:
+    entries.append(
+        '    - kind: changed\n'
+        '      description: \"{}\"\n'
+        '      links:\n'
+        '        - name: Pull Request\n'
+        '          url: {}'.format(desc.replace('\"', '\\\\\"'), pr_url)
+    )
+
+new_changes = '  artifacthub.io/changes: |\n' + '\n'.join(entries)
 
 pattern = r'  artifacthub\.io/changes: \|(?:\n    .*)*'
 content = re.sub(pattern, new_changes, content)
@@ -105,5 +115,3 @@ content = re.sub(pattern, new_changes, content)
 with open(chart_file, 'w') as f:
     f.write(content)
 " "$CHART_YAML" "$PR_TITLE" "$PR_URL"
-
-echo "Updated $CHART_YAML: $CURRENT_VERSION -> $NEW_VERSION"
