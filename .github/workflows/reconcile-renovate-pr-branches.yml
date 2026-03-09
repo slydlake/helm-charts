@@ -26,7 +26,6 @@ jobs:
           set -euo pipefail
 
           behind_comment_body='Auto-merge is configured, but this Renovate PR is behind main and could not be updated automatically. Recreate or rebase the branch before retrying.'
-          empty_diff_comment_body='This Renovate PR no longer changes any files relative to main. Its branch history is still ahead of main, but the current tree matches main, so this is a no-op duplicate PR. Closing it to keep the automerge queue clean.'
 
           post_comment_once() {
             local pr="$1"
@@ -55,21 +54,19 @@ jobs:
           fi
 
           for pr in $prs; do
-            read -r actor state head_sha changed_files < <(
+            read -r actor state head_sha head_ref < <(
               gh api "/repos/$REPO/pulls/$pr" \
-                --jq '[.user.login, (.mergeable_state // "unknown"), .head.sha, (.changed_files // 0)] | @tsv'
+                --jq '[.user.login, (.mergeable_state // "unknown"), .head.sha, .head.ref] | @tsv'
             )
 
-            echo "PR #$pr actor=$actor mergeable_state=$state head_sha=$head_sha changed_files=$changed_files"
+            echo "PR #$pr actor=$actor mergeable_state=$state head_sha=$head_sha head_ref=$head_ref"
 
             if [[ "$actor" != 'renovate[bot]' ]]; then
               continue
             fi
 
-            if [[ "$changed_files" == '0' ]]; then
-              post_comment_once "$pr" "$empty_diff_comment_body" || true
-              gh pr close "$pr" --repo "$REPO" --comment "" 2>/dev/null || true
-              echo "Closed empty-diff PR #$pr"
+            if [[ "$head_ref" == renovate/* ]]; then
+              echo "Skipping update-branch for Renovate branch $head_ref on PR #$pr"
               continue
             fi
 

@@ -91,7 +91,7 @@ pr_url = sys.argv[3]
 
 raw = os.environ.get('CHANGE_DESCRIPTIONS', '').strip()
 if not raw:
-    raw = pr_title
+    raw = 'Dependency update'
 desc_list = [d.strip() for d in raw.split('\n') if d.strip()]
 
 with open(chart_file) as f:
