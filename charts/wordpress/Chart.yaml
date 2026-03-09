@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 3.5.8
+version: 3.5.9
 appVersion: "6.9.1" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -27,10 +27,20 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "Update docker.io/memcached to 1.6.41"
+      description: "Update [memcached](https://memcached.org) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/memcached)) to 0.10.2"
       links:
         - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/173
+          url: https://github.com/slydlake/helm-charts/pull/189
+    - kind: changed
+      description: "Update [redis](https://www.redis.io) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/redis)) to 0.25.10"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/189
+    - kind: changed
+      description: "Update [valkey](https://www.valkey.io) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/valkey)) to 0.17.1"
+      links:
+        - name: Pull Request
+          url: https://github.com/slydlake/helm-charts/pull/189
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.9.1-php8.3-apache
@@ -50,15 +60,15 @@ dependencies:
   - condition: memcached.enabled
     name: memcached
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.10.1
+    version: 0.10.2
   - condition: redis.enabled
     name: redis
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.25.8
+    version: 0.25.10
   - condition: valkey.enabled
     name: valkey
     repository: oci://registry-1.docker.io/cloudpirates
-    version: 0.17.0
+    version: 0.17.1
   - condition: mariadb.enabled
     name: mariadb
     repository: oci://registry-1.docker.io/cloudpirates
