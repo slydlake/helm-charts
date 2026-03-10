@@ -77,7 +77,7 @@ jobs:
               changes.push(`Update ${m[1].trim()} to ${m[3].trim()}`);
             }
             if (changes.length === 0) {
-              changes.push(context.payload.pull_request.title);
+              changes.push('Dependency update');
             }
             core.setOutput('descriptions', changes.join('\n'));
             core.info(`Extracted ${changes.length} change(s): ${changes.join(', ')}`);
