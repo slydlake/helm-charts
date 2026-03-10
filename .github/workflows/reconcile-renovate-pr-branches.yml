@@ -65,11 +65,6 @@ jobs:
               continue
             fi
 
-            if [[ "$head_ref" == renovate/* ]]; then
-              echo "Skipping update-branch for Renovate branch $head_ref on PR #$pr"
-              continue
-            fi
-
             if [[ "$state" != 'behind' ]]; then
               continue
             fi
