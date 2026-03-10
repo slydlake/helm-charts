@@ -42,9 +42,16 @@ jobs:
             if (!comments.some(c => c.user.login === 'github-actions[bot]' && c.body === body)) {
               await github.rest.issues.createComment({ owner, repo, issue_number: pull_number, body });
             }
-            await github.rest.pulls.update({ owner, repo, pull_number, state: 'closed' });
+            // Delete the branch so GitHub closes the PR automatically.
+            // This gives Renovate a clean slate: it will only recreate the
+            // branch if a genuinely new dependency update is available.
+            await github.rest.git.deleteRef({
+              owner,
+              repo,
+              ref: `heads/${pr.data.head.ref}`,
+            });
             core.setOutput('is_empty', 'true');
-            core.info(`Closed empty-diff PR #${pull_number}`);
+            core.info(`Deleted stale branch ${pr.data.head.ref} for empty-diff PR #${pull_number}`);
 
       # --- 2. Checkout PR branch ---
       - name: Checkout PR branch
@@ -214,7 +221,7 @@ jobs:
               context: 'update-chart-metadata',
               target_url: `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${process.env.GITHUB_RUN_ID}`,
               description: isEmpty
-                ? 'Skipped (empty-diff PR closed)'
+                ? 'Skipped (stale branch deleted, PR auto-closed)'
                 : success ? 'Chart metadata updated' : 'Failed',
             };
 
