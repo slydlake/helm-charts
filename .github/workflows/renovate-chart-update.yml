@@ -182,7 +182,7 @@ jobs:
 
             try {
               await github.rest.pulls.enableAutoMerge({
-                owner, repo, pull_number, merge_method: 'squash'
+                owner, repo, pull_number, merge_method: 'merge'
               });
               core.info('Auto-merge enabled via REST');
             } catch (restErr) {
@@ -190,7 +190,7 @@ jobs:
               await github.graphql(`
                 mutation($prId: ID!) {
                   enablePullRequestAutoMerge(input: {
-                    pullRequestId: $prId, mergeMethod: SQUASH
+                    pullRequestId: $prId, mergeMethod: MERGE
                   }) { clientMutationId }
                 }
               `, { prId: pr.data.node_id });
