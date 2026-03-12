@@ -2,8 +2,8 @@ apiVersion: v2
 name: wireguard
 description: "Using the offical linuxserver/wireguard image with almost any environment variables for K8S. Supporting server and client mode."
 type: application
-version: 0.4.2
-appVersion: 1.0.20250521-r1-ls104 # renovate: image=docker.io/linuxserver/wireguard
+version: 0.4.3
+appVersion: 1.0.20250521-r1-ls105 # renovate: image=docker.io/linuxserver/wireguard
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wireguard/app.png
 home: https://github.com/slydlake/helm-charts
 maintainers:
@@ -23,14 +23,14 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: changed
-      description: "Update dependencies"
+      description: "Update [docker.io/linuxserver/wireguard](https://redirect.github.com/linuxserver/docker-wireguard/packages) ([source](https://redirect.github.com/linuxserver/docker-wireguard)) to 1.0.20250521-r1-ls105"
       links:
         - name: Pull Request
-          url: https://github.com/slydlake/helm-charts/pull/158
+          url: https://github.com/slydlake/helm-charts/pull/211
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wireguard
-      image: docker.io/linuxserver/wireguard:1.0.20250521-r1-ls104
+      image: docker.io/linuxserver/wireguard:1.0.20250521-r1-ls105
 keywords:
   - wireguard
   - vpn
