@@ -1,4 +1,4 @@
-name: Auto Assign
+name: PR Auto Assign
 
 "on":
   pull_request:

@@ -1,4 +1,4 @@
-name: Reconcile Renovate PR Branches
+name: Renovate Reconcile PR Branches
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
   update-behind-prs:
     runs-on: ubuntu-latest
     concurrency:
-      group: reconcile-renovate-pr-branches
+      group: renovate-reconcile-pr-branches
       cancel-in-progress: false
     permissions:
       contents: write

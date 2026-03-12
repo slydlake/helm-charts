@@ -1,4 +1,4 @@
-name: Update Chart Metadata on Renovate PRs
+name: Renovate PRs Update Chart Metadata
 
 on:
   pull_request_target:

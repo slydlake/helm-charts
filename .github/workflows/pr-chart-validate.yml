@@ -1,4 +1,4 @@
-name: Chart Validate
+name: PR Chart Validate
 
 on:
   pull_request:
@@ -6,12 +6,12 @@ on:
       - main
     paths:
       - "charts/**"
-      - ".github/workflows/chart-pr-validate.yml"
+      - ".github/workflows/pr-chart-validate.yml"
   workflow_dispatch:
     inputs:
       base_ref:
-        description: 'Base branch to diff against'
-        default: 'main'
+        description: "Base branch to diff against"
+        default: "main"
         required: false
         type: string
 
