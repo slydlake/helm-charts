@@ -344,6 +344,8 @@ jobs:
       - name: Upload ArtifactHub metadata for this chart
         if: steps.chart-changes.outputs.skip == 'false'
         run: |
+          set -euo pipefail
+
           chart_name="${{ steps.chart-changes.outputs.chart_name }}"
 
           echo "Uploading ArtifactHub metadata for chart: $chart_name"
@@ -359,9 +361,21 @@ jobs:
 
           echo "Pushing metadata to: ghcr.io/slybase/charts/$chart_name:artifacthub.io"
 
+          tmp_config="$(mktemp)"
+          tmp_manifest="$(mktemp)"
+          cleanup() {
+            rm -f "$tmp_config" "$tmp_manifest"
+          }
+          trap cleanup EXIT
+
+          printf '{}' > "$tmp_config"
+
           oras push \
             "ghcr.io/slybase/charts/$chart_name:artifacthub.io" \
-            --config /dev/null:application/vnd.cncf.artifacthub.config.v1+yaml \
+            --config "$tmp_config:application/vnd.cncf.artifacthub.config.v1+yaml" \
             "$metadata_file:application/vnd.cncf.artifacthub.repository-metadata.layer.v1.yaml"
+
+          oras manifest fetch "ghcr.io/slybase/charts/$chart_name:artifacthub.io" > "$tmp_manifest"
+          jq -e '.config.size > 0 and .config.mediaType == "application/vnd.cncf.artifacthub.config.v1+yaml" and (.layers | length) == 1' "$tmp_manifest"
 
           echo "✅ ArtifactHub metadata uploaded successfully for $chart_name"
