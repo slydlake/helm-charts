@@ -10,6 +10,7 @@
     "rebaseWhen": "conflicted",
     "semanticCommits": "disabled",
     "enabledManagers": [
+        "github-actions",
         "helm-values",
         "helmv3",
         "custom.regex"
