@@ -92,8 +92,7 @@
             "description": "Group all updates per chart into one PR with consistent labels and commit messages",
             "matchManagers": [
                 "helm-values",
-                "custom.regex",
-                "helmv3"
+                "custom.regex"
             ],
             "matchFileNames": [
                 "charts/**"
@@ -109,6 +108,50 @@
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
             "commitMessageAction": "charts/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}} chore(deps): updates",
+            "commitMessageTopic": "",
+            "commitMessageExtra": ""
+        },
+        {
+            "description": "Group subchart updates per chart with consistent labels and commit messages",
+            "matchManagers": [
+                "helmv3"
+            ],
+            "matchFileNames": [
+                "charts/**"
+            ],
+            "groupName": "subchart/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}}",
+            "labels": [
+                "dependencies",
+                "renovate"
+            ],
+            "addLabels": [
+                "{{#if isMajor}}major{{/if}}{{#if isMinor}}minor{{/if}}{{#if isPatch}}patch{{/if}}{{#if isDigest}}digest{{/if}}"
+            ],
+            "semanticCommits": "disabled",
+            "commitMessagePrefix": "",
+            "commitMessageAction": "charts/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}} chore(deps): subchart updates",
+            "commitMessageTopic": "",
+            "commitMessageExtra": ""
+        },
+        {
+            "description": "Group wordpress subchart updates per dependency to avoid long-lived grouped PRs",
+            "matchManagers": [
+                "helmv3"
+            ],
+            "matchFileNames": [
+                "charts/wordpress/**"
+            ],
+            "groupName": "subchart/wordpress/{{{depName}}}",
+            "labels": [
+                "dependencies",
+                "renovate"
+            ],
+            "addLabels": [
+                "{{#if isMajor}}major{{/if}}{{#if isMinor}}minor{{/if}}{{#if isPatch}}patch{{/if}}{{#if isDigest}}digest{{/if}}"
+            ],
+            "semanticCommits": "disabled",
+            "commitMessagePrefix": "",
+            "commitMessageAction": "charts/wordpress chore(deps): update {{{depName}}}",
             "commitMessageTopic": "",
             "commitMessageExtra": ""
         },
