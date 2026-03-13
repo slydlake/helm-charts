@@ -7,7 +7,7 @@
         "41898282+github-actions[bot]@users.noreply.github.com"
     ],
     "platformAutomerge": true,
-    "rebaseWhen": "conflicted",
+    "rebaseWhen": "behind-base-branch",
     "semanticCommits": "disabled",
     "enabledManagers": [
         "github-actions",
@@ -113,8 +113,31 @@
             "commitMessageExtra": ""
         },
         {
+            "description": "Group GitHub Actions workflow updates into one PR with consistent labels and commit messages",
+            "matchManagers": [
+                "github-actions"
+            ],
+            "matchFileNames": [
+                ".github/workflows/**"
+            ],
+            "groupName": "github-actions/workflows",
+            "labels": [
+                "dependencies",
+                "renovate"
+            ],
+            "addLabels": [
+                "{{#if isMajor}}major{{/if}}{{#if isMinor}}minor{{/if}}{{#if isPatch}}patch{{/if}}{{#if isDigest}}digest{{/if}}"
+            ],
+            "semanticCommits": "disabled",
+            "commitMessagePrefix": "",
+            "commitMessageAction": ".github/workflows chore(deps): updates",
+            "commitMessageTopic": "",
+            "commitMessageExtra": ""
+        },
+        {
             "description": "Auto-merge minor, patch, and digest updates",
             "matchManagers": [
+                "github-actions",
                 "helm-values",
                 "custom.regex",
                 "helmv3"
@@ -133,6 +156,7 @@
         {
             "description": "Never auto-merge major updates",
             "matchManagers": [
+                "github-actions",
                 "helm-values",
                 "custom.regex",
                 "helmv3"

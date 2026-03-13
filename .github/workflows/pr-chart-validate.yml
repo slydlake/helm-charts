@@ -4,9 +4,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - "charts/**"
-      - ".github/workflows/pr-chart-validate.yml"
   workflow_dispatch:
     inputs:
       base_ref:
