@@ -23,7 +23,7 @@ jobs:
       # --- 1. Detect and close empty-diff PRs ---
       - name: Close empty-diff PR
         id: empty_check
-        uses: actions/github-script@v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -73,7 +73,7 @@ jobs:
       - name: Extract dependency changes
         if: steps.empty_check.outputs.is_empty != 'true'
         id: changes
-        uses: actions/github-script@v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const body = context.payload.pull_request.body || '';
@@ -144,7 +144,7 @@ jobs:
       # --- 6. Post chart-validate status for metadata-only commit ---
       - name: Post chart-validate status
         if: steps.commit.outputs.pushed == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           NEW_SHA: ${{ steps.commit.outputs.new_sha }}
         with:
@@ -162,7 +162,7 @@ jobs:
       # --- 7. Enable auto-merge if automerge label present ---
       - name: Enable auto-merge
         if: steps.empty_check.outputs.is_empty != 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -202,7 +202,7 @@ jobs:
       # --- 8. Post update-chart-metadata status ---
       - name: Post update-chart-metadata status
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           ORIG_SHA: ${{ github.event.pull_request.head.sha }}
           NEW_SHA: ${{ steps.commit.outputs.new_sha }}
