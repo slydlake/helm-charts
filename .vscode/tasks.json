@@ -61,8 +61,10 @@
                 "isDefault": false
             },
             "presentation": {
-                "reveal": "always",
-                "panel": "shared"
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "panel": "shared",
+                "close": true
             }
         }
     ],
