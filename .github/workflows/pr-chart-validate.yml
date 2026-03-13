@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          git fetch origin "${{ github.event.inputs.base_ref || github.base_ref }}" --depth=1
+          git fetch origin "${{ github.event.inputs.base_ref || github.base_ref }}"
 
           mapfile -t chart_dirs < <(
             git diff --name-only "origin/${{ github.event.inputs.base_ref || github.base_ref }}"...HEAD \

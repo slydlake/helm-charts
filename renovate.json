@@ -130,7 +130,7 @@
             ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
-            "commitMessageAction": ".github/workflows chore(deps): updates",
+            "commitMessageAction": "github workflows chore(deps): updates",
             "commitMessageTopic": "",
             "commitMessageExtra": ""
         },

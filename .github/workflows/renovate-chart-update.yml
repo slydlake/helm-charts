@@ -94,7 +94,9 @@ jobs:
         if: steps.empty_check.outputs.is_empty != 'true'
         id: scope
         run: |
-          git fetch origin main --depth=1
+          set -euo pipefail
+
+          git fetch origin main
 
           chart_dir=$(git diff --name-only origin/main...HEAD \
             | grep '^charts/[^/]*/[^/]' \
