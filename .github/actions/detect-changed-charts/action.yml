@@ -1,0 +1,83 @@
+name: Detect Changed Charts
+description: Resolve changed chart directories for pull requests, pushes, or manual chart selection.
+
+inputs:
+  base-ref:
+    description: Base branch to diff against when the event does not provide pull request files.
+    required: false
+    default: ""
+  manual-chart:
+    description: Chart name to force as the only result.
+    required: false
+    default: ""
+
+outputs:
+  charts_json:
+    description: JSON array of changed chart directories.
+    value: ${{ steps.detect.outputs.charts_json }}
+  has_charts:
+    description: Whether any chart directories were detected.
+    value: ${{ steps.detect.outputs.has_charts }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect changed chart directories
+      id: detect
+      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+      env:
+        BASE_REF: ${{ inputs.base-ref }}
+        MANUAL_CHART: ${{ inputs.manual-chart }}
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const manualChart = (process.env.MANUAL_CHART || '').trim();
+          const defaultBaseRef = (process.env.BASE_REF || '').trim() || context.payload.repository?.default_branch || 'main';
+
+          const toChartDir = (filename) => {
+            const match = filename.match(/^charts\/[^/]+/);
+            return match ? match[0] : null;
+          };
+
+          let filenames = [];
+
+          if (manualChart) {
+            filenames = [`charts/${manualChart}/Chart.yaml`];
+          } else if (context.payload.pull_request?.number) {
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number: context.payload.pull_request.number,
+              per_page: 100,
+            });
+            filenames = files.map((file) => file.filename);
+          } else if (context.eventName === 'push') {
+            const before = context.payload.before;
+
+            if (before && !/^0+$/.test(before)) {
+              const comparison = await github.rest.repos.compareCommitsWithBasehead({
+                owner,
+                repo,
+                basehead: `${before}...${context.sha}`,
+              });
+              filenames = (comparison.data.files || []).map((file) => file.filename);
+            } else {
+              const commit = await github.rest.repos.getCommit({
+                owner,
+                repo,
+                ref: context.sha,
+              });
+              filenames = (commit.data.files || []).map((file) => file.filename);
+            }
+          } else {
+            const comparison = await github.rest.repos.compareCommitsWithBasehead({
+              owner,
+              repo,
+              basehead: `${defaultBaseRef}...${context.sha}`,
+            });
+            filenames = (comparison.data.files || []).map((file) => file.filename);
+          }
+
+          const chartDirs = [...new Set(filenames.map(toChartDir).filter(Boolean))].sort();
+          core.setOutput('charts_json', JSON.stringify(chartDirs));
+          core.setOutput('has_charts', chartDirs.length > 0 ? 'true' : 'false');

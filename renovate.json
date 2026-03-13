@@ -113,6 +113,77 @@
             "commitMessageExtra": ""
         },
         {
+            "description": "Label direct dependency minor updates for chart minor bumps",
+            "matchManagers": [
+                "helm-values",
+                "custom.regex"
+            ],
+            "matchUpdateTypes": [
+                "minor"
+            ],
+            "addLabels": [
+                "chart-bump-minor",
+                "direct-dependency-update"
+            ]
+        },
+        {
+            "description": "Label direct dependency patch and digest updates for chart patch bumps",
+            "matchManagers": [
+                "helm-values",
+                "custom.regex"
+            ],
+            "matchUpdateTypes": [
+                "patch",
+                "digest"
+            ],
+            "addLabels": [
+                "chart-bump-patch",
+                "direct-dependency-update"
+            ]
+        },
+        {
+            "description": "Label direct dependency major updates",
+            "matchManagers": [
+                "helm-values",
+                "custom.regex"
+            ],
+            "matchUpdateTypes": [
+                "major"
+            ],
+            "addLabels": [
+                "chart-bump-major",
+                "direct-dependency-update"
+            ]
+        },
+        {
+            "description": "Label subchart non-major updates for chart patch bumps",
+            "matchManagers": [
+                "helmv3"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "patch",
+                "digest"
+            ],
+            "addLabels": [
+                "chart-bump-patch",
+                "subchart-update"
+            ]
+        },
+        {
+            "description": "Label subchart major updates",
+            "matchManagers": [
+                "helmv3"
+            ],
+            "matchUpdateTypes": [
+                "major"
+            ],
+            "addLabels": [
+                "chart-bump-major",
+                "subchart-update"
+            ]
+        },
+        {
             "description": "Group GitHub Actions workflow updates into one PR with consistent labels and commit messages",
             "matchManagers": [
                 "github-actions"

@@ -1,9 +1,6 @@
 # Signed Helm Charts with FluxCD
 
-This repository provides Helm charts that are signed with [Cosign](https://docs.sigstore.dev/cosign/overview/) for enhanced security. Charts are available through two distribution methods:
-
-1. **Traditional Helm Repository** (GitHub Pages + Releases)
-2. **OCI Registry** (GitHub Container Registry)
+This repository provides Helm charts that are signed with [Cosign](https://docs.sigstore.dev/cosign/overview/) for enhanced security. Charts are published as OCI artifacts in GitHub Container Registry.
 
 ## 🔐 Chart Signing
 
@@ -21,43 +18,7 @@ All charts are signed using **keyless signing** with Sigstore/Cosign. This means
 
 ## 🚀 Usage with FluxCD
 
-### Option 1: Traditional Helm Repository (with signature verification)
-
-```yaml
----
-apiVersion: source.toolkit.fluxcd.io/v1beta2
-kind: HelmRepository
-metadata:
-  name: slydlake-charts
-  namespace: flux-system
-spec:
-  interval: 10m
-  url: https://slydlake.github.io/helm-charts
----
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
-kind: HelmRelease
-metadata:
-  name: wg-easy
-  namespace: default
-spec:
-  interval: 10m
-  chart:
-    spec:
-      chart: wg-easy
-      version: ">=1.0.0"
-      sourceRef:
-        kind: HelmRepository
-        name: slydlake-charts
-        namespace: flux-system
-      # Enable signature verification for traditional releases
-      verify:
-        provider: cosign
-        # Uses keyless verification - no additional secrets needed
-  values:
-    # your values here
-```
-
-### Option 2: OCI Registry (recommended for new deployments)
+### OCI Registry
 
 ```yaml
 ---
@@ -69,7 +30,7 @@ metadata:
 spec:
   type: oci
   interval: 10m
-  url: oci://ghcr.io/slybase/helm-charts
+  url: oci://ghcr.io/slybase/charts
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
@@ -96,51 +57,31 @@ spec:
 
 ## 🔍 Manual Signature Verification
 
-### Verify Traditional Chart Signatures
-
-```bash
-# Download chart and signature bundle from GitHub release
-gh release download v1.0.0 --repo slydlake/helm-charts --pattern "wg-easy-1.0.0.tgz*"
-
-# Verify signature
-cosign verify-blob wg-easy-1.0.0.tgz \
-  --bundle wg-easy-1.0.0.tgz.cosign.bundle \
-  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  --certificate-identity "https://github.com/slydlake/helm-charts/.github/workflows/release.yaml@refs/heads/main"
-```
-
 ### Verify OCI Chart Signatures
 
 ```bash
 # Verify OCI chart signature
-cosign verify ghcr.io/slybase/helm-charts/wg-easy:1.0.0 \
+cosign verify ghcr.io/slybase/charts/wg-easy:1.0.0 \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   --certificate-identity "https://github.com/slydlake/helm-charts/.github/workflows/oci-release.yaml@refs/heads/main"
 ```
 
 ## 🛠️ Installation Methods
 
-### Method 1: Traditional Helm CLI
-
-```bash
-# Add repository
-helm repo add slydlake https://slydlake.github.io/helm-charts
-helm repo update
-
-# Install chart
-helm install wg-easy slydlake/wg-easy --version 1.0.0
-```
-
-### Method 2: OCI with Helm CLI
+### OCI with Helm CLI
 
 ```bash
 # Install directly from OCI registry
-helm install wg-easy oci://ghcr.io/slybase/helm-charts/wg-easy --version 1.0.0
+helm install wg-easy oci://ghcr.io/slybase/charts/wg-easy --version 1.0.0
 ```
 
-### Method 3: FluxCD (Recommended)
+### FluxCD
 
 Use the FluxCD examples above for GitOps deployment with automatic signature verification.
+
+## 🗒️ Release Notes
+
+Each chart keeps its human-readable release history in `charts/<chart>/CHANGELOG.md`. Artifact Hub receives only the current release block from `Chart.yaml`.
 
 ## 🔐 Security Features
 

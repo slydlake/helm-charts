@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: read
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -27,18 +28,20 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
 
+      - name: Detect changed charts
+        id: charts
+        uses: ./.github/actions/detect-changed-charts
+        with:
+          base-ref: ${{ github.event.inputs.base_ref || github.base_ref || github.event.repository.default_branch || 'main' }}
+
       - name: Validate changed charts
         shell: bash
+        env:
+          CHARTS_JSON: ${{ steps.charts.outputs.charts_json }}
         run: |
           set -euo pipefail
 
-          git fetch origin "${{ github.event.inputs.base_ref || github.base_ref }}"
-
-          mapfile -t chart_dirs < <(
-            git diff --name-only "origin/${{ github.event.inputs.base_ref || github.base_ref }}"...HEAD \
-              | awk -F/ '/^charts\/[^/]+\// && $3 != "charts" { print $1 "/" $2 }' \
-              | sort -u
-          )
+          mapfile -t chart_dirs < <(printf '%s' "$CHARTS_JSON" | jq -r '.[]')
 
           if [ "${#chart_dirs[@]}" -eq 0 ]; then
             echo "No chart changes detected"
@@ -49,7 +52,6 @@ jobs:
 
           for chart_dir in "${chart_dirs[@]}"; do
             echo "::group::${chart_dir}"
-
             helm dependency build "${chart_dir}"
 
             if [ -f "${chart_dir}/linter_values.yaml" ]; then

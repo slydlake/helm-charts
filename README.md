@@ -6,16 +6,16 @@
 
 # 🚀 SlyCharts - Helm charts, the sly way
 
-A collection of production-ready Helm charts for self-hosted applications, featuring **signed charts** for enhanced security.
+A collection of production-ready Helm charts for self-hosted applications, distributed as **signed OCI artifacts**.
 
 ## 🔐 Security Features
 
 All charts in this repository are **signed with Cosign** using keyless signing for maximum security and trust:
 
 - ✅ **Cryptographically Signed** - Every chart release is signed
-- ✅ **Keyless Verification** - No private key management required  
+- ✅ **Keyless Verification** - No private key management required
 - ✅ **FluxCD Compatible** - Native signature verification support
-- ✅ **Multiple Distribution** - Available via traditional Helm repos and OCI registry
+- ✅ **OCI Native** - Published directly to GitHub Container Registry
 
 📖 **[Complete Signing & Verification Guide →](./README-SIGNING.md)**
 
@@ -48,6 +48,8 @@ helm install wgeasy oci://ghcr.io/slybase/charts/wg-easy \
 - Step-by-step installation instructions
 
 Check the `samples/` folder in each chart directory for ready-to-use example configurations.
+
+Each chart also includes a `CHANGELOG.md` with its release history.
 
 ### FluxCD with Signature Verification
 
@@ -85,16 +87,10 @@ spec:
 Verify chart authenticity before installation:
 
 ```bash
-# For OCI charts
-cosign verify ghcr.io/slybase/charts/wg-easy:latest \
+# Verify OCI chart signatures
+cosign verify ghcr.io/slybase/charts/wg-easy:15.2.2 \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   --certificate-identity "https://github.com/slydlake/helm-charts/.github/workflows/oci-release.yaml@refs/heads/main"
-
-# For traditional charts (download signature bundle first)
-cosign verify-blob chart.tgz \
-  --bundle chart.tgz.cosign.bundle \
-  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  --certificate-identity "https://github.com/slydlake/helm-charts/.github/workflows/release.yaml@refs/heads/main"
 ```
 
 ## 🌟 ArtifactHub

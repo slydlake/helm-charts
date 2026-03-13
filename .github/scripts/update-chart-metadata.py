@@ -1,0 +1,324 @@
+#!/usr/bin/env python3
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+CHANGELOG_HEADER = "# Changelog\n\nAll notable changes to this chart are documented here.\n\n"
+METADATA_COMMIT_PATTERNS = (
+    r"^chore: update chart metadata$",
+    r"^chore: update chart release metadata$",
+)
+
+
+def main() -> int:
+    args = parse_args()
+
+    if should_skip_metadata_update(args.chart_dir):
+        print(json.dumps({"skipped": True, "reason": "metadata-up-to-date"}), end="")
+        return 0
+
+    chart_file_path = Path(args.chart_dir) / "Chart.yaml"
+    changelog_path = Path(args.chart_dir) / "CHANGELOG.md"
+    current_version = read_current_version(chart_file_path)
+    labels = normalise_labels(args.pr_labels)
+    bump_type = determine_bump_type(labels)
+    new_version = bump_version(current_version, bump_type)
+    descriptions = normalise_change_descriptions(args.change_descriptions)
+    release_channel = "beta" if is_prerelease_version(new_version) or "prerelease" in labels else "stable"
+    release_date = dt.datetime.now(dt.UTC).date().isoformat()
+
+    sync_chart_metadata(chart_file_path, new_version, descriptions, args.pr_url)
+    update_changelog_file(
+        changelog_path,
+        {
+            "version": new_version,
+            "release_date": release_date,
+            "descriptions": descriptions,
+            "pr_url": args.pr_url,
+            "release_channel": release_channel,
+        },
+    )
+
+    print(
+        json.dumps(
+            {
+                "skipped": False,
+                "chart": Path(args.chart_dir).name,
+                "bumpType": bump_type,
+                "currentVersion": current_version,
+                "newVersion": new_version,
+            }
+        ),
+        end="",
+    )
+    return 0
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--chart-dir", required=True)
+    parser.add_argument("--pr-url", required=True)
+    parser.add_argument("--pr-labels", default="")
+    parser.add_argument("--change-descriptions", default="")
+    return parser.parse_args()
+
+
+def exec_git(args: list[str], allow_failure: bool = False) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        return result.stdout.rstrip("\n")
+    if allow_failure:
+        return ""
+    stderr = result.stderr.strip() or result.stdout.strip() or "git command failed"
+    raise RuntimeError(f"git {' '.join(args)} failed: {stderr}")
+
+
+def should_skip_metadata_update(chart_dir: str) -> bool:
+    log_args = ["log"]
+    for pattern in METADATA_COMMIT_PATTERNS:
+        log_args.extend(["--grep", pattern])
+    log_args.extend(["--format=%H", "-n", "1", "--", chart_dir])
+
+    last_metadata_commit = exec_git(log_args, allow_failure=True)
+    if not last_metadata_commit:
+        return False
+
+    changed_files = [
+        line.strip()
+        for line in exec_git(["diff", "--name-only", f"{last_metadata_commit}..HEAD", "--", chart_dir], allow_failure=True).splitlines()
+        if line.strip() and not line.strip().endswith("/CHANGELOG.md")
+    ]
+    return len(changed_files) == 0
+
+
+def read_current_version(chart_file_path: Path) -> str:
+    content = chart_file_path.read_text(encoding="utf8")
+    match = re.search(r"^version:\s*(\S+)\s*$", content, flags=re.MULTILINE)
+    if not match:
+        raise RuntimeError(f"Could not find chart version in {chart_file_path}")
+    return match.group(1)
+
+
+def normalise_labels(raw_labels: str) -> list[str]:
+    return [label.strip() for label in str(raw_labels).split(",") if label.strip()]
+
+
+def normalise_change_descriptions(raw_descriptions: str) -> list[str]:
+    descriptions = [line.strip() for line in str(raw_descriptions).splitlines() if line.strip()]
+    return descriptions or ["Dependency update"]
+
+
+def determine_bump_type(labels: list[str]) -> str:
+    label_set = set(labels)
+    if "chart-bump-major" in label_set or "major" in label_set:
+        return "major"
+    if "chart-bump-minor" in label_set or "minor" in label_set:
+        return "minor"
+    return "patch"
+
+
+def bump_version(version: str, bump_type: str) -> str:
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(-.+)?", version.strip())
+    if not match:
+        raise RuntimeError(f"Unsupported chart version: {version}")
+
+    major, minor, patch = (int(match.group(index)) for index in range(1, 4))
+    suffix = match.group(4) or ""
+
+    if bump_type == "major":
+        return f"{major + 1}.0.0{suffix}"
+    if bump_type == "minor":
+        return f"{major}.{minor + 1}.0{suffix}"
+    return f"{major}.{minor}.{patch + 1}{suffix}"
+
+
+def sync_chart_metadata(chart_file_path: Path, new_version: str, descriptions: list[str], pr_url: str) -> None:
+    content = chart_file_path.read_text(encoding="utf8")
+    content = replace_version(content, new_version)
+    content = replace_annotation_block(
+        content,
+        "artifacthub.io/changes",
+        build_artifacthub_changes_block(descriptions, pr_url),
+        block_scalar=True,
+    )
+    content = sync_prerelease_annotation(content, is_prerelease_version(new_version))
+    chart_file_path.write_text(content, encoding="utf8")
+
+
+def replace_version(content: str, new_version: str) -> str:
+    updated_content, count = re.subn(
+        r"^version:\s*.+$",
+        f"version: {new_version}",
+        content,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    if count != 1:
+        raise RuntimeError("Could not update chart version")
+    return updated_content
+
+
+def build_artifacthub_changes_block(descriptions: list[str], pr_url: str) -> str:
+    lines: list[str] = []
+    for description in descriptions:
+        escaped_description = description.replace('"', '\\"')
+        lines.append("- kind: changed")
+        lines.append(f'  description: "{escaped_description}"')
+        if pr_url:
+            lines.append("  links:")
+            lines.append("    - name: Pull Request")
+            lines.append(f"      url: {pr_url}")
+    return "\n".join(lines)
+
+
+def sync_prerelease_annotation(content: str, is_prerelease: bool) -> str:
+    key = "artifacthub.io/prerelease"
+    if is_prerelease:
+        return replace_annotation_block(content, key, '"true"', block_scalar=False)
+    return remove_annotation(content, key)
+
+
+def replace_annotation_block(content: str, key: str, value: str, *, block_scalar: bool) -> str:
+    lines = content.splitlines()
+    annotations_start, annotations_end = ensure_annotations_section(lines)
+    entry_start, entry_end = find_annotation_entry(lines, annotations_start, annotations_end, key)
+
+    if block_scalar:
+        new_entry = [f"  {key}: |", *[f"    {line}" for line in value.splitlines()]]
+    else:
+        new_entry = [f"  {key}: {value}"]
+
+    if entry_start is None:
+        insert_at = annotations_end
+        lines[insert_at:insert_at] = new_entry
+    else:
+        lines[entry_start:entry_end] = new_entry
+
+    return "\n".join(lines) + "\n"
+
+
+def remove_annotation(content: str, key: str) -> str:
+    lines = content.splitlines()
+    annotations_bounds = find_annotations_section(lines)
+    if annotations_bounds is None:
+        return content
+
+    annotations_start, annotations_end = annotations_bounds
+    entry_start, entry_end = find_annotation_entry(lines, annotations_start, annotations_end, key)
+    if entry_start is None:
+        return content
+
+    del lines[entry_start:entry_end]
+    return "\n".join(lines) + "\n"
+
+
+def ensure_annotations_section(lines: list[str]) -> tuple[int, int]:
+    bounds = find_annotations_section(lines)
+    if bounds is not None:
+        return bounds
+
+    insert_at = len(lines)
+    for index, line in enumerate(lines):
+        if re.match(r"^(keywords|dependencies):", line):
+            insert_at = index
+            break
+
+    lines[insert_at:insert_at] = ["annotations:"]
+    return find_annotations_section(lines)  # type: ignore[return-value]
+
+
+def find_annotations_section(lines: list[str]) -> tuple[int, int] | None:
+    for start_index, line in enumerate(lines):
+        if line == "annotations:":
+            end_index = start_index + 1
+            while end_index < len(lines):
+                current = lines[end_index]
+                if current.startswith("  ") or current == "":
+                    end_index += 1
+                    continue
+                break
+            return start_index + 1, end_index
+    return None
+
+
+def find_annotation_entry(
+    lines: list[str], annotations_start: int, annotations_end: int, key: str
+) -> tuple[int | None, int | None]:
+    prefix = f"  {key}:"
+    for index in range(annotations_start, annotations_end):
+        if not lines[index].startswith(prefix):
+            continue
+
+        end_index = index + 1
+        while end_index < annotations_end:
+            current = lines[end_index]
+            if current.startswith("    ") or current == "":
+                end_index += 1
+                continue
+            break
+        return index, end_index
+
+    return None, None
+
+
+def update_changelog_file(changelog_path: Path, entry: dict[str, object]) -> None:
+    current_content = changelog_path.read_text(encoding="utf8") if changelog_path.exists() else ""
+    version = str(entry["version"])
+
+    if f"## {version} - " in current_content:
+        return
+
+    rendered_entry = build_changelog_entry(entry).rstrip()
+    body = strip_changelog_header(current_content).strip()
+    next_body = f"{rendered_entry}\n\n{body}" if body else rendered_entry
+    changelog_path.write_text(f"{CHANGELOG_HEADER}{next_body}\n", encoding="utf8")
+
+
+def build_changelog_entry(entry: dict[str, object]) -> str:
+    lines = [f"## {entry['version']} - {entry['release_date']}", ""]
+
+    for description in entry["descriptions"]:
+        lines.append(f"- {description}")
+
+    if entry["pr_url"]:
+        lines.append(f"- Pull Request: {entry['pr_url']}")
+
+    if entry["release_channel"] != "stable":
+        lines.append(f"- Release channel: {entry['release_channel']}")
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def strip_changelog_header(content: str) -> str:
+    return re.sub(
+        r"^# Changelog\s*\n\s*All notable changes to this chart are documented here\.\s*\n*",
+        "",
+        content,
+        count=1,
+        flags=re.MULTILINE,
+    )
+
+
+def is_prerelease_version(version: str) -> bool:
+    return re.search(r"-(alpha|beta|rc)(?:\.|\d|$)", version, flags=re.IGNORECASE) is not None
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as error:  # pragma: no cover
+        print(str(error), file=sys.stderr)
+        raise SystemExit(1)

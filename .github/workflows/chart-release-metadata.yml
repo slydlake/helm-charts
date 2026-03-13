@@ -1,0 +1,132 @@
+name: Update Chart Release Metadata
+
+on:
+  push:
+    branches:
+      - main
+      - prerelease
+    paths:
+      - "charts/**"
+      - ".github/actions/detect-changed-charts/**"
+      - ".github/scripts/update-chart-metadata.py"
+      - ".github/workflows/chart-release-metadata.yml"
+
+jobs:
+  chart-release-metadata:
+    name: chart-release-metadata
+    runs-on: ubuntu-latest
+    concurrency:
+      group: chart-release-metadata-${{ github.ref_name }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout branch head
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect changed charts
+        id: charts
+        uses: ./.github/actions/detect-changed-charts
+
+      - name: Resolve merged Renovate PR
+        id: pr
+        if: steps.charts.outputs.has_charts == 'true'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const targetBranch = context.ref.replace('refs/heads/', '');
+            const pullRequests = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner,
+              repo,
+              commit_sha: context.sha,
+            });
+
+            const mergedPullRequest = pullRequests.data.find((pullRequest) => (
+              pullRequest.merged_at && pullRequest.base?.ref === targetBranch
+            ));
+
+            if (!mergedPullRequest) {
+              core.setOutput('skip', 'true');
+              core.info('No merged pull request is associated with this commit.');
+              return;
+            }
+
+            if (mergedPullRequest.user?.login !== 'renovate[bot]') {
+              core.setOutput('skip', 'true');
+              core.info(`Skipping metadata update for non-Renovate PR #${mergedPullRequest.number}.`);
+              return;
+            }
+
+            const labels = mergedPullRequest.labels
+              .map((label) => typeof label === 'string' ? label : label.name)
+              .filter(Boolean);
+
+            const regex = /\|\s*([^\|]+?)\s*\|\s*\w+\s*\|\s*`([^`]+)`\s*\u2192\s*`([^`]+)`\s*\|/g;
+            const changes = [];
+            const body = mergedPullRequest.body || '';
+            let match;
+
+            while ((match = regex.exec(body)) !== null) {
+              changes.push(`Update ${match[1].trim()} to ${match[3].trim()}`);
+            }
+
+            if (changes.length === 0) {
+              changes.push('Dependency update');
+            }
+
+            core.setOutput('skip', 'false');
+            core.setOutput('pr_url', mergedPullRequest.html_url || '');
+            core.setOutput('pr_labels', labels.join(','));
+            core.setOutput('change_descriptions', changes.join('\n'));
+
+      - name: Configure Git
+        if: steps.charts.outputs.has_charts == 'true' && steps.pr.outputs.skip != 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Update chart metadata and changelog
+        if: steps.charts.outputs.has_charts == 'true' && steps.pr.outputs.skip != 'true'
+        env:
+          CHARTS_JSON: ${{ steps.charts.outputs.charts_json }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+          PR_LABELS: ${{ steps.pr.outputs.pr_labels }}
+          CHANGE_DESCRIPTIONS: ${{ steps.pr.outputs.change_descriptions }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t chart_dirs < <(printf '%s' "$CHARTS_JSON" | jq -r '.[]')
+
+          if [ "${#chart_dirs[@]}" -eq 0 ]; then
+            echo "No chart changes detected"
+            exit 0
+          fi
+
+          if [ "${#chart_dirs[@]}" -ne 1 ]; then
+            echo "Expected exactly one changed chart, found ${#chart_dirs[@]}: ${chart_dirs[*]}" >&2
+            exit 1
+          fi
+
+          chart_dir="${chart_dirs[0]}"
+
+          python3 .github/scripts/update-chart-metadata.py \
+            --chart-dir "$chart_dir" \
+            --pr-url "$PR_URL" \
+            --pr-labels "$PR_LABELS" \
+            --change-descriptions "$CHANGE_DESCRIPTIONS"
+
+          if git diff --quiet; then
+            echo "No metadata changes to commit"
+            exit 0
+          fi
+
+          git add "$chart_dir/Chart.yaml" "$chart_dir/CHANGELOG.md"
+          git commit -m "chore: update chart release metadata"
+          git push

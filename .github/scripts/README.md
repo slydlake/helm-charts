@@ -1,22 +1,23 @@
 # GitHub Scripts
 
-This directory contains utility and validation scripts for the repository.
+This directory intentionally contains only the small helper that is still needed by GitHub Actions.
 
-## 🤖 Used by GitHub Actions
+## Used by GitHub Actions
 
-### `update-chart-metadata.sh`
+### update-chart-metadata.py
 
-**Used by:** `.github/workflows/renovate-chart-update.yml`
+Used by [.github/workflows/chart-release-metadata.yml](.github/workflows/chart-release-metadata.yml).
 
-**What it does:**
-- ✅ Bumps Chart version based on PR labels: `major` → x.0.0, `minor` → 0.x.0, `patch`/`digest`/default → 0.0.x
-- ✅ Updates `artifacthub.io/changes` annotation with PR link
-- ❌ Does NOT update appVersion (handled by Renovate directly)
+What it does:
+- Bumps the chart version from Renovate labels.
+- Rewrites the current artifacthub.io/changes block.
+- Adds or removes artifacthub.io/prerelease based on the chart version.
+- Prepends the new entry to the chart CHANGELOG.md.
 
-**Environment variables:**
-- `CHART_DIR` — path to the chart directory (e.g. `charts/wordpress`)
-- `PR_LABELS` — comma-separated list of PR labels (e.g. `major,automerge`)
+Arguments:
+- --chart-dir
+- --pr-url
+- --pr-labels
+- --change-descriptions
 
-**Arguments:** `<pr-title>` `<pr-url>`
-
-**Workflow:** Renovate PR → renovate-chart-update.yml → update-chart-metadata.sh → Chart version bump + changelog
+Changed-chart detection is shared through [.github/actions/detect-changed-charts/action.yml](.github/actions/detect-changed-charts/action.yml), so the workflow logic stays consistent across validation, metadata generation, and OCI release.
