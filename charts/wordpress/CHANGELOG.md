@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to this chart are documented here.
+
+## 3.5.14 - 2026-03-14
+
+- Update [memcached](https://memcached.org) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/memcached)) to 0.11.0
+- Pull Request: https://github.com/slydlake/helm-charts/pull/229
+
 ## 3.5.13 - 2026-03-12
 
 - Update docker.io/wordpress to 6.9.4-php8.3-apache
