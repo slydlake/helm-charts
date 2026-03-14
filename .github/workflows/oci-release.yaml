@@ -57,56 +57,6 @@ jobs:
         with:
           manual-chart: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.chart || '' }}
 
-  push-release-gate:
-    name: Decide Push Publish Policy
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      should_publish: ${{ steps.gate.outputs.should_publish }}
-    steps:
-      - name: Decide whether this push should publish
-        id: gate
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
-        with:
-          script: |
-            if (context.eventName !== 'push') {
-              core.setOutput('should_publish', 'true');
-              core.info('Publish gate bypassed for non-push event.');
-              return;
-            }
-
-            const { owner, repo } = context.repo;
-            const headCommitMessage = context.payload.head_commit?.message || '';
-
-            if (/^chore: update chart release metadata$/.test(headCommitMessage)) {
-              core.setOutput('should_publish', 'true');
-              core.info('Publishing metadata follow-up commit.');
-              return;
-            }
-
-            const associatedPullRequests = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-              owner,
-              repo,
-              commit_sha: context.sha,
-            });
-
-            const targetBranch = context.ref.replace('refs/heads/', '');
-            const mergedRenovatePullRequest = associatedPullRequests.data.find((pullRequest) => (
-              pullRequest.merged_at
-              && pullRequest.base?.ref === targetBranch
-              && pullRequest.user?.login === 'renovate[bot]'
-            ));
-
-            if (mergedRenovatePullRequest) {
-              core.setOutput('should_publish', 'false');
-              core.info(`Skipping publish for merged Renovate PR #${mergedRenovatePullRequest.number}; waiting for metadata commit.`);
-              return;
-            }
-
-            core.setOutput('should_publish', 'true');
-
   pr-preview:
     name: Release Preview
     if: github.event_name == 'pull_request' && needs.discover-charts.outputs.has_charts == 'true'
@@ -140,10 +90,8 @@ jobs:
 
   oci-release:
     name: Release to OCI Registry
-    if: github.event_name != 'pull_request' && needs.discover-charts.outputs.has_charts == 'true' && needs.push-release-gate.outputs.should_publish == 'true'
-    needs:
-      - discover-charts
-      - push-release-gate
+    if: github.event_name != 'pull_request' && needs.discover-charts.outputs.has_charts == 'true'
+    needs: discover-charts
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -290,7 +238,6 @@ jobs:
           chart_version="${{ steps.chart.outputs.chart_version }}"
 
           echo "Packaging chart $chart_name version $chart_version"
-
           mkdir -p packages
           helm dependency build "$chart_dir"
           helm package "$chart_dir" --destination ./packages

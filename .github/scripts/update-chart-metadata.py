@@ -122,6 +122,10 @@ def normalise_change_descriptions(raw_descriptions: str) -> list[str]:
 
 def determine_bump_type(labels: list[str]) -> str:
     label_set = set(labels)
+    if "subchart-update" in label_set:
+        if "chart-bump-minor" in label_set or "chart-bump-major" in label_set or "major" in label_set:
+            return "minor"
+        return "patch"
     if "chart-bump-major" in label_set or "major" in label_set:
         return "major"
     if "chart-bump-minor" in label_set or "minor" in label_set:

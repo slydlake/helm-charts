@@ -222,7 +222,7 @@
                 "major"
             ],
             "addLabels": [
-                "chart-bump-major",
+                "chart-bump-minor",
                 "subchart-update"
             ]
         },

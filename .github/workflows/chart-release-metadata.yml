@@ -1,7 +1,11 @@
 name: Update Chart Release Metadata
 
 on:
-  push:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
     branches:
       - main
       - prerelease
@@ -15,17 +19,19 @@ jobs:
   chart-release-metadata:
     name: chart-release-metadata
     runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'renovate[bot]' || github.event.pull_request.user.login == 'app/renovate'
     concurrency:
-      group: chart-release-metadata-${{ github.ref_name }}
-      cancel-in-progress: false
+      group: chart-release-metadata-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     permissions:
       contents: write
       pull-requests: read
     steps:
-      - name: Checkout branch head
+      - name: Checkout PR branch
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          ref: ${{ github.ref_name }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -33,43 +39,19 @@ jobs:
         id: charts
         uses: ./.github/actions/detect-changed-charts
 
-      - name: Resolve merged Renovate PR
+      - name: Extract dependency changes
         id: pr
         if: steps.charts.outputs.has_charts == 'true'
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
-            const { owner, repo } = context.repo;
-            const targetBranch = context.ref.replace('refs/heads/', '');
-            const pullRequests = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-              owner,
-              repo,
-              commit_sha: context.sha,
-            });
-
-            const mergedPullRequest = pullRequests.data.find((pullRequest) => (
-              pullRequest.merged_at && pullRequest.base?.ref === targetBranch
-            ));
-
-            if (!mergedPullRequest) {
-              core.setOutput('skip', 'true');
-              core.info('No merged pull request is associated with this commit.');
-              return;
-            }
-
-            if (mergedPullRequest.user?.login !== 'renovate[bot]') {
-              core.setOutput('skip', 'true');
-              core.info(`Skipping metadata update for non-Renovate PR #${mergedPullRequest.number}.`);
-              return;
-            }
-
-            const labels = mergedPullRequest.labels
+            const labels = (context.payload.pull_request.labels || [])
               .map((label) => typeof label === 'string' ? label : label.name)
               .filter(Boolean);
 
             const regex = /\|\s*([^\|]+?)\s*\|\s*\w+\s*\|\s*`([^`]+)`\s*\u2192\s*`([^`]+)`\s*\|/g;
             const changes = [];
-            const body = mergedPullRequest.body || '';
+            const body = context.payload.pull_request.body || '';
             let match;
 
             while ((match = regex.exec(body)) !== null) {
@@ -80,24 +62,24 @@ jobs:
               changes.push('Dependency update');
             }
 
-            core.setOutput('skip', 'false');
-            core.setOutput('pr_url', mergedPullRequest.html_url || '');
+            core.setOutput('pr_url', context.payload.pull_request.html_url || '');
             core.setOutput('pr_labels', labels.join(','));
             core.setOutput('change_descriptions', changes.join('\n'));
 
       - name: Configure Git
-        if: steps.charts.outputs.has_charts == 'true' && steps.pr.outputs.skip != 'true'
+        if: steps.charts.outputs.has_charts == 'true'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Update chart metadata and changelog
-        if: steps.charts.outputs.has_charts == 'true' && steps.pr.outputs.skip != 'true'
+        if: steps.charts.outputs.has_charts == 'true'
         env:
           CHARTS_JSON: ${{ steps.charts.outputs.charts_json }}
           PR_URL: ${{ steps.pr.outputs.pr_url }}
           PR_LABELS: ${{ steps.pr.outputs.pr_labels }}
           CHANGE_DESCRIPTIONS: ${{ steps.pr.outputs.change_descriptions }}
+          TARGET_BRANCH: ${{ github.event.pull_request.head.ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -129,4 +111,8 @@ jobs:
 
           git add "$chart_dir/Chart.yaml" "$chart_dir/CHANGELOG.md"
           git commit -m "chore: update chart release metadata"
-          git push
+
+          if ! git push origin "HEAD:$TARGET_BRANCH"; then
+            git pull --rebase origin "$TARGET_BRANCH"
+            git push origin "HEAD:$TARGET_BRANCH"
+          fi

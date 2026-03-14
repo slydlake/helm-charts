@@ -6,10 +6,11 @@ This directory intentionally contains only the small helper that is still needed
 
 ### update-chart-metadata.py
 
-Used by [.github/workflows/chart-release-metadata.yml](.github/workflows/chart-release-metadata.yml).
+Used by [.github/workflows/chart-release-metadata.yml](.github/workflows/chart-release-metadata.yml) on Renovate pull requests before merge.
 
 What it does:
 - Bumps the chart version from Renovate labels.
+- Applies the subchart mapping rule: subchart major -> chart minor, subchart minor/patch -> chart patch.
 - Rewrites the current artifacthub.io/changes block.
 - Adds or removes artifacthub.io/prerelease based on the chart version.
 - Prepends the new entry to the chart CHANGELOG.md.
