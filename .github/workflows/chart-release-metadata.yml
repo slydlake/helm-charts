@@ -27,13 +27,43 @@ jobs:
       contents: write
       pull-requests: read
     steps:
+      - name: Generate GitHub App Token (with fallback)
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.SLYBASE_APP_ID }}
+          private-key: ${{ secrets.SLYBASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+        continue-on-error: true
+
+      - name: Resolve push token
+        id: push-token
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "${{ steps.app-token.outputs.token }}" ]; then
+            echo "Using GitHub App token for metadata branch push"
+            echo "token=${{ steps.app-token.outputs.token }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -n "${{ secrets.SLYBASE_GHCR_TOKEN }}" ]; then
+            echo "Using PAT fallback for metadata branch push"
+            echo "token=${{ secrets.SLYBASE_GHCR_TOKEN }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Using GITHUB_TOKEN fallback for metadata branch push"
+          echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout PR branch
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.push-token.outputs.token }}
 
       - name: Detect changed charts
         id: charts
