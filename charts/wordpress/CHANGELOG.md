@@ -2,6 +2,13 @@
 
 All notable changes to this chart are documented here.
 
+> Note: Releases 3.5.2, 3.5.3, 3.5.4, 3.5.5, 3.5.6, 3.5.7, 3.5.13, and 3.5.14 were accidentally published under 3.5.x although they belonged to the 3.6.x line. Those OCI artifacts remain published for immutability. Unpublished incorrect entries 3.5.8 through 3.5.12 were removed. Stable releases continue from 3.6.2.
+
+## 3.6.2 - 2026-03-15
+
+- Correct WordPress chart version line after accidental 3.5.x releases.
+- No functional chart changes compared to 3.5.14; this release restores the intended 3.6.x numbering.
+
 ## 3.5.14 - 2026-03-14
 
 - Update [memcached](https://memcached.org) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/memcached)) to 0.11.0
@@ -12,37 +19,6 @@ All notable changes to this chart are documented here.
 - Update docker.io/wordpress to 6.9.4-php8.3-apache
 - Update docker.io/wordpress to 6.9.4
 - Pull Request: https://github.com/slydlake/helm-charts/pull/210
-
-## 3.5.12 - 2026-03-12
-
-- Update [redis](https://www.redis.io) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/redis)) to 0.26.4
-- Pull Request: https://github.com/slydlake/helm-charts/pull/209
-
-## 3.5.11 - 2026-03-11
-
-- Update docker.io/wordpress to 6.9.2-php8.3-apache
-- Update docker.io/wordpress to 6.9.2
-- Update [redis](https://www.redis.io) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/redis)) to 0.26.2
-- Pull Request: https://github.com/slydlake/helm-charts/pull/208
-
-## 3.5.10 - 2026-03-11
-
-- Update docker.io/memcached to d99136e
-- Update [memcached](https://memcached.org) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/memcached)) to 0.10.3
-- Update [redis](https://www.redis.io) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/redis)) to 0.26.1
-- Pull Request: https://github.com/slydlake/helm-charts/pull/193
-
-## 3.5.9 - 2026-03-09
-
-- Update [memcached](https://memcached.org) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/memcached)) to 0.10.2
-- Update [redis](https://www.redis.io) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/redis)) to 0.25.10
-- Update [valkey](https://www.valkey.io) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/valkey)) to 0.17.1
-- Pull Request: https://github.com/slydlake/helm-charts/pull/189
-
-## 3.5.8 - 2026-03-08
-
-- Update docker.io/memcached to 1.6.41
-- Pull Request: https://github.com/slydlake/helm-charts/pull/173
 
 ## 3.5.7 - 2026-03-06
 

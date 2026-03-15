@@ -30,6 +30,7 @@ def main() -> int:
     labels = normalise_labels(args.pr_labels)
     bump_type = determine_bump_type(labels)
     new_version = bump_version(current_version, bump_type)
+    ensure_version_increases(current_version, new_version)
     descriptions = normalise_change_descriptions(args.change_descriptions)
     release_channel = "beta" if is_prerelease_version(new_version) or "prerelease" in labels else "stable"
     release_date = dt.datetime.now(dt.UTC).date().isoformat()
@@ -146,6 +147,34 @@ def bump_version(version: str, bump_type: str) -> str:
     if bump_type == "minor":
         return f"{major}.{minor + 1}.0{suffix}"
     return f"{major}.{minor}.{patch + 1}{suffix}"
+
+
+def ensure_version_increases(current_version: str, new_version: str) -> None:
+    if compare_versions(new_version, current_version) <= 0:
+        raise RuntimeError(
+            f"Version bump must increase chart version: current={current_version}, new={new_version}"
+        )
+
+
+def compare_versions(left: str, right: str) -> int:
+    left_key = version_sort_key(left)
+    right_key = version_sort_key(right)
+    if left_key < right_key:
+        return -1
+    if left_key > right_key:
+        return 1
+    return 0
+
+
+def version_sort_key(version: str) -> tuple[int, int, int, int, str]:
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(-.+)?", version.strip())
+    if not match:
+        raise RuntimeError(f"Unsupported chart version: {version}")
+
+    major, minor, patch = (int(match.group(index)) for index in range(1, 4))
+    suffix = (match.group(4) or "").lstrip("-")
+    stable_weight = 1 if not suffix else 0
+    return major, minor, patch, stable_weight, suffix
 
 
 def sync_chart_metadata(chart_file_path: Path, new_version: str, descriptions: list[str], pr_url: str) -> None:
