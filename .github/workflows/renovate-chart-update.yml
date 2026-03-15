@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: Close empty-diff PR
         id: empty_check
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -73,7 +73,7 @@ jobs:
       - name: Extract dependency changes
         if: steps.empty_check.outputs.is_empty != 'true'
         id: changes
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const body = context.payload.pull_request.body || '';
@@ -95,7 +95,7 @@ jobs:
       - name: Detect chart scope
         if: steps.empty_check.outputs.is_empty != 'true'
         id: scope
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -163,7 +163,7 @@ jobs:
 
       - name: Post chart-validate status
         if: steps.commit.outputs.pushed == 'true'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           NEW_SHA: ${{ steps.commit.outputs.new_sha }}
         with:
@@ -180,7 +180,7 @@ jobs:
 
       - name: Enable auto-merge
         if: steps.empty_check.outputs.is_empty != 'true'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
         with:
@@ -222,7 +222,7 @@ jobs:
 
       - name: Post update-chart-metadata status
         if: always()
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           ORIG_SHA: ${{ github.event.pull_request.head.sha }}
           NEW_SHA: ${{ steps.commit.outputs.new_sha }}
