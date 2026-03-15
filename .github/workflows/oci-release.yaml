@@ -36,6 +36,8 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  HELM_VERSION: v3.18.3
+  ORAS_VERSION: 1.2.0
 
 jobs:
   discover-charts:
@@ -74,7 +76,17 @@ jobs:
           fetch-depth: 0
 
       - name: Install Helm
-        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive="helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          curl -fsSLO "https://get.helm.sh/${archive}"
+          tar -zxf "$archive"
+          sudo mv linux-amd64/helm /usr/local/bin/helm
+          rm -rf "$archive" linux-amd64
+
+          helm version --short
 
       - name: Package chart preview
         shell: bash
@@ -111,15 +123,30 @@ jobs:
           fetch-depth: 1
 
       - name: Install Helm
-        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
-
-      - name: Install ORAS (for ArtifactHub metadata)
+        shell: bash
         run: |
-          curl -LO "https://github.com/oras-project/oras/releases/download/v1.2.0/oras_1.2.0_linux_amd64.tar.gz"
+          set -euo pipefail
+
+          archive="helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          curl -fsSLO "https://get.helm.sh/${archive}"
+          tar -zxf "$archive"
+          sudo mv linux-amd64/helm /usr/local/bin/helm
+          rm -rf "$archive" linux-amd64
+
+          helm version --short
+
+      - name: Install ORAS
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fsSLO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
           mkdir -p oras-install/
           tar -zxf oras_*.tar.gz -C oras-install/
           sudo mv oras-install/oras /usr/local/bin/
           rm -rf oras_*.tar.gz oras-install/
+
+          oras version
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
@@ -133,25 +160,55 @@ jobs:
           owner: SlyBase
         continue-on-error: true
 
-      - name: Debug authentication and registry access
+      - name: Resolve registry authentication
+        id: registry-auth
+        shell: bash
+        env:
+          GHCR_PAT: ${{ secrets.SLYBASE_GHCR_TOKEN }}
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          FALLBACK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+
+          if [ -n "$GHCR_PAT" ]; then
+            selected_token="$GHCR_PAT"
+            token_source="pat"
+          elif [ -n "$APP_TOKEN" ]; then
+            selected_token="$APP_TOKEN"
+            token_source="app"
+          else
+            selected_token="$FALLBACK_TOKEN"
+            token_source="github"
+          fi
+
+          echo "::add-mask::$selected_token"
+          {
+            echo "token=$selected_token"
+            echo "source=$token_source"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Debug authentication and registry access
+        shell: bash
+        env:
+          REGISTRY_TOKEN: ${{ steps.registry-auth.outputs.token }}
+          REGISTRY_TOKEN_SOURCE: ${{ steps.registry-auth.outputs.source }}
+        run: |
+          set -euo pipefail
+
           echo "=== Debug Info ==="
           echo "GitHub Actor: ${{ github.actor }}"
           echo "Event: ${{ github.event_name }}"
           echo "Target registry: ghcr.io/slybase/charts"
 
-          if [ -n "${{ secrets.SLYBASE_GHCR_TOKEN }}" ]; then
+          if [ "$REGISTRY_TOKEN_SOURCE" = 'pat' ]; then
             echo "Using Personal Access Token (preferred for package creation)"
-            token="${{ secrets.SLYBASE_GHCR_TOKEN }}"
-          elif [ -n "${{ steps.app-token.outputs.token }}" ]; then
+          elif [ "$REGISTRY_TOKEN_SOURCE" = 'app' ]; then
             echo "Using GitHub App token (may have limitations for new packages)"
-            token="${{ steps.app-token.outputs.token }}"
           else
-            echo "❌ No authentication token available!"
-            exit 1
+            echo "Using built-in GITHUB_TOKEN"
           fi
 
-          if curl -s -f -H "Authorization: Bearer $token" \
+          if curl -s -f -H "Authorization: Bearer $REGISTRY_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/orgs/SlyBase >/dev/null; then
             echo "✅ Token can access SlyBase org"
@@ -164,7 +221,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.SLYBASE_GHCR_TOKEN || steps.app-token.outputs.token }}
+          password: ${{ steps.registry-auth.outputs.token }}
 
       - name: Resolve chart context
         id: chart
@@ -176,161 +233,153 @@ jobs:
           chart_name=$(basename "$chart_dir")
           chart_version=$(helm show chart "$chart_dir" | awk '/^version:/ { print $2 }')
 
-          echo "chart_dir=$chart_dir" >> "$GITHUB_OUTPUT"
-          echo "chart_name=$chart_name" >> "$GITHUB_OUTPUT"
-          echo "chart_version=$chart_version" >> "$GITHUB_OUTPUT"
+          {
+            echo "chart_dir=$chart_dir"
+            echo "chart_name=$chart_name"
+            echo "chart_version=$chart_version"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Check release policy and registry state
         id: publish-check
-        shell: bash
-        run: |
-          set -euo pipefail
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          CHART_NAME: ${{ steps.chart.outputs.chart_name }}
+          CHART_VERSION: ${{ steps.chart.outputs.chart_version }}
+          CURRENT_BRANCH: ${{ github.ref_name }}
+          FORCE_PUBLISH: ${{ env.FORCE_PUBLISH }}
+        with:
+          github-token: ${{ steps.registry-auth.outputs.token }}
+          retries: 3
+          script: |
+            const chartName = process.env.CHART_NAME;
+            const chartVersion = process.env.CHART_VERSION;
+            const currentBranch = process.env.CURRENT_BRANCH;
+            const forcePublish = process.env.FORCE_PUBLISH === 'true';
+            const versionPattern = /^(\d+)\.(\d+)\.(\d+)(-.+)?$/;
 
-          chart_name="${{ steps.chart.outputs.chart_name }}"
-          chart_version="${{ steps.chart.outputs.chart_version }}"
+            function parseVersion(version) {
+              const match = versionPattern.exec(version.trim());
+              if (!match) {
+                throw new Error(`Unsupported chart version: ${version}`);
+              }
 
-          compare_versions() {
-            python3 - "$1" "$2" <<'PY'
-            import re
-            import sys
+              return {
+                major: Number(match[1]),
+                minor: Number(match[2]),
+                patch: Number(match[3]),
+                suffix: (match[4] ?? '').replace(/^-/, ''),
+              };
+            }
 
-            pattern = re.compile(r"(\d+)\.(\d+)\.(\d+)(-.+)?$")
+            function compareVersions(left, right) {
+              const lhs = parseVersion(left);
+              const rhs = parseVersion(right);
 
+              for (const key of ['major', 'minor', 'patch']) {
+                if (lhs[key] !== rhs[key]) {
+                  return lhs[key] - rhs[key];
+                }
+              }
 
-            def version_key(version: str) -> tuple[int, int, int, int, str]:
-                match = pattern.fullmatch(version.strip())
-                if not match:
-                    raise SystemExit(f"Unsupported chart version: {version}")
+              const lhsStable = lhs.suffix === '';
+              const rhsStable = rhs.suffix === '';
 
-                major, minor, patch = (int(match.group(index)) for index in range(1, 4))
-                suffix = (match.group(4) or "").lstrip("-")
-                return (major, minor, patch, 1 if not suffix else 0, suffix)
+              if (lhsStable !== rhsStable) {
+                return lhsStable ? 1 : -1;
+              }
 
+              return lhs.suffix.localeCompare(rhs.suffix);
+            }
 
-            left = version_key(sys.argv[1])
-            right = version_key(sys.argv[2])
-            if left < right:
-                raise SystemExit(1)
-            if left == right:
-                raise SystemExit(2)
-            PY
-          }
+            const isPrerelease = /-(alpha|beta|rc)/.test(chartVersion);
+            core.setOutput('is_prerelease', String(isPrerelease));
+            core.setOutput('skip', 'false');
 
-          latest_published_version() {
-            python3 - "$1" <<'PY'
-            import json
-            import re
-            import sys
+            let packageVersions = [];
+            try {
+              packageVersions = await github.paginate(
+                'GET /orgs/{org}/packages/{package_type}/{package_name}/versions',
+                {
+                  org: 'SlyBase',
+                  package_type: 'container',
+                  package_name: `charts/${chartName}`,
+                  per_page: 100,
+                  headers: {
+                    'X-GitHub-Api-Version': '2022-11-28',
+                  },
+                },
+              );
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
 
-            pattern = re.compile(r"(\d+)\.(\d+)\.(\d+)(-.+)?$")
+              core.info(`No published package found yet for ${chartName}.`);
+            }
 
+            const versions = [...new Set(
+              packageVersions
+                .flatMap((item) => item.metadata?.container?.tags ?? [])
+                .filter((tag) => versionPattern.test(tag)),
+            )];
 
-            def version_key(version: str) -> tuple[int, int, int, int, str]:
-                match = pattern.fullmatch(version.strip())
-                if not match:
-                    raise SystemExit(f"Unsupported chart version: {version}")
+            const latestPublishedVersion = versions.reduce(
+              (latest, version) => {
+                if (!latest || compareVersions(version, latest) > 0) {
+                  return version;
+                }
 
-                major, minor, patch = (int(match.group(index)) for index in range(1, 4))
-                suffix = (match.group(4) or "").lstrip("-")
-                return (major, minor, patch, 1 if not suffix else 0, suffix)
+                return latest;
+              },
+              '',
+            );
 
+            const exactVersionExists = versions.includes(chartVersion);
 
-            with open(sys.argv[1], encoding="utf8") as handle:
-                payload = json.load(handle)
+            core.setOutput('latest_published_version', latestPublishedVersion);
 
-            versions = set()
-            for item in payload:
-                tags = item.get("metadata", {}).get("container", {}).get("tags", []) or []
-                for tag in tags:
-                    if pattern.fullmatch(tag):
-                        versions.add(tag)
+            if (latestPublishedVersion) {
+              core.info(`Latest published version for ${chartName} is ${latestPublishedVersion}.`);
+            } else {
+              core.info(`No published chart versions found for ${chartName}.`);
+            }
 
-            if versions:
-                print(max(versions, key=version_key))
-            PY
-          }
+            if (latestPublishedVersion && compareVersions(chartVersion, latestPublishedVersion) <= 0) {
+              const message = `Chart version ${chartVersion} must be newer than latest published version ${latestPublishedVersion}`;
+              if (forcePublish) {
+                core.warning(`${message}; continuing because force=true`);
+              } else {
+                core.setFailed(message);
+                return;
+              }
+            }
 
-          if echo "$chart_version" | grep -qE '\-(alpha|beta|rc)'; then
-            is_prerelease=true
-          else
-            is_prerelease=false
-          fi
+            if (!forcePublish) {
+              if (currentBranch === 'main' && isPrerelease) {
+                core.notice(`Skipping: Prerelease version ${chartVersion} not allowed on main branch (use force to override)`);
+                core.setOutput('skip', 'true');
+                return;
+              }
 
-          echo "is_prerelease=$is_prerelease" >> "$GITHUB_OUTPUT"
+              if (currentBranch === 'prerelease' && !isPrerelease) {
+                core.notice(`Skipping: Stable version ${chartVersion} not allowed on prerelease branch (use force to override)`);
+                core.setOutput('skip', 'true');
+                return;
+              }
+            }
 
-          current_branch="${{ github.ref_name }}"
+            if (exactVersionExists) {
+              core.info(`Chart ${chartName}:${chartVersion} already exists in registry.`);
+              if (forcePublish) {
+                core.info('Force flag set - will overwrite existing version.');
+                return;
+              }
 
-          if [ -n "${{ secrets.SLYBASE_GHCR_TOKEN }}" ]; then
-            token="${{ secrets.SLYBASE_GHCR_TOKEN }}"
-          elif [ -n "${{ steps.app-token.outputs.token }}" ]; then
-            token="${{ steps.app-token.outputs.token }}"
-          else
-            token="${{ secrets.GITHUB_TOKEN }}"
-          fi
+              core.setOutput('skip', 'true');
+              return;
+            }
 
-          package_name="charts%2F${chart_name}"
-          response_file="$(mktemp)"
-          http_code=$(curl -sS -o "$response_file" -w '%{http_code}' \
-            -H "Authorization: Bearer $token" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/orgs/SlyBase/packages/container/${package_name}/versions?per_page=100")
-
-          if [ "$http_code" = '404' ]; then
-            published_version=""
-          elif [ "$http_code" != '200' ]; then
-            echo "Failed to query published chart versions for $chart_name (HTTP $http_code)"
-            cat "$response_file"
-            rm -f "$response_file"
-            exit 1
-          else
-            published_version="$(latest_published_version "$response_file")"
-          fi
-
-          rm -f "$response_file"
-          echo "latest_published_version=$published_version" >> "$GITHUB_OUTPUT"
-
-          if [ -n "$published_version" ]; then
-            set +e
-            compare_versions "$chart_version" "$published_version"
-            version_cmp=$?
-            set -e
-
-            if [ "$version_cmp" -ne 0 ]; then
-              if [ "$FORCE_PUBLISH" = 'true' ]; then
-                echo "::warning::Chart version $chart_version is not newer than latest published version $published_version; continuing because force=true"
-              else
-                echo "::error::Chart version $chart_version must be newer than latest published version $published_version"
-                exit 1
-              fi
-            fi
-          fi
-
-          if [ "$FORCE_PUBLISH" != 'true' ]; then
-            if [ "$current_branch" = 'main' ] && [ "$is_prerelease" = 'true' ]; then
-              echo "⏭️ Skipping: Prerelease version $chart_version not allowed on main branch (use force to override)"
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-
-            if [ "$current_branch" = 'prerelease' ] && [ "$is_prerelease" = 'false' ]; then
-              echo "⏭️ Skipping: Stable version $chart_version not allowed on prerelease branch (use force to override)"
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          fi
-
-          if helm pull "oci://ghcr.io/slybase/charts/$chart_name" --version "$chart_version" 2>/dev/null; then
-            echo "Chart $chart_name:$chart_version already exists in registry"
-            if [ "$FORCE_PUBLISH" = 'true' ]; then
-              echo "Force flag set - will overwrite existing version"
-              echo "skip=false" >> "$GITHUB_OUTPUT"
-            else
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "Chart $chart_name:$chart_version does not exist, will publish"
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
+            core.info(`Chart ${chartName}:${chartVersion} does not exist, will publish.`);
 
       - name: Package and push chart to OCI registry
         if: steps.publish-check.outputs.skip == 'false'
@@ -368,8 +417,10 @@ jobs:
           fi
 
           chart_ref="ghcr.io/slybase/charts/${chart_name}@${digest}"
-          echo "chart_digest=$digest" >> "$GITHUB_OUTPUT"
-          echo "chart_ref=$chart_ref" >> "$GITHUB_OUTPUT"
+          {
+            echo "chart_digest=$digest"
+            echo "chart_ref=$chart_ref"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Sign chart with Cosign
         if: steps.publish-check.outputs.skip == 'false' && steps.push.outputs.chart_ref != ''
