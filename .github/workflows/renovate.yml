@@ -29,12 +29,28 @@ jobs:
         with:
           app-id: ${{ secrets.SLYBASE_APP_ID }}
           private-key: ${{ secrets.SLYBASE_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+        continue-on-error: true
+
+      - name: Resolve token
+        id: token
+        shell: bash
+        run: |
+          if [ -n "$APP_TOKEN" ]; then
+            echo "token=$APP_TOKEN" >> "$GITHUB_OUTPUT"
+          elif [ -n "$PAT" ]; then
+            echo "token=$PAT" >> "$GITHUB_OUTPUT"
+          else
+            echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          PAT: ${{ secrets.SLYBASE_GHCR_TOKEN }}
 
       - name: Self-hosted Renovate
         uses: renovatebot/github-action@abd08c7549b2a864af5df4a2e369c43f035a6a9d # v46.1.5
         with:
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ steps.token.outputs.token }}
         env:
           # Needed so Renovate can run postUpgradeTasks commands (Python is
           # available on ubuntu-latest; this flag tells Renovate to execute
