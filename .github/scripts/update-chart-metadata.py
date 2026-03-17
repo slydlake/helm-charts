@@ -20,15 +20,19 @@ METADATA_COMMIT_PATTERNS = (
 def main() -> int:
     args = parse_args()
 
+    chart_file_path = Path(args.chart_dir) / "Chart.yaml"
+    if not chart_file_path.exists():
+        print(json.dumps({"skipped": True, "reason": "no-chart-yaml"}), end="")
+        return 0
+
     if should_skip_metadata_update(args.chart_dir):
         print(json.dumps({"skipped": True, "reason": "metadata-up-to-date"}), end="")
         return 0
 
-    chart_file_path = Path(args.chart_dir) / "Chart.yaml"
     changelog_path = Path(args.chart_dir) / "CHANGELOG.md"
     current_version = read_current_version(chart_file_path)
     labels = normalise_labels(args.pr_labels)
-    bump_type = determine_bump_type(labels)
+    bump_type = determine_bump_type_for(args.manager, args.update_type, labels)
     new_version = bump_version(current_version, bump_type)
     ensure_version_increases(current_version, new_version)
     descriptions = normalise_change_descriptions(args.change_descriptions)
@@ -65,9 +69,11 @@ def main() -> int:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--chart-dir", required=True)
-    parser.add_argument("--pr-url", required=True)
+    parser.add_argument("--pr-url", default="")  # optional; absent when called from postUpgradeTasks
     parser.add_argument("--pr-labels", default="")
     parser.add_argument("--change-descriptions", default="")
+    parser.add_argument("--manager", default="")  # renovate manager (e.g. helmv3, helm-values)
+    parser.add_argument("--update-type", default="")  # patch / minor / major / digest
     return parser.parse_args()
 
 
@@ -132,6 +138,21 @@ def determine_bump_type(labels: list[str]) -> str:
     if "chart-bump-minor" in label_set or "minor" in label_set:
         return "minor"
     return "patch"
+
+
+def determine_bump_type_for(manager: str, update_type: str, labels: list[str]) -> str:
+    """Determine bump type from Renovate manager/updateType (postUpgradeTasks) or labels (legacy)."""
+    if manager and update_type:
+        # helmv3 = subchart: major dep bump → minor chart bump, everything else → patch
+        if manager == "helmv3":
+            return "minor" if update_type == "major" else "patch"
+        # direct deps (helm-values, custom.regex, github-actions, …)
+        if update_type == "major":
+            return "major"
+        if update_type == "minor":
+            return "minor"
+        return "patch"
+    return determine_bump_type(labels)
 
 
 def bump_version(version: str, bump_type: str) -> str:

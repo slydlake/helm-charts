@@ -1,0 +1,43 @@
+name: Renovate
+
+on:
+  # Re-evaluate open PRs after every merge so stale branches get rebased quickly
+  push:
+    branches:
+      - main
+  # Also run on a schedule to catch new upstream releases
+  schedule:
+    - cron: "0 */6 * * *" # every 6 hours
+  workflow_dispatch: {}
+
+concurrency:
+  group: renovate
+  cancel-in-progress: false # let a running job finish; queue the next
+
+jobs:
+  renovate:
+    name: renovate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3
+        with:
+          app-id: ${{ secrets.SLYBASE_APP_ID }}
+          private-key: ${{ secrets.SLYBASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Self-hosted Renovate
+        uses: renovatebot/github-action@a85afc2b0b7fbdf1dc99a8fbf7a27c34e44f3b6f # v41.0.16
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+        env:
+          # Needed so Renovate can run postUpgradeTasks commands (Python is
+          # available on ubuntu-latest; this flag tells Renovate to execute
+          # them in the host environment instead of a sandboxed container)
+          RENOVATE_X_EXEC_NO_DOCKER_EXEC: "true"
+          LOG_LEVEL: "info"

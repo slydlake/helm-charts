@@ -7,7 +7,7 @@
         "41898282+github-actions[bot]@users.noreply.github.com"
     ],
     "platformAutomerge": true,
-    "rebaseWhen": "behind-base-branch",
+    "rebaseWhen": "conflicted",
     "semanticCommits": "disabled",
     "enabledManagers": [
         "github-actions",
@@ -16,6 +16,19 @@
         "custom.regex"
     ],
     "pinDigests": true,
+    "allowedPostUpgradeCommands": [
+        "^python3 \\.github/scripts/update-chart-metadata\\.py "
+    ],
+    "postUpgradeTasks": {
+        "commands": [
+            "python3 .github/scripts/update-chart-metadata.py --chart-dir {{{packageFileDir}}} --manager {{{manager}}} --update-type {{{updateType}}} --change-descriptions \"Update {{{depName}}} to {{{newVersion}}}\""
+        ],
+        "fileFilters": [
+            "charts/**/Chart.yaml",
+            "charts/**/CHANGELOG.md"
+        ],
+        "executionMode": "branch"
+    },
     "prHourlyLimit": 5,
     "prConcurrentLimit": 3,
     "timezone": "Europe/Berlin",
