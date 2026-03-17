@@ -2,6 +2,11 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.5 - 2026-03-17
+
+- Update docker.io/mariadb to 310a2b5
+- Pull Request: https://github.com/slydlake/helm-charts/pull/235
+
 ## 3.6.4 - 2026-03-17
 
 - Update docker.io/mariadb to ddb976b
