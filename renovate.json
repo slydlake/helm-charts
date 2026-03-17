@@ -259,7 +259,11 @@
             "commitMessagePrefix": "",
             "commitMessageAction": "github workflows chore(deps): updates",
             "commitMessageTopic": "",
-            "commitMessageExtra": ""
+            "commitMessageExtra": "",
+            "postUpgradeTasks": {
+                "commands": [],
+                "fileFilters": []
+            }
         },
         {
             "description": "Auto-merge minor, patch, and digest updates",
