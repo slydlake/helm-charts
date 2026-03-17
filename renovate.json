@@ -16,9 +16,7 @@
         "custom.regex"
     ],
     "pinDigests": true,
-    "allowedPostUpgradeCommands": [
-        "^python3 \\.github/scripts/update-chart-metadata\\.py "
-    ],
+
     "postUpgradeTasks": {
         "commands": [
             "python3 .github/scripts/update-chart-metadata.py --chart-dir {{{packageFileDir}}} --manager {{{manager}}} --update-type {{{updateType}}} --change-descriptions \"Update {{{depName}}} to {{{newVersion}}}\""

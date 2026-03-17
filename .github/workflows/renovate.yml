@@ -33,3 +33,5 @@ jobs:
           # them in the host environment instead of a sandboxed container)
           RENOVATE_X_EXEC_NO_DOCKER_EXEC: "true"
           LOG_LEVEL: "info"
+          # allowedPostUpgradeCommands must be set in bot config (global), not renovate.json
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^python3 \.github/scripts/update-chart-metadata\.py "]'
