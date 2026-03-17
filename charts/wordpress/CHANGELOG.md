@@ -2,6 +2,11 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.3 - 2026-03-17
+
+- Update docker.io/memcached to 29eba63
+- Pull Request: https://github.com/slydlake/helm-charts/pull/233
+
 > Note: Releases 3.5.2, 3.5.3, 3.5.4, 3.5.5, 3.5.6, 3.5.7, 3.5.13, and 3.5.14 were accidentally published under 3.5.x although they belonged to the 3.6.x line. Those OCI artifacts remain published for immutability. Unpublished incorrect entries 3.5.8 through 3.5.12 were removed. Stable releases continue from 3.6.2.
 
 ## 3.6.2 - 2026-03-15
