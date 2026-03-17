@@ -1026,7 +1026,7 @@ mariadb:
     ## @param mariadb.image.repository string MariaDB image repository
     repository: "docker.io/mariadb"
     ## @param mariadb.image.tag string MariaDB image tag
-    tag: "12.2.2-noble@sha256:b1cb255a9939d28a1856815f0de6046c20c28c21b92a9f2696bc782b247a47ee"
+    tag: "12.2.2-noble@sha256:ddb976b14181e9783109fdf7d13d4b9eb8ea7cbdf59b4ed6c6551305ca73fe41"
     ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
     imagePullPolicy: IfNotPresent
 
@@ -1148,7 +1148,7 @@ memcached:
     ## @param memcached.image.repository string Memcached image repository
     repository: docker.io/memcached
     ## @param memcached.image.tag string Memcached image tag
-    tag: "1.6.41@sha256:29eba63ee0af98db655b9fb873e679574bf0d5b6e1decb885154e3a980168fa9"
+    tag: "1.6.41@sha256:27db90ca1d538b8bb8dae861fac9a44b3857c54bd1b3a3bd809a45a7744eaae2"
     ## @param memcached.image.pullPolicy string Memcached image pull policy
     pullPolicy: IfNotPresent
 

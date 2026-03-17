@@ -2,6 +2,12 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.4 - 2026-03-17
+
+- Update docker.io/mariadb to ddb976b
+- Update docker.io/memcached to 27db90c
+- Pull Request: https://github.com/slydlake/helm-charts/pull/234
+
 ## 3.6.3 - 2026-03-17
 
 - Update docker.io/memcached to 29eba63
