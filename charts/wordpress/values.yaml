@@ -1026,7 +1026,7 @@ mariadb:
     ## @param mariadb.image.repository string MariaDB image repository
     repository: "docker.io/mariadb"
     ## @param mariadb.image.tag string MariaDB image tag
-    tag: "12.2.2-noble@sha256:310a2b521cdf1c3c1cfd2cb468e3f0843cc0d7b06d7325b7d48e197592f5d8bd"
+    tag: "12.2.2-noble@sha256:e16f61b8f6ed25111adbb1c5c19bbc2904efc8ed14029999af0cbe1c7ae18bf1"
     ## @param mariadb.image.imagePullPolicy string MariaDB image pull policy
     imagePullPolicy: IfNotPresent
 
