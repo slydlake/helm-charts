@@ -32,7 +32,7 @@ jobs:
           owner: ${{ github.repository_owner }}
 
       - name: Self-hosted Renovate
-        uses: renovatebot/github-action@a85afc2b0b7fbdf1dc99a8fbf7a27c34e44f3b6f # v41.0.16
+        uses: renovatebot/github-action@abd08c7549b2a864af5df4a2e369c43f035a6a9d # v46.1.5
         with:
           token: ${{ steps.app-token.outputs.token }}
         env:
