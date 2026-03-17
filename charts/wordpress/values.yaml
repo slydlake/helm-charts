@@ -874,9 +874,9 @@ metrics:
       ## @param metrics.apache.livenessProbe.periodSeconds int Period for liveness probe
       periodSeconds: 10
       ## @param metrics.apache.livenessProbe.timeoutSeconds int Timeout for liveness probe
-      timeoutSeconds: 5
+      timeoutSeconds: 10
       ## @param metrics.apache.livenessProbe.failureThreshold int Failure threshold for liveness probe
-      failureThreshold: 3
+      failureThreshold: 5
       ## @param metrics.apache.livenessProbe.successThreshold int Success threshold for liveness probe
       successThreshold: 1
 
@@ -888,9 +888,9 @@ metrics:
       ## @param metrics.apache.readinessProbe.periodSeconds int Period for readiness probe
       periodSeconds: 10
       ## @param metrics.apache.readinessProbe.timeoutSeconds int Timeout for readiness probe
-      timeoutSeconds: 3
+      timeoutSeconds: 10
       ## @param metrics.apache.readinessProbe.failureThreshold int Failure threshold for readiness probe
-      failureThreshold: 3
+      failureThreshold: 5
       ## @param metrics.apache.readinessProbe.successThreshold int Success threshold for readiness probe
       successThreshold: 1
 
