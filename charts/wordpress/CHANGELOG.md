@@ -2,6 +2,11 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.6 - 2026-03-17
+
+- Update [redis](https://www.redis.io) ([source](https://redirect.github.com/CloudPirates-io/helm-charts/tree/HEAD/charts/redis)) to 0.26.5
+- Pull Request: https://github.com/slydlake/helm-charts/pull/238
+
 ## 3.6.5 - 2026-03-17
 
 - Update docker.io/mariadb to 310a2b5
