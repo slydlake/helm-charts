@@ -37,8 +37,8 @@
         {
             "customType": "regex",
             "description": "Update tag in values.yaml for linuxserver/wireguard",
-            "fileMatch": [
-                "^charts/wireguard/values\\.yaml$"
+            "managerFilePatterns": [
+                "/^charts/wireguard/values\.yaml$/"
             ],
             "matchStrings": [
                 "repository:\\s+linuxserver/wireguard[\\s\\S]*?tag:\\s+['\"]?(?<currentValue>[^'\"\\s@]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?"
@@ -49,8 +49,8 @@
         {
             "customType": "regex",
             "description": "Update appVersion in Chart.yaml",
-            "fileMatch": [
-                "^charts/.*/Chart\\.yaml$"
+            "managerFilePatterns": [
+                "/^charts/.*/Chart\.yaml$/"
             ],
             "matchStrings": [
                 "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*image=(?<packageName>[^\\s]+)"
@@ -61,8 +61,8 @@
         {
             "customType": "regex",
             "description": "Update artifacthub.io/images in Chart.yaml",
-            "fileMatch": [
-                "^charts/.*/Chart\\.yaml$"
+            "managerFilePatterns": [
+                "/^charts/.*/Chart\.yaml$/"
             ],
             "matchStrings": [
                 "image: (?<packageName>[^:]+):(?<currentValue>[^\\s]+)"
@@ -97,7 +97,7 @@
             "matchPackageNames": [
                 "docker.io/linuxserver/wireguard"
             ],
-            "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-r(?<prerelease>\\d+)-ls(?<build>\\d+)$"
+            "versioning": "regex:^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-r(?<prerelease>\d+)-ls(?<build>\d+)$"
         },
         {
             "description": "Group all updates per chart into one PR with consistent labels and commit messages",
