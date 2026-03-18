@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.10 - 2026-03-18
+
+- Update mariadb to 0.15.3
+
 ## 3.6.8 - 2026-03-17
 
 - Update docker.io/mariadb to e16f61b
