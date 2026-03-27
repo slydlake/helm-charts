@@ -16,10 +16,9 @@
         "custom.regex"
     ],
     "pinDigests": true,
-
     "postUpgradeTasks": {
         "commands": [
-            "python3 .github/scripts/update-chart-metadata.py --chart-dir {{{packageFileDir}}} --manager {{{manager}}} --update-type {{{updateType}}} --change-descriptions \"Update {{{depName}}} to {{{newVersion}}}\""
+            "{{#if (replace 'github-actions' '' manager)}}python3 .github/scripts/update-chart-metadata.py --chart-dir {{{packageFileDir}}} --manager {{{manager}}} --update-type {{{updateType}}} --change-descriptions \"Update {{{depName}}} to {{{newVersion}}}\"{{else}}pwd{{/if}}"
         ],
         "fileFilters": [
             "charts/**/Chart.yaml",
@@ -257,11 +256,7 @@
             "commitMessagePrefix": "",
             "commitMessageAction": "github workflows chore(deps): updates",
             "commitMessageTopic": "",
-            "commitMessageExtra": "",
-            "postUpgradeTasks": {
-                "commands": [],
-                "fileFilters": []
-            }
+            "commitMessageExtra": ""
         },
         {
             "description": "Auto-merge minor, patch, and digest updates",

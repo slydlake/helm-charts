@@ -30,7 +30,7 @@ jobs:
         env:
           RENOVATE_REPOSITORIES: '["${{ github.repository }}"]'
           # allowedPostUpgradeCommands must be set here (global/bot config), not in renovate.json
-          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '^python3 \.github/scripts/update-chart-metadata\.py '
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '^python3 \.github/scripts/update-chart-metadata\.py |^pwd$'
           # Needed so Renovate can run postUpgradeTasks commands in the host
           # environment instead of a sandboxed container
           RENOVATE_X_EXEC_NO_DOCKER_EXEC: "true"
