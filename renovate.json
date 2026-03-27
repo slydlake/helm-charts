@@ -18,13 +18,13 @@
     "pinDigests": true,
     "postUpgradeTasks": {
         "commands": [
-            "{{#if (replace 'github-actions' '' manager)}}python3 .github/scripts/update-chart-metadata.py --chart-dir {{{packageFileDir}}} --manager {{{manager}}} --update-type {{{updateType}}} --change-descriptions \"Update {{{depName}}} to {{{newVersion}}}\"{{else}}pwd{{/if}}"
+            "{{#if (equals manager 'github-actions')}}pwd{{else}}python3 .github/scripts/update-chart-metadata.py --chart-dir {{{packageFileDir}}} --manager {{{manager}}} --update-type {{{updateType}}} --change-descriptions \"Update {{{depName}}} to {{{newVersion}}}\"{{/if}}"
         ],
         "fileFilters": [
             "charts/**/Chart.yaml",
             "charts/**/CHANGELOG.md"
         ],
-        "executionMode": "branch"
+        "executionMode": "update"
     },
     "prHourlyLimit": 5,
     "prConcurrentLimit": 3,
