@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.11 - 2026-03-27
+
+- Update docker.io/redis docker.io/redis to 8.6.2
+
 ## 3.6.10 - 2026-03-18
 
 - Update mariadb to 0.15.3
