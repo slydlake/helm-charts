@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.12 - 2026-03-29
+
+- Update redis to 0.26.8
+
 ## 3.6.11 - 2026-03-27
 
 - Update docker.io/redis docker.io/redis to 8.6.2
