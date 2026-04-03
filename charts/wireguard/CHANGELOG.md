@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 0.4.5 - 2026-04-03
+
+- Update docker.io/linuxserver/wireguard to 1.0.20250521-r1-ls107
+
 ## 0.4.4 - 2026-03-29
 
 - Update docker.io/linuxserver/wireguard to 1.0.20250521-r1-ls106
