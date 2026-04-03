@@ -47,9 +47,9 @@
         },
         {
             "customType": "regex",
-            "description": "Update appVersion in Chart.yaml (except wireguard, handled by values.yaml manager)",
+            "description": "Update appVersion in Chart.yaml",
             "managerFilePatterns": [
-                "/^charts\\/(?!wireguard\\/).+\\/Chart\\.yaml$/"
+                "/^charts/.*/Chart\\.yaml$/"
             ],
             "matchStrings": [
                 "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*image=(?<packageName>[^\\s]+)"
@@ -59,9 +59,9 @@
         },
         {
             "customType": "regex",
-            "description": "Update artifacthub.io/images in Chart.yaml (except wireguard)",
+            "description": "Update artifacthub.io/images in Chart.yaml",
             "managerFilePatterns": [
-                "/^charts\\/(?!wireguard\\/).+\\/Chart\\.yaml$/"
+                "/^charts/.*/Chart\\.yaml$/"
             ],
             "matchStrings": [
                 "image: (?<packageName>[^:]+):(?<currentValue>[^\\s]+)"
@@ -90,13 +90,25 @@
                 "custom.regex"
             ],
             "matchFileNames": [
-                "charts/wireguard/values.yaml",
-                "charts/wireguard/Chart.yaml"
+                "charts/wireguard/values.yaml"
             ],
             "matchPackageNames": [
                 "docker.io/linuxserver/wireguard"
             ],
             "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-r(?<prerelease>\\d+)-ls(?<build>\\d+)$"
+        },
+        {
+            "description": "Disable custom.regex Chart.yaml updates for wireguard (handled by values.yaml manager)",
+            "matchManagers": [
+                "custom.regex"
+            ],
+            "matchFileNames": [
+                "charts/wireguard/Chart.yaml"
+            ],
+            "matchPackageNames": [
+                "docker.io/linuxserver/wireguard"
+            ],
+            "enabled": false
         },
         {
             "description": "Group all updates per chart into one PR with consistent labels and commit messages",
