@@ -47,9 +47,9 @@
         },
         {
             "customType": "regex",
-            "description": "Update appVersion in Chart.yaml",
+            "description": "Update appVersion in Chart.yaml (except wireguard, handled by values.yaml manager)",
             "managerFilePatterns": [
-                "/^charts/.*/Chart\\.yaml$/"
+                "/^charts\\/(?!wireguard\\/).+\\/Chart\\.yaml$/"
             ],
             "matchStrings": [
                 "appVersion:\\s+['\"]?(?<currentValue>[^'\"\\s]+)['\"]?\\s*#\\s*renovate:\\s*image=(?<packageName>[^\\s]+)"
@@ -59,9 +59,9 @@
         },
         {
             "customType": "regex",
-            "description": "Update artifacthub.io/images in Chart.yaml",
+            "description": "Update artifacthub.io/images in Chart.yaml (except wireguard)",
             "managerFilePatterns": [
-                "/^charts/.*/Chart\\.yaml$/"
+                "/^charts\\/(?!wireguard\\/).+\\/Chart\\.yaml$/"
             ],
             "matchStrings": [
                 "image: (?<packageName>[^:]+):(?<currentValue>[^\\s]+)"

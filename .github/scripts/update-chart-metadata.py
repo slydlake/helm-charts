@@ -201,6 +201,7 @@ def version_sort_key(version: str) -> tuple[int, int, int, int, str]:
 def sync_chart_metadata(chart_file_path: Path, new_version: str, descriptions: list[str], pr_url: str) -> None:
     content = chart_file_path.read_text(encoding="utf8")
     content = replace_version(content, new_version)
+    content = sync_chart_image_metadata(chart_file_path.parent, content)
     content = replace_annotation_block(
         content,
         "artifacthub.io/changes",
@@ -224,6 +225,72 @@ def replace_version(content: str, new_version: str) -> str:
     return updated_content
 
 
+def sync_chart_image_metadata(chart_dir: Path, content: str) -> str:
+    if chart_dir.name != "wireguard":
+        return content
+
+    image_name, image_tag = read_primary_image_from_values(chart_dir / "values.yaml")
+    content = replace_app_version(content, image_tag)
+    content = replace_annotation_block(
+        content,
+        "artifacthub.io/images",
+        build_artifacthub_images_block("wireguard", f"{image_name}:{image_tag}"),
+        block_scalar=True,
+    )
+    return content
+
+
+def read_primary_image_from_values(values_path: Path) -> tuple[str, str]:
+    values_content = values_path.read_text(encoding="utf8")
+    image_block_match = re.search(r"^image:\s*$([\s\S]*?)(?=^\S|\Z)", values_content, flags=re.MULTILINE)
+    if not image_block_match:
+        raise RuntimeError(f"Could not find image block in {values_path}")
+
+    image_block = image_block_match.group(1)
+    registry = read_yaml_scalar(image_block, "registry")
+    repository = read_yaml_scalar(image_block, "repository")
+    tag_with_digest = read_yaml_scalar(image_block, "tag")
+    tag = tag_with_digest.split("@", 1)[0]
+    image_name = build_image_name(registry, repository)
+    return image_name, tag
+
+
+def read_yaml_scalar(block: str, key: str) -> str:
+    match = re.search(rf"^\s{{2}}{re.escape(key)}:\s*(.+?)\s*$", block, flags=re.MULTILINE)
+    if not match:
+        raise RuntimeError(f"Could not find {key} in values.yaml image block")
+    return strip_wrapping_quotes(match.group(1).strip())
+
+
+def strip_wrapping_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'\"', "'"}:
+        return value[1:-1]
+    return value
+
+
+def build_image_name(registry: str, repository: str) -> str:
+    if registry and not repository.startswith(f"{registry}/"):
+        return f"{registry}/{repository}"
+    return repository
+
+
+def replace_app_version(content: str, new_app_version: str) -> str:
+    pattern = re.compile(
+        r"^(appVersion:\s*)(['\"]?)([^'\"\s]+)\2(\s*#\s*renovate:\s*image=[^\s]+.*)$",
+        flags=re.MULTILINE,
+    )
+
+    def repl(match: re.Match[str]) -> str:
+        quote = match.group(2)
+        value = f"{quote}{new_app_version}{quote}" if quote else new_app_version
+        return f"{match.group(1)}{value}{match.group(4)}"
+
+    updated_content, count = pattern.subn(repl, content, count=1)
+    if count != 1:
+        raise RuntimeError("Could not update chart appVersion")
+    return updated_content
+
+
 def build_artifacthub_changes_block(descriptions: list[str], pr_url: str) -> str:
     lines: list[str] = []
     for description in descriptions:
@@ -235,6 +302,10 @@ def build_artifacthub_changes_block(descriptions: list[str], pr_url: str) -> str
             lines.append("    - name: Pull Request")
             lines.append(f"      url: {pr_url}")
     return "\n".join(lines)
+
+
+def build_artifacthub_images_block(name: str, image: str) -> str:
+    return f"- name: {name}\n  image: {image}"
 
 
 def sync_prerelease_annotation(content: str, is_prerelease: bool) -> str:
