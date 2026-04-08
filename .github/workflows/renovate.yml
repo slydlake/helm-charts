@@ -1,4 +1,8 @@
 name: Renovate
+# IMPORTANT: The Mend Renovate GitHub App must NOT be installed on this repo.
+# This self-hosted workflow is the only Renovate instance that should run here.
+# The Mend App cannot execute postUpgradeTasks with custom commands, which
+# causes "Artifact file update failure" on every PR it creates.
 
 on:
   # Re-evaluate open PRs after every merge so stale branches get rebased quickly
