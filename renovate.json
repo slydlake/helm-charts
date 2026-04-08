@@ -18,7 +18,7 @@
     "pinDigests": true,
     "postUpgradeTasks": {
         "commands": [
-            "{{#if (equals manager 'github-actions')}}pwd{{else}}python3 .github/scripts/update-chart-metadata.py --chart-dir {{{packageFileDir}}} --manager {{{manager}}} --update-type {{{updateType}}} --change-descriptions \"Update {{{depName}}} to {{{newVersion}}}\"{{/if}}"
+            "{{#if (equals manager 'github-actions')}}pwd{{else}}python3 .github/scripts/update-chart-metadata.py --chart-dir {{{packageFileDir}}} --manager {{{manager}}} --update-type {{{updateType}}} --change-descriptions \"Update {{{depName}}} {{#if (equals updateType 'digest')}}digest to {{{newDigestShort}}}{{else}}to {{{newVersion}}}{{/if}}\"{{/if}}"
         ],
         "fileFilters": [
             "charts/**/Chart.yaml",
