@@ -2,6 +2,14 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.14 - 2026-04-08
+
+- Update docker.io/memcached to
+
+## 3.6.13 - 2026-04-08
+
+- Update docker.io/mariadb to
+
 ## 3.6.12 - 2026-03-29
 
 - Update redis to 0.26.8
