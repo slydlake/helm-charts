@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.16 - 2026-04-10
+
+- Update valkey to 0.19.0
+
 ## 3.6.15 - 2026-04-10
 
 - Update memcached to 0.12.0
