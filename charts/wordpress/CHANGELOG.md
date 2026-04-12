@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.18 - 2026-04-12
+
+- Fix duplicate WORDPRESS_DEBUG env rendering in the WordPress Deployment to prevent failed Helm upgrades and rollback remediation.
+
 ## 3.6.17 - 2026-04-10
 
 - Update mariadb to 0.16.0

@@ -607,10 +607,6 @@ spec:
               value: {{ .Values.externalDatabase.password | quote }}
           {{- end }}
           {{- end }}
-          {{- if .Values.wordpress.debug }}
-            - name: WORDPRESS_DEBUG
-              value: "true"
-          {{- end }}
           {{ if .Values.wordpress.init.enabled }}
             - name: WP_INIT
               value: {{ .Values.wordpress.init.enabled | quote }}
