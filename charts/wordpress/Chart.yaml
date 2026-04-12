@@ -2,7 +2,7 @@ apiVersion: v2
 name: wordpress
 description: "Using the official WordPress image. This chart provides automation for installation, user management, plugin installation, and metrics."
 type: application
-version: 3.6.18
+version: 3.6.19
 appVersion: "6.9.4" # renovate: image=docker.io/wordpress
 icon: https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
 home: https://github.com/slydlake/helm-charts
@@ -27,7 +27,9 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "Avoid duplicate WORDPRESS_DEBUG env rendering in the Deployment so Helm upgrades can apply cleanly"
+      description: "Fix Composer-managed WordPress plugins and themes when upstream packages are published as library packages"
+    - kind: fixed
+      description: "Preserve Composer install failures during init instead of masking them through shell pipelines"
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:6.9.4-php8.3-apache

@@ -273,6 +273,9 @@ wordpress:
   ## @descriptionStart
   ## Default repositories: wpackagist.org (WordPress.org mirror).
   ## Add custom repos for private/premium plugins from GitHub, GitLab, Satis, etc.
+  ## Composer packages listed under wordpress.plugins or wordpress.themes are
+  ## explicitly mapped into wp-content/plugins or wp-content/themes, even when
+  ## upstream packages use type: library.
   ## E.g.
   ## ```yaml
   ## composer:

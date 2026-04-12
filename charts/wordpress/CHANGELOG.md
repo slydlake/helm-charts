@@ -2,6 +2,12 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.19 - 2026-04-13
+
+- Fix Composer-managed plugin and theme installation for packages published as type: library by synchronizing installer paths and linking vendor packages into wp-content when needed.
+- Preserve Composer command exit codes in the init workflow so failed installs are no longer reported as successful.
+- Retry Composer theme activation and multisite network-enable after dependency installation to avoid init-container startup failures.
+
 ## 3.6.18 - 2026-04-12
 
 - Fix duplicate WORDPRESS_DEBUG env rendering in the WordPress Deployment to prevent failed Helm upgrades and rollback remediation.

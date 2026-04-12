@@ -308,6 +308,7 @@ helm install wordpress oci://ghcr.io/slybase/charts/wordpress --values ./samples
 **Examples:**
 - **Plugins**: `humanmade/s3-uploads`, `wpackagist-plugin/wordpress-seo`
 - **Themes**: `wpackagist-theme/astra`
+- **Library Packages**: Composer packages listed under `wordpress.plugins` or `wordpress.themes` are explicitly mapped into `wp-content/plugins` or `wp-content/themes`, even when upstream declares them as `type: library`
 - **Auto-Update**: Works for packages without fixed version (always installs latest)
 - **Pruning**: Compatible with `pluginsPrune` and `themesPrune`
 

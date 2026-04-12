@@ -3,12 +3,13 @@
 
 wordpress:
   init:
+    debug: true
     enabled: true
     existingSecret: "wordpress-test-secret"
     firstname: "John"
     lastname: "Doe"
     title: "John Does's Blog"
-  url: "https://example.com"
+  url: "http://192.168.178.31:30111"
 
   permalinks:
     structure: postName
@@ -23,6 +24,12 @@ wordpress:
     # Composer package from GitHub
     # This is a popular S3 uploads plugin for WordPress
     - name: "humanmade/s3-uploads"
+      activate: true
+      autoupdate: true # Will always install latest on each init run
+    - name: "wordpress/abilities-api"
+      activate: true
+      autoupdate: true # Will always install latest on each init run
+    - name: "wordpress/mcp-adapter"
       activate: true
       autoupdate: true # Will always install latest on each init run
 

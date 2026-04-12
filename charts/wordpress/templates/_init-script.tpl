@@ -707,6 +707,20 @@ echo "No custom users specified."
 
 # Only initialize Composer if we have Composer packages to install
 {{- if or .Values.wordpress.plugins .Values.wordpress.themes }}
+{{- $composerPluginPackages := list }}
+{{- range .Values.wordpress.plugins }}
+{{- $name := .name | lower }}
+{{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
+{{- $composerPluginPackages = append $composerPluginPackages $name }}
+{{- end }}
+{{- end }}
+{{- $composerThemePackages := list }}
+{{- range .Values.wordpress.themes }}
+{{- $name := .name | lower }}
+{{- if and (contains "/" $name) (not (hasPrefix "http://" $name)) (not (hasPrefix "https://" $name)) }}
+{{- $composerThemePackages = append $composerThemePackages $name }}
+{{- end }}
+{{- end }}
 HAS_COMPOSER_PACKAGES=false
 {{- if .Values.wordpress.plugins }}
 {{- range .Values.wordpress.plugins }}
@@ -771,59 +785,15 @@ COMPOSERJSON
     echo "composer.json created!"
   else
     [ "${DEBUG}" = "true" ] && echo "DEBUG: composer.json already exists"
-    {{- if .Values.wordpress.composer }}
-    # Update repositories in existing composer.json
-    [ "${DEBUG}" = "true" ] && echo "DEBUG: Updating custom repositories..."
-
-    # Build JSON array of custom repositories
-    CUSTOM_REPOS='[{{- range $index, $repo := .Values.wordpress.composer.repositories }}{{- if $index }},{{- end }}{{ $repo | toJson }}{{- end }}]'
-
-    # Use PHP to merge repositories (wpackagist + custom repos)
-    export CUSTOM_REPOS
-    TEMP_JSON=$(cat composer.json | php -r '
-      $json = json_decode(file_get_contents("php://stdin"), true);
-      $customReposJson = getenv("CUSTOM_REPOS");
-      $customRepos = json_decode($customReposJson, true);
-
-      // Remove any numeric keys that might have been added by mistake (only at top level)
-      $cleanJson = [];
-      foreach ($json as $key => $value) {
-        if (!is_numeric($key)) {
-          $cleanJson[$key] = $value;
-        }
-      }
-      $json = $cleanJson;
-
-      // Keep wpackagist repo
-      $wpackagist = ["type" => "composer", "url" => "https://wpackagist.org"];
-
-      // Build repositories array (wpackagist + custom repos)
-      $repos = [$wpackagist];
-      if (is_array($customRepos) && !empty($customRepos)) {
-        foreach ($customRepos as $repo) {
-          if (is_array($repo)) {
-            $repos[] = $repo;
-          }
-        }
-      }
-      $json["repositories"] = $repos;
-
-      // Ensure allow-plugins config is preserved/set
-      if (!isset($json["config"])) {
-        $json["config"] = [];
-      }
-      if (!isset($json["config"]["allow-plugins"])) {
-        $json["config"]["allow-plugins"] = [];
-      }
-      $json["config"]["allow-plugins"]["composer/installers"] = true;
-
-      echo json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    ')
-
-    echo "$TEMP_JSON" > composer.json
-    [ "${DEBUG}" = "true" ] && echo "DEBUG: Custom repositories updated!"
-    {{- end }}
   fi
+
+  CUSTOM_REPOS='{{ default (list) .Values.wordpress.composer.repositories | toJson }}'
+  COMPOSER_PLUGIN_PACKAGES='{{ $composerPluginPackages | toJson }}'
+  COMPOSER_THEME_PACKAGES='{{ $composerThemePackages | toJson }}'
+
+  TEMP_JSON=$(sync_composer_json "$CUSTOM_REPOS" "$COMPOSER_PLUGIN_PACKAGES" "$COMPOSER_THEME_PACKAGES") || handle_error "Failed to synchronize composer.json"
+  echo "$TEMP_JSON" > composer.json
+  [ "${DEBUG}" = "true" ] && echo "DEBUG: Composer repositories and installer paths synchronized"
 
   # Set allow-plugins config before requiring composer/installers
   composer config --no-plugins allow-plugins.composer/installers true
@@ -831,7 +801,10 @@ COMPOSERJSON
   # Ensure composer/installers is available for installer-paths
   if ! composer show composer/installers &>/dev/null; then
     echo "Installing composer/installers..."
-    composer require composer/installers --no-interaction --quiet 2>&1 | grep -v "suggest" | grep -v "funding" || true
+    if ! COMPOSER_OUTPUT=$(retry_command composer_run_filtered require composer/installers --no-interaction --quiet); then
+      echo "$COMPOSER_OUTPUT"
+      handle_error "Error installing composer/installers (failed after retries)"
+    fi
   fi
 fi
 {{- end }}
@@ -944,6 +917,7 @@ PLUGINS_TO_NETWORK_ACTIVATE=()     # Multisite: networkActivate plugins
 COMPOSER_PLUGINS_TO_INSTALL=()
 COMPOSER_PLUGINS_TO_ACTIVATE=()
 COMPOSER_PLUGINS_TO_UPDATE=()
+COMPOSER_PLUGIN_PACKAGE_TARGETS=()
 COMPOSER_PLUGINS_TO_NETWORK_ACTIVATE=()  # Multisite: networkActivate Composer plugins
 COMPOSER_PLUGINS_PENDING_NETWORK_ACTIVATION=()  # Retry after composer install
 
@@ -973,10 +947,11 @@ fi
 if is_composer_package "$PLUGIN_NAME"; then
   [ "${DEBUG}" = "true" ] && echo "DEBUG: Detected Composer package: $PLUGIN_NAME"
   COMPOSER_SLUG=$(get_composer_slug "$PLUGIN_NAME")
+  COMPOSER_PLUGIN_PACKAGE_TARGETS+=("$PLUGIN_NAME:$COMPOSER_SLUG")
 
   # Check if already installed via composer.json AND plugin directory exists
   # Plugin might be in composer.json but files deleted (e.g., after pruning)
-  if [ -f /var/www/html/composer.json ] && grep -q "\"$PLUGIN_NAME\"" /var/www/html/composer.json 2>/dev/null; then
+  if composer_package_is_required "$PLUGIN_NAME" /var/www/html/composer.json; then
     if [ -d "/var/www/html/${WP_PLUGINS_DIR}/${COMPOSER_SLUG}" ]; then
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Composer package $PLUGIN_NAME already installed"
 
@@ -1226,7 +1201,7 @@ echo "========================================="
 # Run composer install for main project first (only if composer.json exists and was modified)
 COMPOSER_INSTALL_DONE=false
 if [ -f composer.json ] && { [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ${#COMPOSER_PLUGINS_TO_INSTALL[@]} -gt 0 ]; }; then
-  if ! COMPOSER_OUTPUT=$(retry_command composer install --no-interaction 2>&1 | grep -v "suggest" | grep -v "funding"); then
+  if ! COMPOSER_OUTPUT=$(retry_command composer_run_filtered install --no-interaction); then
     echo "$COMPOSER_OUTPUT"
     handle_error "Error installing Composer dependencies (failed after retries)"
   fi
@@ -1240,7 +1215,8 @@ fi
       $json = json_decode(file_get_contents("composer.json"), true);
       if (isset($json["require"])) {
         foreach ($json["require"] as $package => $version) {
-          if (strpos($package, "/") !== false && $package !== "composer/installers") {
+          if (strpos($package, "/") !== false &&
+              $package !== "composer/installers") {
             $slug = substr($package, strrpos($package, "/") + 1);
             echo $slug . "\n";
           }
@@ -1248,6 +1224,17 @@ fi
       }
     ' 2>/dev/null || echo "")
   fi
+
+  # Link vendor-installed Composer library packages into wp-content/plugins so
+  # WordPress can discover and activate them.
+  for package_target in "${COMPOSER_PLUGIN_PACKAGE_TARGETS[@]}"; do
+    PACKAGE_NAME="${package_target%%:*}"
+    PACKAGE_SLUG="${package_target#*:}"
+    TARGET_DIR="/var/www/html/${WP_PLUGINS_DIR}/${PACKAGE_SLUG}"
+    if [ ! -d "$TARGET_DIR" ] && link_vendor_package_into_wordpress_dir "$PACKAGE_NAME" "$TARGET_DIR"; then
+      echo "Linked Composer package into plugins directory: $PACKAGE_NAME -> ${WP_PLUGINS_DIR}/${PACKAGE_SLUG}"
+    fi
+  done
 
   # Install dependencies for each Composer-installed plugin (with skip check)
   for plugin_dir in ${WP_PLUGINS_DIR}/*/; do
@@ -1266,19 +1253,12 @@ fi
 
         echo "Installing Composer dependencies (this may take a while for plugins with many dependencies)..."
 
-        # Show composer output but filter noise
-        # --no-progress shows package operations instead of progress bar (better for logs)
-        if composer install --no-dev --no-interaction --ignore-platform-reqs --no-security-blocking --no-progress 2>&1 | \
-           grep -v "^$" | \
-           while IFS= read -r line; do
-             # Show important lines: operations, generating autoload, warnings, errors
-             if echo "$line" | grep -qE "(^Lock file operations:|^Package operations:|installs|updates|removals|Generating autoload|^  - |Warning|Error|Failed)"; then
-               echo "  $line"
-             fi
-           done; then
+        if COMPOSER_PLUGIN_OUTPUT=$(retry_command composer_run_filtered install --no-dev --no-interaction --ignore-platform-reqs --no-security-blocking --no-progress 2>&1); then
+          echo "$COMPOSER_PLUGIN_OUTPUT"
           echo "Successfully installed dependencies for plugin: $PLUGIN_NAME"
         else
           composer_exit=$?
+          echo "$COMPOSER_PLUGIN_OUTPUT"
           echo "Warning: Could not install dependencies for plugin: $PLUGIN_NAME (Exit code: $composer_exit)"
           # Don't fail the whole init script, just warn
         fi
@@ -1637,8 +1617,11 @@ THEMES_TO_NETWORK_ENABLE=()         # Multisite: networkEnable themes
 
 COMPOSER_THEMES_TO_INSTALL=()
 COMPOSER_THEME_TO_ACTIVATE=""
+COMPOSER_THEME_PENDING_ACTIVATION=""
 COMPOSER_THEMES_TO_UPDATE=()
+COMPOSER_THEME_PACKAGE_TARGETS=()
 COMPOSER_THEMES_TO_NETWORK_ENABLE=() # Multisite: networkEnable Composer themes
+COMPOSER_THEMES_PENDING_NETWORK_ENABLE=() # Retry after composer install
 
 {{- if and .Values.wordpress.init.enabled .Values.wordpress.init.multiSites.enabled }}
 {{- $allSites := list }}
@@ -1665,10 +1648,11 @@ fi
 if is_composer_package "$THEME_NAME"; then
   [ "${DEBUG}" = "true" ] && echo "DEBUG: Detected Composer theme package: $THEME_NAME"
   COMPOSER_THEME_SLUG=$(get_composer_slug "$THEME_NAME")
+  COMPOSER_THEME_PACKAGE_TARGETS+=("$THEME_NAME:$COMPOSER_THEME_SLUG")
 
   # Check if already installed via composer.json AND theme directory exists
   # Theme might be in composer.json but files deleted (e.g., after pruning)
-  if [ -f /var/www/html/composer.json ] && grep -q "\"$THEME_NAME\"" /var/www/html/composer.json 2>/dev/null; then
+  if composer_package_is_required "$THEME_NAME" /var/www/html/composer.json; then
     if [ -d "/var/www/html/${WP_THEMES_DIR}/${COMPOSER_THEME_SLUG}" ]; then
       [ "${DEBUG}" = "true" ] && echo "DEBUG: Composer theme package $THEME_NAME already installed"
 
@@ -1868,6 +1852,17 @@ if [ ${#COMPOSER_THEMES_TO_UPDATE[@]} -gt 0 ]; then
   fi
 fi
 
+# Link vendor-installed Composer library themes into wp-content/themes so
+# WordPress can discover and activate them.
+for package_target in "${COMPOSER_THEME_PACKAGE_TARGETS[@]}"; do
+  PACKAGE_NAME="${package_target%%:*}"
+  PACKAGE_SLUG="${package_target#*:}"
+  TARGET_DIR="/var/www/html/${WP_THEMES_DIR}/${PACKAGE_SLUG}"
+  if [ ! -d "$TARGET_DIR" ] && link_vendor_package_into_wordpress_dir "$PACKAGE_NAME" "$TARGET_DIR"; then
+    echo "Linked Composer package into themes directory: $PACKAGE_NAME -> ${WP_THEMES_DIR}/${PACKAGE_SLUG}"
+  fi
+done
+
 # Network-enable themes (multisite) - must run BEFORE per-site activation
 if [ ${#THEMES_TO_NETWORK_ENABLE[@]} -gt 0 ] && [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
   echo "Network-enabling ${#THEMES_TO_NETWORK_ENABLE[@]} theme(s)..."
@@ -1886,8 +1881,13 @@ fi
 # Network-enable Composer themes
 if [ ${#COMPOSER_THEMES_TO_NETWORK_ENABLE[@]} -gt 0 ] && [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
   for theme in "${COMPOSER_THEMES_TO_NETWORK_ENABLE[@]}"; do
-    echo "Network-enabling Composer theme: $theme"
-    run wp_network theme enable "$theme" || echo "Warning: Could not network-enable Composer theme $theme"
+    if run wp theme is-installed "$theme"; then
+      echo "Network-enabling Composer theme: $theme"
+      run wp_network theme enable "$theme" || echo "Warning: Could not network-enable Composer theme $theme"
+    else
+      echo "Note: Composer theme $theme couldn't be network-enabled yet - will retry after composer install"
+      COMPOSER_THEMES_PENDING_NETWORK_ENABLE+=("$theme")
+    fi
   done
 fi
 
@@ -1926,8 +1926,14 @@ fi
 
 # Activate Composer theme
 if [ -n "$COMPOSER_THEME_TO_ACTIVATE" ] && [ "$ACTIVE_THEME" != "$COMPOSER_THEME_TO_ACTIVATE" ]; then
-  echo "Activating Composer theme: $COMPOSER_THEME_TO_ACTIVATE"
-  run wp theme activate "$COMPOSER_THEME_TO_ACTIVATE"
+  if run wp theme is-installed "$COMPOSER_THEME_TO_ACTIVATE"; then
+    echo "Activating Composer theme: $COMPOSER_THEME_TO_ACTIVATE"
+    run wp theme activate "$COMPOSER_THEME_TO_ACTIVATE"
+    ACTIVE_THEME="$COMPOSER_THEME_TO_ACTIVATE"
+  else
+    echo "Note: Composer theme $COMPOSER_THEME_TO_ACTIVATE couldn't be activated yet - will retry after composer install"
+    COMPOSER_THEME_PENDING_ACTIVATION="$COMPOSER_THEME_TO_ACTIVATE"
+  fi
 fi
 
 # Batch enable auto-updates using shared helper function (full-replace: always runs to ensure correct state)
@@ -2035,7 +2041,7 @@ if [ -f /var/www/html/composer.json ]; then
   # Ensure Composer is available for pruning operations
   ensure_composer
 
-  # Get all currently required packages from composer.json (excluding composer/installers)
+  # Get all currently required packages from composer.json (excluding chart-managed Composer plugins)
   # Use PHP for reliable JSON parsing (performance: single process vs multiple sed/grep calls)
   if [ -f composer.json ]; then
     CURRENT_PACKAGES=$(php -r '
@@ -2153,7 +2159,7 @@ if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ! -d /var/www/html/vendor ]; 
   # Ensure vendor directory exists (skip if already installed during plugin dependency phase)
   if [ "$COMPOSER_INSTALL_DONE" != "true" ] && [ ! -d /var/www/html/vendor ]; then
     echo "Vendor directory missing, running composer install..."
-    if ! COMPOSER_OUTPUT=$(retry_command composer install --no-interaction 2>&1 | grep -v "suggest" | grep -v "funding"); then
+    if ! COMPOSER_OUTPUT=$(retry_command composer_run_filtered install --no-interaction 2>&1); then
       echo "$COMPOSER_OUTPUT"
       handle_error "Error installing Composer dependencies (failed after retries)"
     fi
@@ -2188,11 +2194,12 @@ if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ! -d /var/www/html/vendor ]; 
         [ $THEMES_WITH_DEPS -eq 0 ] && echo "Installing theme-specific Composer dependencies..."
         echo "Running composer install in theme: $THEME_NAME"
         cd "$theme_dir" || continue
-        if composer install --no-dev --no-interaction --ignore-platform-reqs --quiet 2>&1 | grep -E "Error|Warning|Failed" > /tmp/composer-error.txt; then
-          cat /tmp/composer-error.txt
-          echo "Warning: Could not install dependencies for theme: $THEME_NAME"
-        else
+        if COMPOSER_THEME_OUTPUT=$(retry_command composer_run_filtered install --no-dev --no-interaction --ignore-platform-reqs 2>&1); then
+          echo "$COMPOSER_THEME_OUTPUT"
           echo "Successfully installed dependencies for theme: $THEME_NAME"
+        else
+          echo "$COMPOSER_THEME_OUTPUT"
+          echo "Warning: Could not install dependencies for theme: $THEME_NAME"
         fi
         cd /var/www/html || handle_error "Cannot return to WordPress root directory"
         THEMES_WITH_DEPS=$((THEMES_WITH_DEPS + 1))
@@ -2222,6 +2229,37 @@ if [ "$COMPOSER_PACKAGES_MODIFIED" = "true" ] || [ ! -d /var/www/html/vendor ]; 
   if [ ${#COMPOSER_PLUGINS_PENDING_NETWORK_ACTIVATION[@]} -gt 0 ] && [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
     echo "Network-activating Composer plugins after dependency installation..."
     run wp_network plugin activate "${COMPOSER_PLUGINS_PENDING_NETWORK_ACTIVATION[@]}" || echo "Warning: Some Composer plugins could not be network-activated"
+  fi
+
+  # Network-enable Composer themes after dependency installation (multisite retry)
+  if [ ${#COMPOSER_THEMES_PENDING_NETWORK_ENABLE[@]} -gt 0 ] && [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
+    echo "Network-enabling Composer themes after dependency installation..."
+    THEMES_STILL_NEED_NETWORK_ENABLE=()
+    for theme in "${COMPOSER_THEMES_PENDING_NETWORK_ENABLE[@]}"; do
+      if run wp theme is-installed "$theme"; then
+        run wp_network theme enable "$theme" || echo "Warning: Could not network-enable Composer theme $theme"
+      else
+        THEMES_STILL_NEED_NETWORK_ENABLE+=("$theme")
+      fi
+    done
+
+    if [ ${#THEMES_STILL_NEED_NETWORK_ENABLE[@]} -gt 0 ]; then
+      echo "Warning: Some Composer themes are still not installed for network enable: ${THEMES_STILL_NEED_NETWORK_ENABLE[*]}"
+    fi
+  fi
+
+  # Activate Composer theme after dependency installation
+  if [ -n "$COMPOSER_THEME_PENDING_ACTIVATION" ]; then
+    ACTIVE_THEME=$(wp_theme_list --status=active --field=name 2>/dev/null || echo "")
+    if [ "$ACTIVE_THEME" != "$COMPOSER_THEME_PENDING_ACTIVATION" ]; then
+      if run wp theme is-installed "$COMPOSER_THEME_PENDING_ACTIVATION"; then
+        echo "Activating Composer theme after dependency installation: $COMPOSER_THEME_PENDING_ACTIVATION"
+        run wp theme activate "$COMPOSER_THEME_PENDING_ACTIVATION" || echo "Warning: Could not activate Composer theme $COMPOSER_THEME_PENDING_ACTIVATION"
+        ACTIVE_THEME=$(wp_theme_list --status=active --field=name 2>/dev/null || echo "")
+      else
+        echo "Warning: Composer theme $COMPOSER_THEME_PENDING_ACTIVATION is still not installed after composer install, skipping activation"
+      fi
+    fi
   fi
 fi
 
