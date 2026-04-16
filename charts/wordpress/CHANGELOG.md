@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.23 - 2026-04-16
+
+- Update memcached to 0.12.1
+
 ## 3.6.22 - 2026-04-16
 
 - Update docker.io/mariadb digest to e0236fc
