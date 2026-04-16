@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.21 - 2026-04-16
+
+- Update redis to 0.26.9
+
 ## 3.6.20 - 2026-04-16
 
 - Update mariadb to 0.16.1
