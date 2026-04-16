@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.20 - 2026-04-16
+
+- Update mariadb to 0.16.1
+
 ## 3.6.19 - 2026-04-13
 
 - Fix Composer-managed plugin and theme installation for packages published as type: library by synchronizing installer paths and linking vendor packages into wp-content when needed.
