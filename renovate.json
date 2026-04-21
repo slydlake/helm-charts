@@ -134,14 +134,14 @@
             "commitMessageExtra": ""
         },
         {
-            "description": "Group subchart updates per chart with consistent labels and commit messages",
+            "description": "Group subchart updates per dependency with version-specific branch names and commit messages",
             "matchManagers": [
                 "helmv3"
             ],
             "matchFileNames": [
                 "charts/**"
             ],
-            "groupName": "subchart/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}}",
+            "groupName": "subchart/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}}/{{{depName}}}/{{#if (equals updateType 'digest')}}digest-{{{newDigestShort}}}{{else}}{{{newVersion}}}{{/if}}",
             "labels": [
                 "dependencies",
                 "renovate"
@@ -151,9 +151,9 @@
             ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
-            "commitMessageAction": "charts/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}} chore(deps): subchart updates",
+            "commitMessageAction": "charts/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}} chore(deps): update subchart {{{depName}}}",
             "commitMessageTopic": "",
-            "commitMessageExtra": ""
+            "commitMessageExtra": " {{#if (equals updateType 'digest')}}digest to {{{newDigestShort}}}{{else}}to {{{newVersion}}}{{/if}}"
         },
         {
             "description": "Group wordpress subchart updates per dependency to avoid long-lived grouped PRs",
@@ -163,7 +163,7 @@
             "matchFileNames": [
                 "charts/wordpress/**"
             ],
-            "groupName": "subchart/wordpress/{{{depName}}}",
+            "groupName": "subchart/wordpress/{{{depName}}}/{{#if (equals updateType 'digest')}}digest-{{{newDigestShort}}}{{else}}{{{newVersion}}}{{/if}}",
             "labels": [
                 "dependencies",
                 "renovate"
@@ -175,7 +175,7 @@
             "commitMessagePrefix": "",
             "commitMessageAction": "charts/wordpress chore(deps): update {{{depName}}}",
             "commitMessageTopic": "",
-            "commitMessageExtra": ""
+            "commitMessageExtra": " {{#if (equals updateType 'digest')}}digest to {{{newDigestShort}}}{{else}}to {{{newVersion}}}{{/if}}"
         },
         {
             "description": "Label direct dependency minor updates for chart minor bumps",
