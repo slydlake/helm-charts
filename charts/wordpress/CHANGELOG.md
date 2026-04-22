@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.28 - 2026-04-22
+
+- Update redis to 0.27.1
+
 ## 3.6.27 - 2026-04-21
 
 - Update redis to 0.27.0
