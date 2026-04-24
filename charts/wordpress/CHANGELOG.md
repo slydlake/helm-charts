@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.29 - 2026-04-24
+
+- Update docker.io/memcached digest to 277e0c4
+
 ## 3.6.28 - 2026-04-22
 
 - Update redis to 0.27.1
