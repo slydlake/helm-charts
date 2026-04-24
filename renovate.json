@@ -111,7 +111,7 @@
             "enabled": false
         },
         {
-            "description": "Group all updates per chart into one PR with consistent labels and commit messages",
+            "description": "Group direct dependency updates per chart and target version with consistent labels and commit messages",
             "matchManagers": [
                 "helm-values",
                 "custom.regex"
@@ -119,7 +119,7 @@
             "matchFileNames": [
                 "charts/**"
             ],
-            "groupName": "chart/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}}",
+            "groupName": "chart/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}}/{{{depName}}}/{{#if (equals updateType 'digest')}}digest-{{{newDigestShort}}}{{else}}{{{newVersion}}}{{/if}}",
             "labels": [
                 "dependencies",
                 "renovate"
@@ -129,9 +129,25 @@
             ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
-            "commitMessageAction": "charts/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}} chore(deps): updates",
+            "commitMessageAction": "charts/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}} chore(deps): {{{depName}}}",
             "commitMessageTopic": "",
-            "commitMessageExtra": ""
+            "commitMessageExtra": " {{#if (equals updateType 'digest')}}digest {{{newDigestShort}}}{{else}}{{{newVersion}}}{{/if}}"
+        },
+        {
+            "description": "Use short wireguard dependency name in direct update titles",
+            "matchManagers": [
+                "custom.regex"
+            ],
+            "matchFileNames": [
+                "charts/wireguard/values.yaml"
+            ],
+            "matchPackageNames": [
+                "docker.io/linuxserver/wireguard"
+            ],
+            "groupName": "chart/wireguard/wireguard/{{#if (equals updateType 'digest')}}digest-{{{newDigestShort}}}{{else}}{{{newVersion}}}{{/if}}",
+            "commitMessageAction": "charts/wireguard chore(deps): wireguard",
+            "commitMessageTopic": "",
+            "commitMessageExtra": " {{#if (equals updateType 'digest')}}digest {{{newDigestShort}}}{{else}}{{{newVersion}}}{{/if}}"
         },
         {
             "description": "Group subchart updates per dependency with version-specific branch names and commit messages",
@@ -151,9 +167,9 @@
             ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
-            "commitMessageAction": "charts/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}} chore(deps): update subchart {{{depName}}}",
+            "commitMessageAction": "charts/{{{ replace '/samples' '' (replace 'charts/' '' parentDir) }}} chore(deps): {{{depName}}}",
             "commitMessageTopic": "",
-            "commitMessageExtra": " {{#if (equals updateType 'digest')}}digest to {{{newDigestShort}}}{{else}}to {{{newVersion}}}{{/if}}"
+            "commitMessageExtra": " {{#if (equals updateType 'digest')}}digest {{{newDigestShort}}}{{else}}{{{newVersion}}}{{/if}}"
         },
         {
             "description": "Group wordpress subchart updates per dependency to avoid long-lived grouped PRs",
@@ -173,9 +189,9 @@
             ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
-            "commitMessageAction": "charts/wordpress chore(deps): update {{{depName}}}",
+            "commitMessageAction": "charts/wordpress chore(deps): {{{depName}}}",
             "commitMessageTopic": "",
-            "commitMessageExtra": " {{#if (equals updateType 'digest')}}digest to {{{newDigestShort}}}{{else}}to {{{newVersion}}}{{/if}}"
+            "commitMessageExtra": " {{#if (equals updateType 'digest')}}digest {{{newDigestShort}}}{{else}}{{{newVersion}}}{{/if}}"
         },
         {
             "description": "Label direct dependency minor updates for chart minor bumps",
