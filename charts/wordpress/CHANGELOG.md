@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.32 - 2026-04-29
+
+- Update redis to 0.27.4
+
 ## 3.6.31 - 2026-04-27
 
 - Update memcached to 0.13.1
