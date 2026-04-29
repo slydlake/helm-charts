@@ -28,7 +28,7 @@ jobs:
       issues: write
     steps:
       - name: Self-hosted Renovate
-        uses: renovatebot/github-action@b67590ea780158ccd13192c22a3655a5231f869d # v46.1.8
+        uses: renovatebot/github-action@f66d8679fcfcfa051abde6e7a623007173bf5164 # v46.1.12
         with:
           token: ${{ secrets.SLYBASE_GHCR_TOKEN }}
         env:
