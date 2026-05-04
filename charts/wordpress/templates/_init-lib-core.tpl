@@ -89,17 +89,34 @@ execute() {
 # Performance Note:
 #   Each wp call loads WordPress core - can be slow
 #   Use batch operations where possible (e.g., install multiple plugins at once)
+_wp_cli_db_extra_args() {
+  if [ "${1:-}" = "db" ] && [ "${WORDPRESS_DB_SSL_REQUIRED:-true}" = "false" ]; then
+    printf '%s\n' "--skip-ssl"
+  fi
+}
+
 wp() {
+  local extra_db_arg=""
+  extra_db_arg="$(_wp_cli_db_extra_args "$1")"
+
   if [ "${DRY_RUN}" = "true" ]; then
-    echo "[DRY_RUN] wp $*"
+    echo "[DRY_RUN] wp $* ${extra_db_arg}"
     return 0
   fi
   # --skip-plugins/themes: avoid loading all installed plugins on every call
   # (huge speedup when Composer packages like s3-uploads are installed)
   if [ "${DEBUG}" = "true" ]; then
-    command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes --debug "$@"
+    if [ -n "$extra_db_arg" ]; then
+      command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes --debug "$@" "$extra_db_arg"
+    else
+      command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes --debug "$@"
+    fi
   else
-    command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes "$@"
+    if [ -n "$extra_db_arg" ]; then
+      command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes "$@" "$extra_db_arg"
+    else
+      command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes "$@"
+    fi
   fi
 }
 
@@ -108,15 +125,26 @@ wp() {
 #
 # Args: All arguments are passed through to wp-cli
 wp_with_plugins() {
+  local extra_db_arg=""
+  extra_db_arg="$(_wp_cli_db_extra_args "$1")"
+
   if [ "${DRY_RUN}" = "true" ]; then
-    echo "[DRY_RUN] wp(with-plugins) $*"
+    echo "[DRY_RUN] wp(with-plugins) $* ${extra_db_arg}"
     return 0
   fi
 
   if [ "${DEBUG}" = "true" ]; then
-    command wp --path="${WORDPRESS_PATH}" --skip-themes --debug "$@"
+    if [ -n "$extra_db_arg" ]; then
+      command wp --path="${WORDPRESS_PATH}" --skip-themes --debug "$@" "$extra_db_arg"
+    else
+      command wp --path="${WORDPRESS_PATH}" --skip-themes --debug "$@"
+    fi
   else
-    command wp --path="${WORDPRESS_PATH}" --skip-themes "$@"
+    if [ -n "$extra_db_arg" ]; then
+      command wp --path="${WORDPRESS_PATH}" --skip-themes "$@" "$extra_db_arg"
+    else
+      command wp --path="${WORDPRESS_PATH}" --skip-themes "$@"
+    fi
   fi
 }
 
@@ -133,6 +161,56 @@ run() {
   else
     "$@" >/dev/null 2>&1
   fi
+}
+
+# Check whether a database table exists without relying on wp db query/mysql client.
+# This uses the same PHP mysqli path as WordPress itself, which is more reliable
+# during bootstrap against external databases.
+db_table_exists() {
+  local table_name="$1"
+
+  if [ -z "$table_name" ]; then
+    return 1
+  fi
+
+  DB_TABLE_NAME="$table_name" php <<'PHPEOF'
+<?php
+mysqli_report(MYSQLI_REPORT_OFF);
+
+$host = getenv('WORDPRESS_DB_HOST');
+$user = getenv('WORDPRESS_DB_USER');
+$pass = getenv('WORDPRESS_DB_PASSWORD');
+$name = getenv('WORDPRESS_DB_NAME');
+$table = getenv('DB_TABLE_NAME');
+
+if ($table === false || $table === '') {
+  exit(1);
+}
+
+$c = @new mysqli($host, $user, $pass, $name);
+if ($c->connect_error) {
+  exit(1);
+}
+
+$escapedTable = $c->real_escape_string($table);
+$result = $c->query("SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = '{$escapedTable}' LIMIT 1");
+if ($result && $result->fetch_row()) {
+  $result->free();
+  $c->close();
+  exit(0);
+}
+
+if ($result) {
+  $result->free();
+}
+
+$c->close();
+exit(1);
+PHPEOF
+}
+
+wp_table_exists() {
+  db_table_exists "${TABLE_PREFIX}$1"
 }
 
 # Multisite-aware wp wrapper for site-specific operations
