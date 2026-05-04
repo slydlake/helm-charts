@@ -70,6 +70,77 @@ _stop_heartbeat() {
   fi
 }
 
+_lock_db_query() {
+  local sql="$1"
+
+  LOCK_SQL="$sql" php <<'PHPEOF'
+<?php
+mysqli_report(MYSQLI_REPORT_OFF);
+
+$host = getenv('WORDPRESS_DB_HOST');
+$user = getenv('WORDPRESS_DB_USER');
+$pass = getenv('WORDPRESS_DB_PASSWORD');
+$name = getenv('WORDPRESS_DB_NAME');
+$sql = getenv('LOCK_SQL');
+
+$m = @new mysqli($host, $user, $pass, $name);
+if ($m->connect_error) {
+  fwrite(STDERR, $m->connect_error);
+  exit(1);
+}
+
+if ($sql === false || $sql === '') {
+  fwrite(STDERR, 'missing SQL statement');
+  $m->close();
+  exit(1);
+}
+
+if (!$m->query($sql)) {
+  fwrite(STDERR, $m->error);
+  $m->close();
+  exit(1);
+}
+
+$m->close();
+PHPEOF
+}
+
+_lock_db_read_value() {
+  local sql="$1"
+
+  LOCK_SQL="$sql" php <<'PHPEOF'
+<?php
+mysqli_report(MYSQLI_REPORT_OFF);
+
+$host = getenv('WORDPRESS_DB_HOST');
+$user = getenv('WORDPRESS_DB_USER');
+$pass = getenv('WORDPRESS_DB_PASSWORD');
+$name = getenv('WORDPRESS_DB_NAME');
+$sql = getenv('LOCK_SQL');
+
+$m = @new mysqli($host, $user, $pass, $name);
+if ($m->connect_error) {
+  fwrite(STDERR, $m->connect_error);
+  exit(1);
+}
+
+$result = $m->query($sql);
+if (!$result) {
+  fwrite(STDERR, $m->error);
+  $m->close();
+  exit(1);
+}
+
+$row = $result->fetch_row();
+if ($row && array_key_exists(0, $row) && $row[0] !== null) {
+  echo $row[0];
+}
+
+$result->free();
+$m->close();
+PHPEOF
+}
+
 # Attempt to claim bootstrap lock using dedicated helm_locks table
 # This is used BEFORE WordPress installation when wp_options doesn't exist yet
 #
@@ -95,16 +166,20 @@ claim_bootstrap_lock() {
     # Ensure helm_locks table exists on every attempt
     # (CREATE TABLE IF NOT EXISTS is idempotent and fast when table already exists)
     # This handles the case where MariaDB accepts connections but isn't fully ready for DDL yet
-    wp db query "
+    local create_table_output=""
+    if ! create_table_output=$(_lock_db_query "
       CREATE TABLE IF NOT EXISTS ${TABLE_PREFIX}helm_locks (
         lock_name VARCHAR(64) PRIMARY KEY,
         lock_value VARCHAR(255) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-    " >/dev/null 2>&1
+    " 2>&1); then
+      return 1
+    fi
 
     # Atomic lock claim: override if same hostname OR no heartbeat for STALE_THRESHOLD seconds
-    wp db query "
+    local claim_output=""
+    if ! claim_output=$(_lock_db_query "
       INSERT INTO ${TABLE_PREFIX}helm_locks (lock_name, lock_value)
       VALUES ('bootstrap', '$pod_hostname-$current_time')
       ON DUPLICATE KEY UPDATE
@@ -114,12 +189,19 @@ claim_bootstrap_lock() {
           '$pod_hostname-$current_time',
           lock_value
         );
-    " >/dev/null 2>&1
+    " 2>&1); then
+      return 1
+    fi
 
     sleep 0.1
 
     # Check if we got the lock
-    local lock_owner=$(wp db query "SELECT lock_value FROM ${TABLE_PREFIX}helm_locks WHERE lock_name='bootstrap';" --skip-column-names 2>/dev/null || echo "")
+    local lock_owner=""
+    local lock_query_output=""
+    if ! lock_query_output=$(_lock_db_read_value "SELECT lock_value FROM ${TABLE_PREFIX}helm_locks WHERE lock_name='bootstrap';" 2>&1); then
+      return 1
+    fi
+    lock_owner="$lock_query_output"
 
     if [[ "$lock_owner" == "$pod_hostname-$current_time" ]]; then
       echo "Bootstrap lock acquired successfully!"
@@ -175,7 +257,8 @@ claim_config_lock() {
     current_time=$(date +%s)
 
     # Atomic lock claim: override if same hostname OR no heartbeat for STALE_THRESHOLD seconds
-    wp db query "
+    local claim_output=""
+    if ! claim_output=$(_lock_db_query "
       INSERT INTO ${TABLE_PREFIX}options (option_name, option_value, autoload)
       VALUES ('_helm_config_lock', '$pod_hostname-$current_time', 'no')
       ON DUPLICATE KEY UPDATE
@@ -185,12 +268,19 @@ claim_config_lock() {
           '$pod_hostname-$current_time',
           option_value
         );
-    " >/dev/null 2>&1
+    " 2>&1); then
+      return 1
+    fi
 
     sleep 0.1
 
     # Check if we got the lock
-    local lock_owner=$(wp db query "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_config_lock';" --skip-column-names 2>/dev/null || echo "")
+    local lock_owner=""
+    local lock_query_output=""
+    if ! lock_query_output=$(_lock_db_read_value "SELECT option_value FROM ${TABLE_PREFIX}options WHERE option_name='_helm_config_lock';" 2>&1); then
+      return 1
+    fi
+    lock_owner="$lock_query_output"
 
     if [[ "$lock_owner" == "$pod_hostname-$current_time" ]]; then
       CONFIG_LOCK_ACQUIRED=true

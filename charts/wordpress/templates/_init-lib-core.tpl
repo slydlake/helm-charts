@@ -135,6 +135,56 @@ run() {
   fi
 }
 
+# Check whether a database table exists without relying on wp db query/mysql client.
+# This uses the same PHP mysqli path as WordPress itself, which is more reliable
+# during bootstrap against external databases.
+db_table_exists() {
+  local table_name="$1"
+
+  if [ -z "$table_name" ]; then
+    return 1
+  fi
+
+  DB_TABLE_NAME="$table_name" php <<'PHPEOF'
+<?php
+mysqli_report(MYSQLI_REPORT_OFF);
+
+$host = getenv('WORDPRESS_DB_HOST');
+$user = getenv('WORDPRESS_DB_USER');
+$pass = getenv('WORDPRESS_DB_PASSWORD');
+$name = getenv('WORDPRESS_DB_NAME');
+$table = getenv('DB_TABLE_NAME');
+
+if ($table === false || $table === '') {
+  exit(1);
+}
+
+$c = @new mysqli($host, $user, $pass, $name);
+if ($c->connect_error) {
+  exit(1);
+}
+
+$escapedTable = $c->real_escape_string($table);
+$result = $c->query("SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = '{$escapedTable}' LIMIT 1");
+if ($result && $result->fetch_row()) {
+  $result->free();
+  $c->close();
+  exit(0);
+}
+
+if ($result) {
+  $result->free();
+}
+
+$c->close();
+exit(1);
+PHPEOF
+}
+
+wp_table_exists() {
+  db_table_exists "${TABLE_PREFIX}$1"
+}
+
 # Multisite-aware wp wrapper for site-specific operations
 # Automatically adds --url parameter for the specified site
 #

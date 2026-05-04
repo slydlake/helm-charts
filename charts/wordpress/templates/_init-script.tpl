@@ -165,7 +165,7 @@ fi
 
 # Check if WordPress is already installed (quick check before claiming lock)
 WP_ALREADY_INSTALLED=false
-if wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+if wp_table_exists "options"; then
   if run wp core is-installed --url="${WP_URL}" 2>/dev/null; then
     WP_ALREADY_INSTALLED=true
     echo "WordPress is already installed, skipping bootstrap lock."
@@ -195,7 +195,7 @@ if [ "${WP_INIT}" = "true" ]; then
   WP_INSTALLED=false
   if run wp core is-installed --url="${WP_URL}" 2>/dev/null; then
     # wp-cli says installed, but verify tables actually exist
-    if wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+    if wp_table_exists "options"; then
       WP_INSTALLED=true
       echo "WordPress is already installed, skipping installation."
     else
@@ -216,7 +216,7 @@ if [ "${WP_INIT}" = "true" ]; then
       --locale="${WP_LOCALE}"
 
     # Verify installation succeeded
-    if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+    if ! wp_table_exists "options"; then
       echo "ERROR: WordPress installation failed - wp_options table not created!"
       exit 1
     fi
@@ -236,7 +236,7 @@ if [ "${WP_INIT}" = "true" ]; then
       echo "Network domain: ${DOMAIN_CURRENT_SITE}"
 
       # Check if already converted to multisite (check for wp_sitemeta table)
-      if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}sitemeta';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}sitemeta"; then
+      if ! wp_table_exists "sitemeta"; then
         echo "Converting WordPress to multisite..."
 
         # Determine subdomain/subdirectory mode
@@ -249,7 +249,7 @@ if [ "${WP_INIT}" = "true" ]; then
         fi
 
         # Verify conversion succeeded
-        if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}sitemeta';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}sitemeta"; then
+        if ! wp_table_exists "sitemeta"; then
           echo "ERROR: Multisite conversion failed - sitemeta table not created!"
           exit 1
         fi
@@ -280,7 +280,7 @@ else
   # Use cached TABLE_PREFIX (set at script start)
 
   # Check if wp_options table exists
-  if ! wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+  if ! wp_table_exists "options"; then
     echo "========================================="
     echo "ERROR: WordPress database tables not found!"
     echo "========================================="
@@ -323,7 +323,7 @@ fi
 
 if [ "${WP_MULTISITE_ENABLED:-false}" = "true" ]; then
   # Only proceed if wp_sitemeta table exists (multisite is actually set up)
-  if wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}sitemeta';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}sitemeta"; then
+  if wp_table_exists "sitemeta"; then
     # Extract domain from WP_URL for site checks
     DOMAIN_CURRENT_SITE=$(echo "${WP_URL}" | sed -E 's|^https?://||' | sed -E 's|/.*||')
 
@@ -569,7 +569,7 @@ echo "Configuration lock acquired, proceeding with initialization..."
 # ============================================================================
 
 # Only run if wp_options table exists (skip for fresh installs without WP_INIT=true)
-if wp db query "SHOW TABLES LIKE '${TABLE_PREFIX}options';" --skip-column-names 2>/dev/null | grep -q "${TABLE_PREFIX}options"; then
+if wp_table_exists "options"; then
   echo "Disabling WordPress core auto-updates..."
   # Update all 3 settings in one multi-row query (faster than 3 separate queries)
   wp db query "
