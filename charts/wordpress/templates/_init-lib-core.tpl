@@ -89,34 +89,17 @@ execute() {
 # Performance Note:
 #   Each wp call loads WordPress core - can be slow
 #   Use batch operations where possible (e.g., install multiple plugins at once)
-_wp_cli_db_extra_args() {
-  if [ "${1:-}" = "db" ] && [ "${WORDPRESS_DB_SSL_REQUIRED:-true}" = "false" ]; then
-    printf '%s\n' "--skip-ssl"
-  fi
-}
-
 wp() {
-  local extra_db_arg=""
-  extra_db_arg="$(_wp_cli_db_extra_args "$1")"
-
   if [ "${DRY_RUN}" = "true" ]; then
-    echo "[DRY_RUN] wp $* ${extra_db_arg}"
+    echo "[DRY_RUN] wp $*"
     return 0
   fi
   # --skip-plugins/themes: avoid loading all installed plugins on every call
   # (huge speedup when Composer packages like s3-uploads are installed)
   if [ "${DEBUG}" = "true" ]; then
-    if [ -n "$extra_db_arg" ]; then
-      command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes --debug "$@" "$extra_db_arg"
-    else
-      command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes --debug "$@"
-    fi
+    command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes --debug "$@"
   else
-    if [ -n "$extra_db_arg" ]; then
-      command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes "$@" "$extra_db_arg"
-    else
-      command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes "$@"
-    fi
+    command wp --path="${WORDPRESS_PATH}" --skip-plugins --skip-themes "$@"
   fi
 }
 
@@ -125,26 +108,15 @@ wp() {
 #
 # Args: All arguments are passed through to wp-cli
 wp_with_plugins() {
-  local extra_db_arg=""
-  extra_db_arg="$(_wp_cli_db_extra_args "$1")"
-
   if [ "${DRY_RUN}" = "true" ]; then
-    echo "[DRY_RUN] wp(with-plugins) $* ${extra_db_arg}"
+    echo "[DRY_RUN] wp(with-plugins) $*"
     return 0
   fi
 
   if [ "${DEBUG}" = "true" ]; then
-    if [ -n "$extra_db_arg" ]; then
-      command wp --path="${WORDPRESS_PATH}" --skip-themes --debug "$@" "$extra_db_arg"
-    else
-      command wp --path="${WORDPRESS_PATH}" --skip-themes --debug "$@"
-    fi
+    command wp --path="${WORDPRESS_PATH}" --skip-themes --debug "$@"
   else
-    if [ -n "$extra_db_arg" ]; then
-      command wp --path="${WORDPRESS_PATH}" --skip-themes "$@" "$extra_db_arg"
-    else
-      command wp --path="${WORDPRESS_PATH}" --skip-themes "$@"
-    fi
+    command wp --path="${WORDPRESS_PATH}" --skip-themes "$@"
   fi
 }
 
