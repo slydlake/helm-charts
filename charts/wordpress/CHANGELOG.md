@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.33 - 2026-05-04
+
+- Update valkey to 0.20.1
+
 ## 3.6.32 - 2026-04-29
 
 - Update redis to 0.27.4
