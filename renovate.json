@@ -265,14 +265,13 @@
             ]
         },
         {
-            "description": "Group GitHub Actions workflow updates into one PR with consistent labels and commit messages",
+            "description": "Per-package GitHub Actions workflow updates with version-specific branches",
             "matchManagers": [
                 "github-actions"
             ],
             "matchFileNames": [
                 ".github/workflows/**"
             ],
-            "groupName": "github-actions/workflows",
             "labels": [
                 "dependencies",
                 "renovate"
@@ -282,9 +281,9 @@
             ],
             "semanticCommits": "disabled",
             "commitMessagePrefix": "",
-            "commitMessageAction": "github workflows chore(deps): updates",
+            "commitMessageAction": "github workflows chore(deps): {{{depName}}}",
             "commitMessageTopic": "",
-            "commitMessageExtra": ""
+            "commitMessageExtra": " {{#if (equals updateType 'digest')}}digest {{{newDigestShort}}}{{else}}{{{newVersion}}}{{/if}}"
         },
         {
             "description": "Auto-merge minor, patch, and digest updates",
