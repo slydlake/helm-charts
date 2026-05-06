@@ -2,6 +2,14 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.38 - 2026-05-06
+
+- Update docker.io/valkey/valkey to 9.0.4
+
+## 3.6.37 - 2026-05-06
+
+- Update docker.io/valkey/valkey to 9.0.4
+
 ## 3.6.36 - 2026-05-05
 
 - Update docker.io/redis to 8.6.3
