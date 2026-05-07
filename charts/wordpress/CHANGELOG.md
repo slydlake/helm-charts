@@ -2,6 +2,10 @@
 
 All notable changes to this chart are documented here.
 
+## 3.6.39 - 2026-05-07
+
+- Update valkey to 0.20.2
+
 ## 3.6.38 - 2026-05-06
 
 - Update docker.io/valkey/valkey to 9.0.4
