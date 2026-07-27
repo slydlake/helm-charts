@@ -2,6 +2,16 @@
 
 All notable changes to this chart are documented here.
 
+## [5.1.32](https://github.com/SlyBase/helm-charts/compare/wordpress-v5.1.31...wordpress-v5.1.32) (2026-07-27)
+
+
+### Bug Fixes
+
+* **deps:** update mariadb docker tag to v0.16.7 ([#538](https://github.com/SlyBase/helm-charts/issues/538)) ([4ada3af](https://github.com/SlyBase/helm-charts/commit/4ada3af4007825e979621c7226c2ceaf6c729c6b))
+* **deps:** update memcached docker tag to v0.14.3 ([#539](https://github.com/SlyBase/helm-charts/issues/539)) ([2efb180](https://github.com/SlyBase/helm-charts/commit/2efb18084bf4d03b0cbec6dbec9f83f422a256b1))
+* **deps:** update redis docker tag to v0.33.1 ([#540](https://github.com/SlyBase/helm-charts/issues/540)) ([f1ff7f5](https://github.com/SlyBase/helm-charts/commit/f1ff7f57d0ce1f1a21212f65b81507b735243ee6))
+* **deps:** update valkey docker tag to v0.24.5 ([#542](https://github.com/SlyBase/helm-charts/issues/542)) ([2022dfb](https://github.com/SlyBase/helm-charts/commit/2022dfb3b8eb85209901545570d9d521424e9338))
+
 ## [5.1.31](https://github.com/SlyBase/helm-charts/compare/wordpress-v5.1.30...wordpress-v5.1.31) (2026-07-25)
 
 
