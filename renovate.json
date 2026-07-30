@@ -95,7 +95,8 @@
             "matchPackageNames": [
                 "docker.io/linuxserver/wireguard"
             ],
-            "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-r(?<prerelease>\\d+)-ls(?<build>\\d+)$"
+            "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-r(?<prerelease>\\d+)-ls(?<build>\\d+)$",
+            "ignoreUnstable": false
         },
         {
             "description": "Group direct dependency updates per chart and target version",
