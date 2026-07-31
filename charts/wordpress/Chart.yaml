@@ -29,11 +29,11 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "deps: update docker.io/wordpress:cli-2.12.0-php8.3 docker digest to 3576a4c"
+    - kind: added
+      description: "deps: update rclone/rclone docker tag to v1.75"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/43d8a3433bb10776b5e3b09cb8339534b56a088e
+          url: https://github.com/SlyBase/helm-charts/commit/4494af8b0614a67ea1fc98826a27b76617ac7621
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.0.2-php8.3-apache
