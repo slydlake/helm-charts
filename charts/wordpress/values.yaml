@@ -25,7 +25,7 @@ image:
   ## @param image.repository string WordPress container image repository
   repository: wordpress
   ## @param image.tag string Image tag (default is the chart appVersion)
-  tag: "7.0.2-php8.3-apache@sha256:9fac4d47b61186131ffefb5d966f0045d0eea94bfd7bd40cafae29b78a709d1b"
+  tag: "7.0.2-php8.3-apache@sha256:fe04ca18a5897be659e0d48686467dc939409b6ee53394507d0d08396595be67"
   ## @param image.pullPolicy string Image pull policy
   pullPolicy: IfNotPresent
 
@@ -176,7 +176,7 @@ wordpress:
       ## @param wordpress.init.image.repository string Container image repository for init container
       repository: wordpress
       ## @param wordpress.init.image.tag string Image tag for init container
-      tag: "cli-2.12.0-php8.3@sha256:f8aeb68164c6a04f5dcc91da30d8ffa096b0f7fafb7a65f144c2dd62587caca0"
+      tag: "cli-2.12.0-php8.3@sha256:d1df12f0241908fdf0e108dc45fb1067d6a6591d3831fc28a3c7272f9ef50902"
       ## @param wordpress.init.image.pullPolicy string Image pull policy for init container
       pullPolicy: IfNotPresent
 
