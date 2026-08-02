@@ -204,9 +204,39 @@ else
   yellow "  [SKIP] No wordpress pod — cannot check OPcache"
 fi
 
-# ── 15. WordPress auth keys/salts pinned ──────────────────────────────────────
+# ── 15. Native redis extension loaded (values.yaml enables valkey backend) ───
 bold ""
-bold "==> Step 15: WordPress auth keys/salts pinned (statefulset / wp-content layouts)"
+bold "==> Step 15: Native redis PHP extension loaded (valkey backend enabled)"
+if [[ -n "${WP_POD}" ]]; then
+  # pipe-free check (avoids SIGPIPE aborting the script under set -o pipefail, same as check_logs())
+  if kubectl exec "${WP_POD}" -c wordpress -- \
+      php -r 'exit(in_array("redis", get_loaded_extensions(), true) ? 0 : 1);' 2>/dev/null; then
+    green "  [OK] Native redis extension loaded"
+  else
+    red "  [FAIL] Native redis extension not loaded (expected with valkey.enabled=true)"
+    ERRORS=$((ERRORS + 1))
+  fi
+else
+  yellow "  [SKIP] No wordpress pod — cannot check redis extension"
+fi
+
+# ── 16. object-cache.php drop-in present ──────────────────────────────────────
+bold ""
+bold "==> Step 16: object-cache.php drop-in present"
+if [[ -n "${WP_POD}" ]]; then
+  if kubectl exec "${WP_POD}" -c wordpress -- test -f /var/www/html/wp-content/object-cache.php 2>/dev/null; then
+    green "  [OK] object-cache.php drop-in present"
+  else
+    red "  [FAIL] object-cache.php drop-in not found (expected with valkey.enabled=true + redis-cache plugin active)"
+    ERRORS=$((ERRORS + 1))
+  fi
+else
+  yellow "  [SKIP] No wordpress pod — cannot check object-cache.php"
+fi
+
+# ── 17. WordPress auth keys/salts pinned ──────────────────────────────────────
+bold ""
+bold "==> Step 17: WordPress auth keys/salts pinned (statefulset / wp-content layouts)"
 SALT_COUNT=$(kubectl get secret "${RELEASE}" \
   -o go-template='{{range $k,$v := .data}}{{$k}}{{"\n"}}{{end}}' 2>/dev/null \
   | grep -cE '^WORDPRESS_(AUTH|SECURE_AUTH|LOGGED_IN|NONCE)_(KEY|SALT)$' || true)

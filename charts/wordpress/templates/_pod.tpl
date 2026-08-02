@@ -505,9 +505,55 @@
               rm -f /etc/apt/apt.conf.d/99sandboxroot
               rm -rf /var/lib/apt/lists/*
           volumeMounts:
-            - name: wordpress-memcached-ext
+            - name: wordpress-php-ext
               mountPath: /opt/php-ext
             {{- include "wordpress.dataVolumeMounts" (dict "ctx" . "path" "/var/www/html") | nindent 12 }}
+        {{- end }}
+        {{- $cacheBackendsInit := (include "wordpress.cache.backends" . | fromYaml) }}
+        {{- if or (eq $cacheBackendsInit.selected "redis") (eq $cacheBackendsInit.selected "valkey") }}
+        - name: {{ .Chart.Name }}-redis-bootstrap
+          image: {{ include "slycharts.image" (dict "image" .Values.image "defaultTag" .Chart.AppVersion) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          securityContext:
+            runAsUser: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - CHOWN
+                - DAC_OVERRIDE
+                - FOWNER
+                - SETGID
+                - SETUID
+            seccompProfile:
+              type: RuntimeDefault
+          env:
+            - name: DEBUG
+              value: {{ .Values.wordpress.init.debug | default "false" | quote }}
+          command:
+            - sh
+            - -ec
+            - |
+              echo "Redis bootstrap: installation startet..."
+              if [ "${DEBUG:-false}" = "true" ]; then
+                pecl install redis
+              else
+                pecl install redis >/dev/null
+              fi
+              mkdir -p /opt/php-ext/conf.d /opt/php-ext/lib
+              EXT_DIR="$(php-config --extension-dir)"
+              cp "${EXT_DIR}/redis.so" /opt/php-ext/redis.so
+              ldd "${EXT_DIR}/redis.so" | awk '/=> \/.*/ {print $3} /^\/.*/ {print $1}' | sed 's/[[:space:]]*$//' | sort -u | while read -r lib; do
+                [ -f "$lib" ] && cp -L "$lib" /opt/php-ext/lib/
+              done
+              echo "extension=/opt/php-ext/redis.so" > /opt/php-ext/conf.d/zz-redis.ini
+              PHP_INI_SCAN_DIR="/usr/local/etc/php/conf.d:/opt/php-ext/conf.d" LD_LIBRARY_PATH="/opt/php-ext/lib" php -m | grep -qi '^redis$' || { echo "ERROR: redis extension failed to load"; exit 1; }
+              echo "Redis bootstrap: installation beendet."
+          volumeMounts:
+            - name: wordpress-php-ext
+              mountPath: /opt/php-ext
         {{- end }}
       {{- if .Values.initContainers }}
         {{- toYaml .Values.initContainers | nindent 8 }}
@@ -537,7 +583,7 @@
           {{- if or (eq $cacheBackends.selected "redis") (eq $cacheBackends.selected "valkey") }}
           {{- $cacheMeta = (include "wordpress.cache.kvMeta" (dict "ctx" . "backend" $cacheBackends.selected) | fromYaml) }}
           {{- end }}
-          {{- if .Values.memcached.enabled }}
+          {{- if or .Values.memcached.enabled (eq $cacheBackends.selected "redis") (eq $cacheBackends.selected "valkey") }}
             - name: PHP_INI_SCAN_DIR
               value: "/usr/local/etc/php/conf.d:/opt/php-ext/conf.d"
             - name: LD_LIBRARY_PATH
@@ -781,8 +827,8 @@
               mountPath: /tmp
             - name: run
               mountPath: /var/run
-            {{- if .Values.memcached.enabled }}
-            - name: wordpress-memcached-ext
+            {{- if or .Values.memcached.enabled (eq $cacheBackends.selected "redis") (eq $cacheBackends.selected "valkey") }}
+            - name: wordpress-php-ext
               mountPath: /opt/php-ext
             {{- end }}
             {{- if .Values.extraVolumeMounts }}
@@ -881,8 +927,9 @@
         emptyDir: {}
       - name: run
         emptyDir: {}
-      {{- if .Values.memcached.enabled }}
-      - name: wordpress-memcached-ext
+      {{- $cacheBackendsVol := (include "wordpress.cache.backends" . | fromYaml) }}
+      {{- if or .Values.memcached.enabled (eq $cacheBackendsVol.selected "redis") (eq $cacheBackendsVol.selected "valkey") }}
+      - name: wordpress-php-ext
         emptyDir: {}
       {{- end }}
       - name: {{ include "wordpress.fullname" . }}-configfiles

@@ -144,16 +144,20 @@ fi
 export TABLE_PREFIX
 echo "Using WordPress table prefix: ${TABLE_PREFIX}"
 
-{{- if .Values.memcached.enabled }}
-# wp-cli in wordpress-init container runs without memcached extension.
-# If a stale object-cache.php exists on PVC, wp bootstrap can fatally fail.
+# wp-cli in wordpress-init container always runs without the native memcached
+# extension (the memcached-bootstrap initContainer that provides it runs later,
+# after wordpress-init). If a stale memcached-plugin object-cache.php is present
+# on the PVC - whether memcached is currently enabled or was left over from a
+# previous release that had it enabled - wp-cli bootstrap fatally errors on
+# every call, including plain `wp core install`/`wp core is-installed`. So this
+# guard is unconditional, not gated on memcached.enabled. redis-cache's drop-in
+# doesn't need it: it falls back to Predis gracefully without the extension.
 MEMCACHED_DROPIN="/var/www/html/wp-content/object-cache.php"
 MEMCACHED_DROPIN_DISABLED="/var/www/html/wp-content/object-cache.php.helm-disabled"
 if [ -f "$MEMCACHED_DROPIN" ] && ! php -m | grep -qi '^memcached$'; then
   echo "Temporarily disabling existing object-cache.php for wp-cli init..."
   mv "$MEMCACHED_DROPIN" "$MEMCACHED_DROPIN_DISABLED" || true
 fi
-{{- end }}
 
 # ============================================================================
 # Bootstrap Lock Acquisition (Before WordPress Installation)
@@ -1531,9 +1535,11 @@ if [ "$PLUGINS_MODIFIED" = "true" ] || [ "$COMPOSER_PACKAGES_MODIFIED" = "true" 
   ACTIVE_PLUGINS=$(wp_plugin_list --status=active --field=name 2>/dev/null || echo "")
 fi
 
+{{- $cacheBackends := (include "wordpress.cache.backends" . | fromYaml) }}
 # ============================================================================
 # Redis/Valkey Object Cache Enable (redis-cache plugin)
 # ============================================================================
+{{- if or (eq $cacheBackends.selected "redis") (eq $cacheBackends.selected "valkey") }}
 # Applies to both Redis and Valkey backends via the same redis-cache plugin.
 if wp plugin is-active redis-cache 2>/dev/null; then
   echo "Ensuring redis-cache object cache is enabled (Redis/Valkey)..."
@@ -1551,15 +1557,52 @@ if wp plugin is-active redis-cache 2>/dev/null; then
   echo "redis-cache status after:"
   (wp_with_plugins redis status 2>&1 | grep -E "Status:|Client:|Drop-in:" || wp_with_plugins redis status 2>&1 || true)
 fi
+{{- else }}
+# No Redis/Valkey backend selected - clean up any stale redis-cache plugin/drop-in state
+# left over from a previous release where a backend was enabled.
+REDIS_DROPIN_TARGET="/var/www/html/wp-content/object-cache.php"
+REDIS_PLUGIN_DROPIN="/var/www/html/wp-content/plugins/redis-cache/includes/object-cache.php"
+REDIS_DROPIN_DISABLED_BACKEND="/var/www/html/wp-content/object-cache.php.helm-disabled-backend"
 
-{{- if .Values.memcached.enabled }}
+if wp plugin is-active redis-cache 2>/dev/null; then
+  echo "Redis/Valkey backend disabled; deactivating redis-cache plugin..."
+  wp plugin deactivate redis-cache 2>/dev/null || true
+fi
+
+# The early wp-cli guard above unconditionally moves any existing object-cache.php
+# to $MEMCACHED_DROPIN_DISABLED before running (since the init container never has
+# the memcached extension) - so the current drop-in may be there instead of at
+# REDIS_DROPIN_TARGET. Check both locations.
+REDIS_DROPIN_SOURCE=""
+if [ -f "$REDIS_DROPIN_TARGET" ]; then
+  REDIS_DROPIN_SOURCE="$REDIS_DROPIN_TARGET"
+elif [ -f "$MEMCACHED_DROPIN_DISABLED" ]; then
+  REDIS_DROPIN_SOURCE="$MEMCACHED_DROPIN_DISABLED"
+fi
+
+if [ -n "$REDIS_DROPIN_SOURCE" ]; then
+  IS_REDIS_DROPIN=false
+  if [ -f "$REDIS_PLUGIN_DROPIN" ] && cmp -s "$REDIS_PLUGIN_DROPIN" "$REDIS_DROPIN_SOURCE"; then
+    IS_REDIS_DROPIN=true
+  elif grep -q "Plugin Name: Redis Object Cache Drop-In" "$REDIS_DROPIN_SOURCE" 2>/dev/null; then
+    IS_REDIS_DROPIN=true
+  fi
+  if [ "$IS_REDIS_DROPIN" = "true" ]; then
+    echo "Moving aside stale redis-cache object-cache.php drop-in..."
+    mv "$REDIS_DROPIN_SOURCE" "$REDIS_DROPIN_DISABLED_BACKEND" || true
+  else
+    echo "object-cache.php present but not recognized as the redis-cache drop-in; leaving it alone (likely user-managed)."
+  fi
+fi
+{{- end }}
+
 # ============================================================================
 # Memcached Plugin Safety
 # ============================================================================
-
 MEMCACHED_PLUGIN_DROPIN="/var/www/html/wp-content/plugins/memcached/object-cache.php"
 MEMCACHED_DROPIN_TARGET="/var/www/html/wp-content/object-cache.php"
 
+{{- if .Values.memcached.enabled }}
 if wp plugin is-active memcached 2>/dev/null; then
   echo "Deactivating memcached plugin (drop-in mode)..."
   wp plugin deactivate memcached 2>/dev/null || true
@@ -1577,6 +1620,30 @@ if php -m | grep -qi '^memcached$'; then
   fi
 else
   echo "Memcached extension missing in init; drop-in deferred to bootstrap."
+fi
+{{- else }}
+MEMCACHED_DROPIN_DISABLED_BACKEND="/var/www/html/wp-content/object-cache.php.helm-disabled-backend"
+
+if wp plugin is-active memcached 2>/dev/null; then
+  echo "Memcached backend disabled; deactivating memcached plugin..."
+  wp plugin deactivate memcached 2>/dev/null || true
+fi
+
+# The early wp-cli guard above unconditionally moves any existing object-cache.php
+# to $MEMCACHED_DROPIN_DISABLED before running - so the current drop-in may be
+# there instead of at MEMCACHED_DROPIN_TARGET. Check both locations.
+MEMCACHED_DROPIN_SOURCE=""
+if [ -f "$MEMCACHED_DROPIN_TARGET" ]; then
+  MEMCACHED_DROPIN_SOURCE="$MEMCACHED_DROPIN_TARGET"
+elif [ -f "$MEMCACHED_DROPIN_DISABLED" ]; then
+  MEMCACHED_DROPIN_SOURCE="$MEMCACHED_DROPIN_DISABLED"
+fi
+
+if [ -n "$MEMCACHED_DROPIN_SOURCE" ] && [ -f "$MEMCACHED_PLUGIN_DROPIN" ] && cmp -s "$MEMCACHED_PLUGIN_DROPIN" "$MEMCACHED_DROPIN_SOURCE"; then
+  echo "Moving aside stale memcached object-cache.php drop-in..."
+  mv "$MEMCACHED_DROPIN_SOURCE" "$MEMCACHED_DROPIN_DISABLED_BACKEND" || true
+elif [ -n "$MEMCACHED_DROPIN_SOURCE" ]; then
+  echo "object-cache.php present but memcached plugin source unavailable to verify signature; leaving it alone (likely user-managed)."
 fi
 {{- end }}
 
