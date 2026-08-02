@@ -30,10 +30,10 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "deps: update docker.io/wordpress:7.0.2-php8.3-apache docker digest to 7f1f307"
+      description: "deps: update docker.io/wordpress:cli-2.12.0-php8.3 docker digest to 2b5e9d4"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/a61c1427bedf2224cb15d6d9bc64fc5b06c73835
+          url: https://github.com/SlyBase/helm-charts/commit/4ad1845c05875112616a7950586e7dc07074a897
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.0.2-php8.3-apache
