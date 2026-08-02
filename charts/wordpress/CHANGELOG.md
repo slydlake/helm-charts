@@ -2,6 +2,13 @@
 
 All notable changes to this chart are documented here.
 
+## [5.4.0](https://github.com/SlyBase/helm-charts/compare/wordpress-v5.3.2...wordpress-v5.4.0) (2026-08-02)
+
+
+### Features
+
+* **wordpress:** bootstrap native redis PHP extension for redis/valkey backend ([#562](https://github.com/SlyBase/helm-charts/issues/562)) ([50ed291](https://github.com/SlyBase/helm-charts/commit/50ed291c336079c34507a4732b44f04d8db680d4))
+
 ## [5.3.2](https://github.com/SlyBase/helm-charts/compare/wordpress-v5.3.1...wordpress-v5.3.2) (2026-08-02)
 
 
