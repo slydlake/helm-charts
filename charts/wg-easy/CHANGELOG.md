@@ -2,6 +2,13 @@
 
 All notable changes to this chart are documented here.
 
+## [1.1.1](https://github.com/SlyBase/helm-charts/compare/wg-easy-v1.1.0...wg-easy-v1.1.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **wg-easy:** render extra volumes at pod level ([#564](https://github.com/SlyBase/helm-charts/issues/564)) ([c9b49cc](https://github.com/SlyBase/helm-charts/commit/c9b49ccd34f668c68482b815fb05294dba9f5942))
+
 ## [1.1.0](https://github.com/SlyBase/helm-charts/compare/wg-easy-v1.0.0...wg-easy-v1.1.0) (2026-06-25)
 
 
