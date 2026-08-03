@@ -28,10 +28,18 @@ jobs:
       pull-requests: write
       issues: write
     steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ secrets.SLYBASE_APP_ID }}
+          private-key: ${{ secrets.SLYBASE_APP_PRIVATE_KEY }}
+          owner: SlyBase
+
       - name: Self-hosted Renovate
         uses: renovatebot/github-action@693b9ef15eec82123529a37c782242f091365961 # v46.1.14
         with:
-          token: ${{ secrets.SLYBASE_GHCR_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
         env:
           RENOVATE_REPOSITORIES: '["${{ github.repository }}"]'
           LOG_LEVEL: "info"
