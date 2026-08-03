@@ -4,8 +4,8 @@ description: >-
   Using the offical wg-easy/wg-easy image with almost any environment variables
   for K8s. Supporting Init Mode.
 type: application
-version: 1.1.0
-appVersion: 15.3.0 # renovate: image=ghcr.io/wg-easy/wg-easy
+version: 1.1.1
+appVersion: 15.3.0
 icon: >-
   https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
 home: https://github.com/slydlake/helm-charts
@@ -25,11 +25,11 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: added
-      description: "add wg-easy native Prometheus metrics toggle and Grafana dashboard"
+    - kind: fixed
+      description: "wg-easy: render extra volumes at pod level"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/7796e28e659d5384806cb43d72586103c2819839
+          url: https://github.com/SlyBase/helm-charts/commit/c9b49ccd34f668c68482b815fb05294dba9f5942
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wg-easy
