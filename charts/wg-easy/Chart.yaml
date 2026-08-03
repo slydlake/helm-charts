@@ -25,11 +25,11 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: added
-      description: "add wg-easy native Prometheus metrics toggle and Grafana dashboard"
+    - kind: fixed
+      description: "wg-easy: render extra volumes at pod level"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/7796e28e659d5384806cb43d72586103c2819839
+          url: https://github.com/SlyBase/helm-charts/commit/c9b49ccd34f668c68482b815fb05294dba9f5942
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wg-easy
