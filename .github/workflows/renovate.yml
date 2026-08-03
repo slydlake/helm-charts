@@ -43,3 +43,10 @@ jobs:
         env:
           RENOVATE_REPOSITORIES: '["${{ github.repository }}"]'
           LOG_LEVEL: "info"
+          # The App installation token above is scoped to this repo only, so it
+          # can't look up tags/releases on unrelated public repos (e.g. GitHub
+          # Actions referenced in workflows, like aquasecurity/trivy-action).
+          # A separate, read-only token raises the public API rate limit for
+          # those cross-repo datasource lookups. See:
+          # https://docs.renovatebot.com/self-hosted-configuration/#githubcomtoken
+          GITHUB_COM_TOKEN: ${{ secrets.RENOVATE_GITHUB_COM_TOKEN }}
