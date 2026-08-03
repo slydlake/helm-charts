@@ -59,3 +59,18 @@ tests:
       - equal:
           path: spec.template.spec.securityContext.runAsUser
           value: 1000
+
+  - it: renders extra volumes at the pod volumes level
+    template: statefulset.yaml
+    set:
+      extraVolumes:
+        - name: custom-config
+          configMap:
+            name: custom-config
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: custom-config
+            configMap:
+              name: custom-config
