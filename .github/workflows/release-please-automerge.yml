@@ -10,10 +10,10 @@ name: Release Please Auto-merge
 #     (release-please.yml does that right after opening the PR), and
 #   * every other PR check (PR Chart Validate, Chart Install Test) is green.
 #
-# IMPORTANT: the merge uses the PAT (SLYBASE_GHCR_TOKEN), NOT GITHUB_TOKEN.
+# IMPORTANT: the merge uses a GitHub App token, NOT GITHUB_TOKEN.
 # A merge pushed by GITHUB_TOKEN would NOT re-trigger release-please.yml, so the
 # git tag + GitHub Release (and therefore oci-release.yaml) would never fire.
-# Merging with the PAT mirrors a maintainer merging the PR by hand.
+# Merging with the App token mirrors a maintainer merging the PR by hand.
 #
 # Note on "approval": main has no branch protection requiring reviews, so an
 # explicit approve is not needed to merge (and Actions is not permitted to
@@ -167,10 +167,19 @@ jobs:
             sleep 20
           done
 
-      - name: Merge release PR (PAT so the release tag fires)
+      - name: Generate GitHub App Token
+        id: app-token
+        if: steps.gate.outputs.merge == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ secrets.SLYBASE_APP_ID }}
+          private-key: ${{ secrets.SLYBASE_APP_PRIVATE_KEY }}
+          owner: SlyBase
+
+      - name: Merge release PR (App token so the release tag fires)
         if: steps.gate.outputs.merge == 'true'
         env:
-          GH_TOKEN: ${{ secrets.SLYBASE_GHCR_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR: ${{ steps.pr.outputs.number }}
         run: |
           set -euo pipefail
