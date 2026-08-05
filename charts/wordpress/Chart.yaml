@@ -30,20 +30,35 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "deps: update docker.io/mariadb:12.3.2-noble docker digest to 759869c"
+      description: "deps: update docker.io/memcached:1.6.45 docker digest to 0af07b2"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/44d5e7441d77b22e1f053fe5b4c4cfed032bfea3
+          url: https://github.com/SlyBase/helm-charts/commit/4433b18ad214734c13a4ae65d23197c658fbd2ce
     - kind: fixed
-      description: "deps: update redis docker tag to v0.34.0"
+      description: "deps: update docker.io/memcached:1.6.45 docker digest to 7fb608d"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/505b86678a87e036942a21e9a0b754af676e4eec
+          url: https://github.com/SlyBase/helm-charts/commit/5a329a8fd90b90e9e998d98c1f4761b9b1661b70
     - kind: fixed
-      description: "deps: update valkey docker tag to v0.25.0"
+      description: "deps: update docker.io/redis:8.10.0-trixie docker digest to ba4c823"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/f4b5963afcb4c71eb253bcf1a53d52a37fed5530
+          url: https://github.com/SlyBase/helm-charts/commit/7e4d188d191be60c48379b4660f8ab7fde5a6cfd
+    - kind: fixed
+      description: "deps: update docker.io/wordpress:7.0.2-php8.3-apache docker digest to ef1818e"
+      links:
+        - name: GitHub
+          url: https://github.com/SlyBase/helm-charts/commit/aabb567e5ce58d22bbb0572aaf34c257a112b88b
+    - kind: fixed
+      description: "deps: update mariadb docker tag to v0.16.8"
+      links:
+        - name: GitHub
+          url: https://github.com/SlyBase/helm-charts/commit/4e9e8c9365a3684ca19342c668fa16877c3b7c9d
+    - kind: fixed
+      description: "deps: update memcached docker tag to v0.14.4"
+      links:
+        - name: GitHub
+          url: https://github.com/SlyBase/helm-charts/commit/842c28cb96f4d61e327c30bdfdcd018aa902cf0d
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.0.2-php8.3-apache
