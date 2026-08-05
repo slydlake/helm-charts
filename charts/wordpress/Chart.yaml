@@ -30,25 +30,10 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "deps: update docker.io/redis:8.10.0-trixie docker digest to 39353c6"
+      description: "deps: update docker.io/memcached:1.6.45 docker digest to eeb9eaa"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/5608f0bd1cb9f1f843e19c81d389e08017c6f49e
-    - kind: fixed
-      description: "deps: update docker.io/wordpress:7.0.2-php8.3-apache docker digest to b2d7e31"
-      links:
-        - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/9e7fc5d1a80a72e85bdbbdb6182827b43e6b3afa
-    - kind: fixed
-      description: "deps: update redis docker tag to v0.34.6"
-      links:
-        - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/d394924f91e9a1131c3f6e0e71b9e36384384c66
-    - kind: fixed
-      description: "deps: update valkey docker tag to v0.25.1"
-      links:
-        - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/00c08b0f0bbab56dca1a8d2a0a095ce2b6dfe2f5
+          url: https://github.com/SlyBase/helm-charts/commit/d5538b53a07b6bf93511399430cb92854d671f07
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.0.2-php8.3-apache
