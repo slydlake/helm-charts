@@ -30,35 +30,25 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "deps: update docker.io/memcached:1.6.45 docker digest to 0af07b2"
+      description: "deps: update docker.io/redis:8.10.0-trixie docker digest to 39353c6"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/4433b18ad214734c13a4ae65d23197c658fbd2ce
+          url: https://github.com/SlyBase/helm-charts/commit/5608f0bd1cb9f1f843e19c81d389e08017c6f49e
     - kind: fixed
-      description: "deps: update docker.io/memcached:1.6.45 docker digest to 7fb608d"
+      description: "deps: update docker.io/wordpress:7.0.2-php8.3-apache docker digest to b2d7e31"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/5a329a8fd90b90e9e998d98c1f4761b9b1661b70
+          url: https://github.com/SlyBase/helm-charts/commit/9e7fc5d1a80a72e85bdbbdb6182827b43e6b3afa
     - kind: fixed
-      description: "deps: update docker.io/redis:8.10.0-trixie docker digest to ba4c823"
+      description: "deps: update redis docker tag to v0.34.6"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/7e4d188d191be60c48379b4660f8ab7fde5a6cfd
+          url: https://github.com/SlyBase/helm-charts/commit/d394924f91e9a1131c3f6e0e71b9e36384384c66
     - kind: fixed
-      description: "deps: update docker.io/wordpress:7.0.2-php8.3-apache docker digest to ef1818e"
+      description: "deps: update valkey docker tag to v0.25.1"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/aabb567e5ce58d22bbb0572aaf34c257a112b88b
-    - kind: fixed
-      description: "deps: update mariadb docker tag to v0.16.8"
-      links:
-        - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/4e9e8c9365a3684ca19342c668fa16877c3b7c9d
-    - kind: fixed
-      description: "deps: update memcached docker tag to v0.14.4"
-      links:
-        - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/842c28cb96f4d61e327c30bdfdcd018aa902cf0d
+          url: https://github.com/SlyBase/helm-charts/commit/00c08b0f0bbab56dca1a8d2a0a095ce2b6dfe2f5
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.0.2-php8.3-apache
