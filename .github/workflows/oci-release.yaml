@@ -193,12 +193,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -n "$APP_TOKEN" ]; then
-            selected_token="$APP_TOKEN"
-            token_source="app"
-          else
+          # TEMPORARY: prefer GITHUB_TOKEN over the App token until the
+          # slybase-helm-charts-publisher App installation's package write
+          # access is fixed (ghcr.io currently rejects its pushes with
+          # "installation not allowed to Write organization package" even
+          # though the App declares packages:write). Revert to preferring
+          # APP_TOKEN once that's resolved.
+          if [ -n "$FALLBACK_TOKEN" ]; then
             selected_token="$FALLBACK_TOKEN"
             token_source="github"
+          else
+            selected_token="$APP_TOKEN"
+            token_source="app"
           fi
 
           echo "::add-mask::$selected_token"
