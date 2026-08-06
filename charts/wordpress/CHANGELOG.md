@@ -2,6 +2,13 @@
 
 All notable changes to this chart are documented here.
 
+## [5.4.7](https://github.com/SlyBase/helm-charts/compare/wordpress-v5.4.6...wordpress-v5.4.7) (2026-08-06)
+
+
+### Bug Fixes
+
+* **deps:** update redis docker tag to v0.34.9 ([#596](https://github.com/SlyBase/helm-charts/issues/596)) ([e07c266](https://github.com/SlyBase/helm-charts/commit/e07c2660cd43c0700fa50ede39bd349800704803))
+
 ## [5.4.6](https://github.com/SlyBase/helm-charts/compare/wordpress-v5.4.5...wordpress-v5.4.6) (2026-08-06)
 
 
