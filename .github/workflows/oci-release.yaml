@@ -193,12 +193,20 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -n "$APP_TOKEN" ]; then
-            selected_token="$APP_TOKEN"
-            token_source="app"
-          else
+          # GitHub App installation tokens cannot write to organization-owned
+          # GHCR packages regardless of the App's declared permissions or the
+          # package's "Manage Actions access" settings — this is a platform
+          # limitation, not a config gap (see
+          # https://github.com/orgs/community/discussions/78090 and
+          # https://github.com/orgs/community/discussions/50180). Always use
+          # GITHUB_TOKEN for the OCI push; keep APP_TOKEN generation only for
+          # whatever else in this workflow may still need App identity.
+          if [ -n "$FALLBACK_TOKEN" ]; then
             selected_token="$FALLBACK_TOKEN"
             token_source="github"
+          else
+            selected_token="$APP_TOKEN"
+            token_source="app"
           fi
 
           echo "::add-mask::$selected_token"
