@@ -4,7 +4,7 @@ description: >-
   Using the official WordPress image. This chart provides automation for
   installation, user management, plugin installation, and metrics.
 type: application
-version: 5.4.5
+version: 5.4.6
 appVersion: 7.0.1
 icon: >-
   https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
@@ -30,10 +30,15 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "deps: update docker.io/memcached:1.6.45 docker digest to eeb9eaa"
+      description: "deps: update memcached docker tag to v0.14.5"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/d5538b53a07b6bf93511399430cb92854d671f07
+          url: https://github.com/SlyBase/helm-charts/commit/a3839afbfee6d0d62b634d0311b5cb01f33b0700
+    - kind: fixed
+      description: "deps: update redis docker tag to v0.34.8"
+      links:
+        - name: GitHub
+          url: https://github.com/SlyBase/helm-charts/commit/1fb3d73f3439db6faaff70fc3b8cc69150cc2503
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.0.2-php8.3-apache
