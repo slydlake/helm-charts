@@ -4,12 +4,12 @@ dependencies:
   version: 0.14.6
 - name: redis
   repository: oci://registry-1.docker.io/cloudpirates
-  version: 0.34.15
+  version: 0.34.16
 - name: valkey
   repository: oci://registry-1.docker.io/cloudpirates
   version: 0.25.4
 - name: mariadb
   repository: oci://registry-1.docker.io/cloudpirates
   version: 0.16.9
-digest: sha256:f9a2b159d3412702c6bb20a882c47bd1986dcd22ade58fc9ecc55650412b54a1
-generated: "2026-08-14T07:38:58.967249927Z"
+digest: sha256:1d5f81133c328902fb263f1a119939035f224d0a284906b5765b3831c40ca155
+generated: "2026-08-14T07:41:24.815436425Z"
