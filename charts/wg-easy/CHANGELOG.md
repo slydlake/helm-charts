@@ -2,6 +2,13 @@
 
 All notable changes to this chart are documented here.
 
+## [1.2.0](https://github.com/SlyBase/helm-charts/compare/wg-easy-v1.1.1...wg-easy-v1.2.0) (2026-08-14)
+
+
+### Features
+
+* **deps:** update ghcr.io/wg-easy/wg-easy docker tag to v15.4.0 ([#623](https://github.com/SlyBase/helm-charts/issues/623)) ([6858a1d](https://github.com/SlyBase/helm-charts/commit/6858a1dc682b32c982ccb5c0beb0226f16016d73))
+
 ## [1.1.1](https://github.com/SlyBase/helm-charts/compare/wg-easy-v1.1.0...wg-easy-v1.1.1) (2026-08-03)
 
 
