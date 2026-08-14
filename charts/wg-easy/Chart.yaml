@@ -4,7 +4,7 @@ description: >-
   Using the offical wg-easy/wg-easy image with almost any environment variables
   for K8s. Supporting Init Mode.
 type: application
-version: 1.1.1
+version: 1.2.0
 appVersion: 15.3.0
 icon: >-
   https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wg-easy/app.png
@@ -25,11 +25,11 @@ annotations:
     - name: slydlake
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
-    - kind: fixed
-      description: "wg-easy: render extra volumes at pod level"
+    - kind: added
+      description: "deps: update ghcr.io/wg-easy/wg-easy docker tag to v15.4.0"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/c9b49ccd34f668c68482b815fb05294dba9f5942
+          url: https://github.com/SlyBase/helm-charts/commit/6858a1dc682b32c982ccb5c0beb0226f16016d73
   artifacthub.io/containsSecurityUpdates: false
   artifacthub.io/images: |
     - name: wg-easy
