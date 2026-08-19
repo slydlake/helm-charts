@@ -4,7 +4,7 @@ description: >-
   Using the official WordPress image. This chart provides automation for
   installation, user management, plugin installation, and metrics.
 type: application
-version: 5.4.18
+version: 5.4.19
 appVersion: 7.0.1
 icon: >-
   https://raw.githubusercontent.com/slydlake/helm-charts/refs/heads/main/charts/wordpress/app.png
@@ -30,10 +30,10 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "deps: update docker.io/mariadb:12.3.2-noble docker digest to c237fd5"
+      description: "deps: update mariadb docker tag to v0.16.10"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/353c9556d216ca706fda1d281ae61f789947352c
+          url: https://github.com/SlyBase/helm-charts/commit/05a4e858885e6c7ada54eb6eed7bd13d25c83362
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.0.4-php8.3-apache
