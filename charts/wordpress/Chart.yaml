@@ -30,10 +30,10 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "deps: update docker.io/wordpress:7.1.0-php8.3-apache docker digest to 65919a9"
+      description: "deps: update redis docker tag to v0.34.18"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/5206d960459b658cf51f3a7f634dcfdf559d0ed1
+          url: https://github.com/SlyBase/helm-charts/commit/6bc4a921abde36f95ed43e166f1add6f4f3fd939
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.1.0-php8.3-apache
