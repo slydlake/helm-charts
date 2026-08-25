@@ -30,10 +30,25 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "deps: update docker.io/mariadb docker tag to v12.3.3"
+      description: "deps: update docker.io/memcached:1.6.45 docker digest to 75c93cc"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/8c057812f53089521bc80933d772652d51f77191
+          url: https://github.com/SlyBase/helm-charts/commit/ab6df75f7aeab49f32bcf04b136d0b057d60077b
+    - kind: fixed
+      description: "deps: update docker.io/redis:8.10.1-trixie docker digest to 9c5c616"
+      links:
+        - name: GitHub
+          url: https://github.com/SlyBase/helm-charts/commit/31d11ad33b624feb708c894d152556ed2bae5c7a
+    - kind: fixed
+      description: "deps: update docker.io/wordpress:7.1.0-php8.3-apache docker digest to 8801a12"
+      links:
+        - name: GitHub
+          url: https://github.com/SlyBase/helm-charts/commit/06baf8c8547b1c315e308aba254619bc62b97704
+    - kind: fixed
+      description: "deps: update docker.io/wordpress:7.1.0-php8.3-apache docker digest to ae66461"
+      links:
+        - name: GitHub
+          url: https://github.com/SlyBase/helm-charts/commit/293001899c2e69adf2ea461c4c6dc1861c4cad67
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.1.0-php8.3-apache
