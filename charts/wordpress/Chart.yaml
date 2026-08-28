@@ -30,20 +30,25 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "deps: update mariadb docker tag to v0.16.12"
+      description: "deps: update docker.io/redis:8.10.1-trixie docker digest to 298e5b3"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/22369442aa9b323ae723d50b54a9615342036437
+          url: https://github.com/SlyBase/helm-charts/commit/0c4cc2da0ceb15d1d544ce5131a692cd3f25e72e
     - kind: fixed
-      description: "deps: update memcached docker tag to v0.14.8"
+      description: "deps: update redis docker tag to v0.34.23"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/465d9c99314526ec832645dfe3433a079e4bb28e
+          url: https://github.com/SlyBase/helm-charts/commit/7f7ea17e2d4b944e573aa408d47b8bc3f2aba71a
     - kind: fixed
-      description: "deps: update redis docker tag to v0.34.21"
+      description: "deps: update redis docker tag to v0.34.24"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/e67111c11be06e4cd98358933a7bbd26353d01aa
+          url: https://github.com/SlyBase/helm-charts/commit/1f9c25334c55500446f07b7bbbdccd39d55bcd3c
+    - kind: fixed
+      description: "deps: update valkey docker tag to v0.25.7"
+      links:
+        - name: GitHub
+          url: https://github.com/SlyBase/helm-charts/commit/faa65b66de094de034283748b3de61cec2747041
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.1.0-php8.3-apache
