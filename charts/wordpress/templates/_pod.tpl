@@ -471,7 +471,7 @@
             - sh
             - -ec
             - |
-              echo "Memcached bootstrap: installation startet..."
+              echo "Memcached bootstrap: installation started"
               export DEBIAN_FRONTEND=noninteractive
               cat >/etc/apt/apt.conf.d/99sandboxroot <<'EOF'
               APT::Sandbox::User "root";
@@ -501,7 +501,7 @@
               if [ -f /var/www/html/wp-content/plugins/memcached/object-cache.php ]; then
                 cp /var/www/html/wp-content/plugins/memcached/object-cache.php /var/www/html/wp-content/object-cache.php
               fi
-              echo "Memcached bootstrap: installation beendet."
+              echo "Memcached bootstrap: installation finished"
               rm -f /etc/apt/apt.conf.d/99sandboxroot
               rm -rf /var/lib/apt/lists/*
           volumeMounts:
@@ -536,7 +536,7 @@
             - sh
             - -ec
             - |
-              echo "Redis bootstrap: installation startet..."
+              echo "Redis bootstrap: installation started"
               if [ "${DEBUG:-false}" = "true" ]; then
                 pecl install redis
               else
@@ -550,7 +550,7 @@
               done
               echo "extension=/opt/php-ext/redis.so" > /opt/php-ext/conf.d/zz-redis.ini
               PHP_INI_SCAN_DIR="/usr/local/etc/php/conf.d:/opt/php-ext/conf.d" LD_LIBRARY_PATH="/opt/php-ext/lib" php -m | grep -qi '^redis$' || { echo "ERROR: redis extension failed to load"; exit 1; }
-              echo "Redis bootstrap: installation beendet."
+              echo "Redis bootstrap: installation finished"
           volumeMounts:
             - name: wordpress-php-ext
               mountPath: /opt/php-ext
