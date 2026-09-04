@@ -30,10 +30,10 @@ annotations:
       email: sly.dlake@gmail.com
   artifacthub.io/changes: |
     - kind: fixed
-      description: "deps: update docker.io/valkey/valkey docker tag to v9.1.2"
+      description: "deps: update docker.io/valkey/valkey:9.1.2-trixie docker digest to 475ee65"
       links:
         - name: GitHub
-          url: https://github.com/SlyBase/helm-charts/commit/5eb7c1c7834480a3f219696bc1184ceb1def2f50
+          url: https://github.com/SlyBase/helm-charts/commit/a9beb2a684a2f0be3ae76a2bc198ddbf43735ee6
   artifacthub.io/images: |
     - name: wordpress
       image: docker.io/wordpress:7.1.0-php8.3-apache
